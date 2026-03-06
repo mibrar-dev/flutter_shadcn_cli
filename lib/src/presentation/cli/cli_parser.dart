@@ -53,6 +53,30 @@ ArgParser buildCliParser() {
         ..addOption('apply', abbr: 'a')
         ..addOption('apply-file', help: 'Apply theme from local JSON file')
         ..addOption('apply-url', help: 'Apply theme from JSON URL')
+        ..addCommand(
+          'widget',
+          ArgParser()
+            ..addFlag('list', negatable: false)
+            ..addFlag(
+              'list-targets',
+              negatable: false,
+              help: 'List theme targets for the selected component',
+            )
+            ..addOption(
+              'apply-file',
+              help: 'Apply widget theme from a local JSON file',
+            )
+            ..addOption(
+              'apply-url',
+              help: 'Apply widget theme from a JSON URL',
+            )
+            ..addFlag(
+              'reset',
+              negatable: false,
+              help: 'Reset widget theme overrides for the selected component',
+            )
+            ..addFlag('help', abbr: 'h', negatable: false),
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
@@ -253,14 +277,23 @@ List<String> normalizeCliArgs(List<String> args) {
   if (args.isEmpty) {
     return args;
   }
+  final normalized = List<String>.from(args);
+  if (normalized.length >= 3 &&
+      normalized.first == 'theme' &&
+      normalized[1].startsWith('@') &&
+      !normalized[1].contains('/') &&
+      normalized[2] == 'widget') {
+    final namespaceToken = normalized.removeAt(1);
+    normalized.insert(2, namespaceToken);
+  }
   final aliasMap = <String, String>{
     'ls': 'list',
     'rm': 'remove',
     'i': 'info',
   };
-  final mapped = aliasMap[args.first];
+  final mapped = aliasMap[normalized.first];
   if (mapped == null) {
-    return args;
+    return normalized;
   }
-  return [mapped, ...args.skip(1)];
+  return [mapped, ...normalized.skip(1)];
 }

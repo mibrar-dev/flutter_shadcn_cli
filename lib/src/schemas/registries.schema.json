@@ -133,6 +133,9 @@
         "themesSchemaJson": {
           "$ref": "#/$defs/relativePath"
         },
+        "widgetThemesJson": {
+          "$ref": "#/$defs/relativePath"
+        },
         "themeConverterDart": {
           "description": "Optional Dart converter script used to transform registry-specific theme JSON into the CLI theme DTO.",
           "oneOf": [

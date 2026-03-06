@@ -351,6 +351,7 @@ void main() {
           'indexSchemaJson': 'registry/manifests/index.schema.json',
           'themesJson': 'registry/manifests/theme.index.json',
           'themesSchemaJson': 'registry/manifests/themes.index.schema.json',
+          'widgetThemesJson': 'registry/manifests/widget_theme.index.json',
           'themeConverterDart': 'registry/manifests/theme_converter.dart',
           'folderStructureJson': 'registry/manifests/folder_structure.json',
           'metaJson': 'registry/manifests/meta.json',
@@ -375,6 +376,10 @@ void main() {
       expect(
         entry.themesSchemaPath,
         'registry/manifests/themes.index.schema.json',
+      );
+      expect(
+        entry.widgetThemesPath,
+        'registry/manifests/widget_theme.index.json',
       );
       expect(
         entry.themeConverterDartPath,

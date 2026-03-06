@@ -20,7 +20,10 @@ extension InstallerPubspecPart on Installer {
     if (installPathOverride != null && installPathOverride!.isNotEmpty) {
       return _expandAliases(installPathOverride!, config?.pathAliases);
     }
-    final override = config?.installPath;
+    final registryEntry = registryNamespace == null
+        ? null
+        : config?.registryConfig(registryNamespace);
+    final override = registryEntry?.installPath ?? config?.installPath;
     if (override != null && override.isNotEmpty) {
       return _expandAliases(override, config?.pathAliases);
     }
@@ -31,7 +34,10 @@ extension InstallerPubspecPart on Installer {
     if (sharedPathOverride != null && sharedPathOverride!.isNotEmpty) {
       return _expandAliases(sharedPathOverride!, config?.pathAliases);
     }
-    final override = config?.sharedPath;
+    final registryEntry = registryNamespace == null
+        ? null
+        : config?.registryConfig(registryNamespace);
+    final override = registryEntry?.sharedPath ?? config?.sharedPath;
     if (override != null && override.isNotEmpty) {
       return _expandAliases(override, config?.pathAliases);
     }
@@ -50,13 +56,15 @@ extension InstallerPubspecPart on Installer {
     if (includeOverride.isNotEmpty) {
       return optionalKinds.any(includeOverride.contains);
     }
-    if (excludeOverride.isNotEmpty && optionalKinds.any(excludeOverride.contains)) {
+    if (excludeOverride.isNotEmpty &&
+        optionalKinds.any(excludeOverride.contains)) {
       return false;
     }
 
     final config = _cachedConfig ?? const ShadcnConfig();
-    final registryEntry =
-        registryNamespace == null ? null : config.registryConfig(registryNamespace);
+    final registryEntry = registryNamespace == null
+        ? null
+        : config.registryConfig(registryNamespace);
 
     final includeFromConfig = _normalizeFileKinds(
       registryEntry?.includeFiles ?? config.includeFiles ?? const <String>[],
@@ -91,7 +99,9 @@ extension InstallerPubspecPart on Installer {
     if (base == 'readme.md' || base.contains('readme')) {
       kinds.add('readme');
     }
-    if (base == 'meta.json' || base.startsWith('meta.') || base.contains('meta')) {
+    if (base == 'meta.json' ||
+        base.startsWith('meta.') ||
+        base.contains('meta')) {
       kinds.add('meta');
     }
     if (base.contains('preview')) {
@@ -219,15 +229,21 @@ extension InstallerPubspecPart on Installer {
   }
 
   _AssetsUpdateResult _applyAssets(List<String> lines, List<String> assets) {
-    final normalized = assets.where((a) => a.trim().isNotEmpty).toSet().toList()..sort();
+    final normalized = assets.where((a) => a.trim().isNotEmpty).toSet().toList()
+      ..sort();
     if (normalized.isEmpty) {
       return _AssetsUpdateResult(lines, const []);
     }
 
     final flutterRange = _findFlutterSection(lines);
     if (flutterRange.start == -1) {
-      final addedLines = <String>['flutter:', '  assets:', ...normalized.map((a) => '    - $a')];
-      return _AssetsUpdateResult([...lines, if (lines.isNotEmpty) '', ...addedLines], normalized);
+      final addedLines = <String>[
+        'flutter:',
+        '  assets:',
+        ...normalized.map((a) => '    - $a')
+      ];
+      return _AssetsUpdateResult(
+          [...lines, if (lines.isNotEmpty) '', ...addedLines], normalized);
     }
 
     final flutterIndent = _leadingSpaces(lines[flutterRange.start]);
@@ -266,7 +282,8 @@ extension InstallerPubspecPart on Installer {
     if (additions.isEmpty) {
       return _AssetsUpdateResult(lines, const []);
     }
-    final updated = [...lines]..insertAll(insertAt, additions.map((a) => '$assetItemIndent- $a'));
+    final updated = [...lines]
+      ..insertAll(insertAt, additions.map((a) => '$assetItemIndent- $a'));
     return _AssetsUpdateResult(updated, additions);
   }
 
@@ -279,7 +296,8 @@ extension InstallerPubspecPart on Installer {
     if (flutterRange.start == -1) {
       final addedLines = <String>['flutter:', ..._formatFontSection(fonts, 2)];
       final addedFamilies = fonts.map((f) => f.family).toList()..sort();
-      return _FontsUpdateResult([...lines, if (lines.isNotEmpty) '', ...addedLines], addedFamilies);
+      return _FontsUpdateResult(
+          [...lines, if (lines.isNotEmpty) '', ...addedLines], addedFamilies);
     }
 
     final flutterIndent = _leadingSpaces(lines[flutterRange.start]);
@@ -305,7 +323,8 @@ extension InstallerPubspecPart on Installer {
       }
     }
 
-    final additions = fonts.where((f) => !existingFamilies.contains(f.family)).toList();
+    final additions =
+        fonts.where((f) => !existingFamilies.contains(f.family)).toList();
     if (additions.isEmpty) {
       return _FontsUpdateResult(lines, const []);
     }
@@ -383,7 +402,8 @@ extension InstallerPubspecPart on Installer {
       updated.add('');
       updated.add('dependencies:');
       const indent = '  ';
-      final entries = additions.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+      final entries = additions.entries.toList()
+        ..sort((a, b) => a.key.compareTo(b.key));
       for (final entry in entries) {
         updated.addAll(_formatDependencyLines(entry.key, entry.value, indent));
       }
@@ -407,16 +427,19 @@ extension InstallerPubspecPart on Installer {
       insertIndex++;
     }
 
-    final entries = additions.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+    final entries = additions.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
     final linesToInsert = <String>[];
     for (final entry in entries) {
-      linesToInsert.addAll(_formatDependencyLines(entry.key, entry.value, childIndent));
+      linesToInsert
+          .addAll(_formatDependencyLines(entry.key, entry.value, childIndent));
     }
     updated.insertAll(insertIndex, linesToInsert);
     return updated;
   }
 
-  List<String> _formatDependencyLines(String key, dynamic value, String indent) {
+  List<String> _formatDependencyLines(
+      String key, dynamic value, String indent) {
     if (value is String) {
       final trimmed = value.trim();
       if (trimmed.startsWith('sdk:')) {

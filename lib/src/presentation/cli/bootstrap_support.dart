@@ -9,7 +9,6 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/registry_bootstrap_selec
 import 'package:flutter_shadcn_cli/src/presentation/cli/registry_selection.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
 
-
 Future<BootstrapRouteDecision> resolveBootstrapRouteDecision({
   required ArgResults argResults,
   required ShadcnConfig config,
@@ -54,8 +53,13 @@ String? resolveCommandNamespaceOverride(ArgResults argResults) {
     }
   } else if (const {'theme', 'sync', 'validate', 'audit', 'deps'}
       .contains(argResults.command?.name)) {
-    final rest = argResults.command?.rest ?? const <String>[];
-    if (rest.isNotEmpty && rest.first.startsWith('@') && !rest.first.contains('/')) {
+    final command = argResults.command;
+    final rest = command?.command?.name == 'widget'
+        ? command?.command?.rest ?? const <String>[]
+        : command?.rest ?? const <String>[];
+    if (rest.isNotEmpty &&
+        rest.first.startsWith('@') &&
+        !rest.first.contains('/')) {
       return rest.first.substring(1).trim();
     }
   }

@@ -69,7 +69,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       final directory = await _loadDirectory();
       for (final entry in directory.registries) {
         final existing = summaries[entry.namespace];
-        final mergedSource = existing == null ? 'directory' : 'config+directory';
+        final mergedSource =
+            existing == null ? 'directory' : 'config+directory';
         summaries[entry.namespace] = RegistrySummary(
           namespace: entry.namespace,
           displayName: entry.displayName,
@@ -80,8 +81,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
           baseUrl: existing?.baseUrl ?? entry.baseUrl,
           registryPath: existing?.registryPath,
           installRoot: existing?.installRoot ?? entry.installRoot,
-          capabilitySharedGroups:
-              existing?.capabilitySharedGroups ?? entry.capabilities.sharedGroups,
+          capabilitySharedGroups: existing?.capabilitySharedGroups ??
+              entry.capabilities.sharedGroups,
           capabilityComposites:
               existing?.capabilityComposites ?? entry.capabilities.composites,
           capabilityTheme:
@@ -139,7 +140,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     RegistrySource source, {
     required String projectRoot,
   }) async {
-    final cacheKey = source.namespace.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final cacheKey =
+        source.namespace.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
     if (_registryCache.containsKey(cacheKey)) {
       return _registryCache[cacheKey]!;
     }
@@ -177,7 +179,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     }
 
     if (configEntry != null &&
-        ((configEntry.registryMode == 'local' && configEntry.registryPath != null) ||
+        ((configEntry.registryMode == 'local' &&
+                configEntry.registryPath != null) ||
             configEntry.registryUrl != null ||
             configEntry.baseUrl != null)) {
       final effectiveEntry = directoryEntry == null
@@ -192,7 +195,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     }
 
     if (!allowDirectoryFallback) {
-      throw MultiRegistryException('Registry namespace "$namespace" is not configured.');
+      throw MultiRegistryException(
+          'Registry namespace "$namespace" is not configured.');
     }
 
     final entry = directoryEntry;
@@ -219,6 +223,18 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
             registryMode: existing.registryMode ?? 'remote',
             registryUrl: existing.registryUrl ?? entry.baseUrl,
             baseUrl: existing.baseUrl ?? entry.baseUrl,
+            componentsPath: existing.componentsPath ?? entry.componentsPath,
+            componentsSchemaPath:
+                existing.componentsSchemaPath ?? entry.componentsSchemaPath,
+            indexPath: existing.indexPath ?? entry.indexPath,
+            indexSchemaPath: existing.indexSchemaPath ?? entry.indexSchemaPath,
+            themesPath: existing.themesPath ?? entry.themesPath,
+            themesSchemaPath:
+                existing.themesSchemaPath ?? entry.themesSchemaPath,
+            widgetThemesPath:
+                existing.widgetThemesPath ?? entry.widgetThemesPath,
+            themeConverterDartPath:
+                existing.themeConverterDartPath ?? entry.themeConverterDartPath,
             installPath: existing.installPath ?? installRoot,
             sharedPath: existing.sharedPath ?? sharedRoot,
             enabled: true,
@@ -227,6 +243,14 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
             registryMode: 'remote',
             registryUrl: entry.baseUrl,
             baseUrl: entry.baseUrl,
+            componentsPath: entry.componentsPath,
+            componentsSchemaPath: entry.componentsSchemaPath,
+            indexPath: entry.indexPath,
+            indexSchemaPath: entry.indexSchemaPath,
+            themesPath: entry.themesPath,
+            themesSchemaPath: entry.themesSchemaPath,
+            widgetThemesPath: entry.widgetThemesPath,
+            themeConverterDartPath: entry.themeConverterDartPath,
             installPath: installRoot,
             sharedPath: sharedRoot,
             enabled: true,
@@ -242,24 +266,29 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     return configEntry.copyWith(
       baseUrl: configEntry.baseUrl ?? directoryEntry.baseUrl,
       registryUrl: configEntry.registryUrl ?? directoryEntry.baseUrl,
-      componentsPath: configEntry.componentsPath ?? directoryEntry.componentsPath,
-      componentsSchemaPath:
-          configEntry.componentsSchemaPath ?? directoryEntry.componentsSchemaPath,
+      componentsPath:
+          configEntry.componentsPath ?? directoryEntry.componentsPath,
+      componentsSchemaPath: configEntry.componentsSchemaPath ??
+          directoryEntry.componentsSchemaPath,
       indexPath: configEntry.indexPath ?? directoryEntry.indexPath,
-      indexSchemaPath: configEntry.indexSchemaPath ?? directoryEntry.indexSchemaPath,
+      indexSchemaPath:
+          configEntry.indexSchemaPath ?? directoryEntry.indexSchemaPath,
       themesPath: configEntry.themesPath ?? directoryEntry.themesPath,
       themesSchemaPath:
           configEntry.themesSchemaPath ?? directoryEntry.themesSchemaPath,
+      widgetThemesPath:
+          configEntry.widgetThemesPath ?? directoryEntry.widgetThemesPath,
       folderStructurePath:
           configEntry.folderStructurePath ?? directoryEntry.folderStructurePath,
       metaPath: configEntry.metaPath ?? directoryEntry.metaPath,
-      themeConverterDartPath:
-          configEntry.themeConverterDartPath ?? directoryEntry.themeConverterDartPath,
-      capabilitySharedGroups:
-          configEntry.capabilitySharedGroups ?? directoryEntry.capabilities.sharedGroups,
-      capabilityComposites:
-          configEntry.capabilityComposites ?? directoryEntry.capabilities.composites,
-      capabilityTheme: configEntry.capabilityTheme ?? directoryEntry.capabilities.theme,
+      themeConverterDartPath: configEntry.themeConverterDartPath ??
+          directoryEntry.themeConverterDartPath,
+      capabilitySharedGroups: configEntry.capabilitySharedGroups ??
+          directoryEntry.capabilities.sharedGroups,
+      capabilityComposites: configEntry.capabilityComposites ??
+          directoryEntry.capabilities.composites,
+      capabilityTheme:
+          configEntry.capabilityTheme ?? directoryEntry.capabilities.theme,
       trustMode: configEntry.trustMode ?? directoryEntry.trust.mode,
       trustSha256: configEntry.trustSha256 ?? directoryEntry.trust.sha256,
     );

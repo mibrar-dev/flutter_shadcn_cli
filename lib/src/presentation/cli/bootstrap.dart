@@ -160,7 +160,8 @@ Future<void> runCliBootstrap(List<String> arguments) async {
       return;
     }
 
-    final commandNamespaceOverride = resolveCommandNamespaceOverride(argResults);
+    final commandNamespaceOverride =
+        resolveCommandNamespaceOverride(argResults);
     Registry? registry;
     RegistrySelection? preloadedSelection;
     try {
@@ -191,10 +192,15 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             targetDir: targetDir,
             logger: logger,
             registryNamespace: preloadedSelection?.namespace,
+            registryBaseUrlOverride: preloadedSelection?.sourceRoot.root,
+            themesPathOverride: preloadedSelection?.themesPath,
+            themesSchemaPathOverride: preloadedSelection?.themesSchemaPath,
+            widgetThemesPathOverride: preloadedSelection?.widgetThemesPath,
+            themeConverterDartPathOverride:
+                preloadedSelection?.themeConverterDartPath,
             enableSharedGroups:
                 preloadedSelection?.capabilitySharedGroups ?? true,
-            enableComposites:
-                preloadedSelection?.capabilityComposites ?? true,
+            enableComposites: preloadedSelection?.capabilityComposites ?? true,
           );
 
     final command = argResults.command!;
@@ -205,14 +211,14 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             multiRegistry: multiRegistry,
           ),
       'default': () async {
-            final result = await runDefaultCommand(
-              command: command,
-              config: config,
-              multiRegistry: multiRegistry,
-            );
-            config = result.config;
-            return result.exitCode;
-          },
+        final result = await runDefaultCommand(
+          command: command,
+          config: config,
+          multiRegistry: multiRegistry,
+        );
+        config = result.config;
+        return result.exitCode;
+      },
       'init': () => runInitCommand(
             initCommand: command,
             multiRegistry: multiRegistry,
@@ -270,14 +276,14 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             logger: logger,
           ),
       'platform': () async {
-            final platformResult = await runPlatformCommand(
-              command: command,
-              config: config,
-              targetDir: targetDir,
-            );
-            config = platformResult.config;
-            return platformResult.exitCode;
-          },
+        final platformResult = await runPlatformCommand(
+          command: command,
+          config: config,
+          targetDir: targetDir,
+        );
+        config = platformResult.config;
+        return platformResult.exitCode;
+      },
       'sync': () => runSyncCommand(
             command: command,
             installer: installer,
@@ -310,18 +316,18 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             logger: logger,
           ),
       'install-skill': () async {
-            final selection =
-                resolveRegistrySelection(argResults, roots, config, offline);
-            final defaultSkillsUrl = config.registryUrl?.isNotEmpty == true
-                ? config.registryUrl!
-                : selection.sourceRoot.root;
-            return runInstallSkillCommand(
-              command: command,
-              targetDir: targetDir,
-              defaultSkillsUrl: defaultSkillsUrl,
-              logger: logger,
-            );
-          },
+        final selection =
+            resolveRegistrySelection(argResults, roots, config, offline);
+        final defaultSkillsUrl = config.registryUrl?.isNotEmpty == true
+            ? config.registryUrl!
+            : selection.sourceRoot.root;
+        return runInstallSkillCommand(
+          command: command,
+          targetDir: targetDir,
+          defaultSkillsUrl: defaultSkillsUrl,
+          logger: logger,
+        );
+      },
       'version': () => runVersionCommand(
             command: command,
             logger: logger,

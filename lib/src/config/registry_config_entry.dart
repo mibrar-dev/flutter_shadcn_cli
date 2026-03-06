@@ -9,6 +9,7 @@ class RegistryConfigEntry {
   final String? indexSchemaPath;
   final String? themesPath;
   final String? themesSchemaPath;
+  final String? widgetThemesPath;
   final String? folderStructurePath;
   final String? metaPath;
   final String? themeConverterDartPath;
@@ -37,6 +38,7 @@ class RegistryConfigEntry {
     this.indexSchemaPath,
     this.themesPath,
     this.themesSchemaPath,
+    this.widgetThemesPath,
     this.folderStructurePath,
     this.metaPath,
     this.themeConverterDartPath,
@@ -67,6 +69,7 @@ class RegistryConfigEntry {
       indexSchemaPath: json['indexSchemaPath'] as String?,
       themesPath: json['themesPath'] as String?,
       themesSchemaPath: json['themesSchemaPath'] as String?,
+      widgetThemesPath: json['widgetThemesPath'] as String?,
       folderStructurePath: json['folderStructurePath'] as String?,
       metaPath: json['metaPath'] as String?,
       themeConverterDartPath: json['themeConverterDartPath'] as String?,
@@ -104,6 +107,7 @@ class RegistryConfigEntry {
     add('indexSchemaPath', indexSchemaPath);
     add('themesPath', themesPath);
     add('themesSchemaPath', themesSchemaPath);
+    add('widgetThemesPath', widgetThemesPath);
     add('folderStructurePath', folderStructurePath);
     add('metaPath', metaPath);
     add('themeConverterDartPath', themeConverterDartPath);
@@ -133,6 +137,7 @@ class RegistryConfigEntry {
     String? indexSchemaPath,
     String? themesPath,
     String? themesSchemaPath,
+    String? widgetThemesPath,
     String? folderStructurePath,
     String? metaPath,
     String? themeConverterDartPath,
@@ -161,6 +166,7 @@ class RegistryConfigEntry {
       indexSchemaPath: indexSchemaPath ?? this.indexSchemaPath,
       themesPath: themesPath ?? this.themesPath,
       themesSchemaPath: themesSchemaPath ?? this.themesSchemaPath,
+      widgetThemesPath: widgetThemesPath ?? this.widgetThemesPath,
       folderStructurePath: folderStructurePath ?? this.folderStructurePath,
       metaPath: metaPath ?? this.metaPath,
       themeConverterDartPath:
