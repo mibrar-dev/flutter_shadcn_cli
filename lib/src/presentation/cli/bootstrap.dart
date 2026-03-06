@@ -195,7 +195,6 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             registryBaseUrlOverride: preloadedSelection?.sourceRoot.root,
             themesPathOverride: preloadedSelection?.themesPath,
             themesSchemaPathOverride: preloadedSelection?.themesSchemaPath,
-            widgetThemesPathOverride: preloadedSelection?.widgetThemesPath,
             themeConverterDartPathOverride:
                 preloadedSelection?.themeConverterDartPath,
             enableSharedGroups:

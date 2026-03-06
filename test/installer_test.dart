@@ -51,6 +51,10 @@ void main() {
         registry: registry,
         targetDir: targetRoot.path,
         logger: CliLogger(),
+        registryBaseUrlOverride: p.dirname(registryRoot.path),
+        themesPathOverride: 'registry/manifests/theme.index.json',
+        themeConverterDartPathOverride:
+            'registry/manifests/theme_converter.dart',
       );
 
       await installer.addComponent('button');
@@ -197,6 +201,10 @@ void main() {
         registry: registry,
         targetDir: targetRoot.path,
         logger: CliLogger(),
+        registryBaseUrlOverride: p.dirname(registryRoot.path),
+        themesPathOverride: 'registry/manifests/theme.index.json',
+        themeConverterDartPathOverride:
+            'registry/manifests/theme_converter.dart',
       );
 
       await installer.addComponent('button');
@@ -234,6 +242,10 @@ void main() {
         registry: registry,
         targetDir: targetRoot.path,
         logger: CliLogger(),
+        registryBaseUrlOverride: p.dirname(registryRoot.path),
+        themesPathOverride: 'registry/manifests/theme.index.json',
+        themeConverterDartPathOverride:
+            'registry/manifests/theme_converter.dart',
       );
 
       await installer.addComponent('button');
@@ -270,6 +282,10 @@ void main() {
         registry: registry,
         targetDir: targetRoot.path,
         logger: CliLogger(),
+        registryBaseUrlOverride: p.dirname(registryRoot.path),
+        themesPathOverride: 'registry/manifests/theme.index.json',
+        themeConverterDartPathOverride:
+            'registry/manifests/theme_converter.dart',
       );
 
       await installer.addComponent('button');
@@ -612,6 +628,10 @@ void main() {
         registry: registry,
         targetDir: targetRoot.path,
         logger: CliLogger(),
+        registryBaseUrlOverride: p.dirname(registryRoot.path),
+        themesPathOverride: 'registry/manifests/theme.index.json',
+        themeConverterDartPathOverride:
+            'registry/manifests/theme_converter.dart',
       );
 
       await installer.init(skipPrompts: true);
@@ -831,6 +851,114 @@ class ColorSchemes {
 
   File(p.join(registryRoot.path, 'components.json')).writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(registryJson));
+
+  File(p.join(registryRoot.path, 'manifests', 'theme.index.json'))
+    ..createSync(recursive: true)
+    ..writeAsStringSync(
+      const JsonEncoder.withIndent('  ').convert({
+        'themes': [
+          {
+            'id': 'modern-minimal',
+            'name': 'Modern Minimal',
+            'file': 'themes_preset/modern-minimal.json',
+          }
+        ],
+      }),
+    );
+
+  File(p.join(
+      registryRoot.path, 'manifests', 'themes_preset', 'modern-minimal.json'))
+    ..createSync(recursive: true)
+    ..writeAsStringSync(
+      const JsonEncoder.withIndent('  ').convert({
+        'id': 'modern-minimal',
+        'name': 'Modern Minimal',
+        'light': {
+          'background': '0xFFFFFFFF',
+          'foreground': '0xFF111111',
+          'card': '0xFFFFFFFF',
+          'cardForeground': '0xFF111111',
+          'popover': '0xFFFFFFFF',
+          'popoverForeground': '0xFF111111',
+          'primary': '0xFF111111',
+          'primaryForeground': '0xFFFFFFFF',
+          'secondary': '0xFF222222',
+          'secondaryForeground': '0xFFFFFFFF',
+          'muted': '0xFFF5F5F5',
+          'mutedForeground': '0xFF555555',
+          'accent': '0xFFF0F0F0',
+          'accentForeground': '0xFF111111',
+          'destructive': '0xFFCC0000',
+          'destructiveForeground': '0xFFFFFFFF',
+          'border': '0xFFE0E0E0',
+          'input': '0xFFE0E0E0',
+          'ring': '0xFF111111',
+          'chart1': '0xFF111111',
+          'chart2': '0xFF222222',
+          'chart3': '0xFF333333',
+          'chart4': '0xFF444444',
+          'chart5': '0xFF555555',
+          'sidebar': '0xFFFFFFFF',
+          'sidebarForeground': '0xFF111111',
+          'sidebarPrimary': '0xFF111111',
+          'sidebarPrimaryForeground': '0xFFFFFFFF',
+          'sidebarAccent': '0xFFF0F0F0',
+          'sidebarAccentForeground': '0xFF111111',
+          'sidebarBorder': '0xFFE0E0E0',
+          'sidebarRing': '0xFF111111'
+        },
+        'dark': {
+          'background': '0xFF111111',
+          'foreground': '0xFFFFFFFF',
+          'card': '0xFF111111',
+          'cardForeground': '0xFFFFFFFF',
+          'popover': '0xFF111111',
+          'popoverForeground': '0xFFFFFFFF',
+          'primary': '0xFFFFFFFF',
+          'primaryForeground': '0xFF111111',
+          'secondary': '0xFF222222',
+          'secondaryForeground': '0xFFFFFFFF',
+          'muted': '0xFF1A1A1A',
+          'mutedForeground': '0xFFBBBBBB',
+          'accent': '0xFF2A2A2A',
+          'accentForeground': '0xFFFFFFFF',
+          'destructive': '0xFFFF5555',
+          'destructiveForeground': '0xFF111111',
+          'border': '0xFF333333',
+          'input': '0xFF333333',
+          'ring': '0xFFFFFFFF',
+          'chart1': '0xFFFFFFFF',
+          'chart2': '0xFFDDDDDD',
+          'chart3': '0xFFBBBBBB',
+          'chart4': '0xFF999999',
+          'chart5': '0xFF777777',
+          'sidebar': '0xFF111111',
+          'sidebarForeground': '0xFFFFFFFF',
+          'sidebarPrimary': '0xFFFFFFFF',
+          'sidebarPrimaryForeground': '0xFF111111',
+          'sidebarAccent': '0xFF2A2A2A',
+          'sidebarAccentForeground': '0xFFFFFFFF',
+          'sidebarBorder': '0xFF333333',
+          'sidebarRing': '0xFFFFFFFF'
+        }
+      }),
+    );
+
+  File(p.join(registryRoot.path, 'manifests', 'theme_converter.dart'))
+    ..createSync(recursive: true)
+    ..writeAsStringSync(r'''
+import 'dart:convert';
+import 'dart:io';
+
+Future<void> main(List<String> args) async {
+  final request =
+      jsonDecode(await File(args.first).readAsString()) as Map<String, dynamic>;
+  stdout.write(jsonEncode({
+    'scope': request['scope'],
+    'installPlan': {'operations': []},
+  }));
+}
+''');
 }
 
 void _writePubspec(Directory targetRoot, {Map<String, String>? dependencies}) {

@@ -18,7 +18,6 @@ class RegistrySelection {
   final String? indexSchemaPath;
   final String? themesPath;
   final String? themesSchemaPath;
-  final String? widgetThemesPath;
   final String? themeConverterDartPath;
   final bool? capabilitySharedGroups;
   final bool? capabilityComposites;
@@ -37,7 +36,6 @@ class RegistrySelection {
     this.indexSchemaPath,
     this.themesPath,
     this.themesSchemaPath,
-    this.widgetThemesPath,
     this.themeConverterDartPath,
     this.capabilitySharedGroups,
     this.capabilityComposites,
@@ -82,7 +80,6 @@ RegistrySelection resolveRegistrySelection(
   final indexSchemaPath = selectedEntry?.indexSchemaPath;
   final themesPath = selectedEntry?.themesPath;
   final themesSchemaPath = selectedEntry?.themesSchemaPath;
-  final widgetThemesPath = selectedEntry?.widgetThemesPath;
   final themeConverterDartPath = selectedEntry?.themeConverterDartPath;
   final capabilitySharedGroups = selectedEntry?.capabilitySharedGroups;
   final capabilityComposites = selectedEntry?.capabilityComposites;
@@ -111,7 +108,6 @@ RegistrySelection resolveRegistrySelection(
         indexSchemaPath: indexSchemaPath,
         themesPath: themesPath,
         themesSchemaPath: themesSchemaPath,
-        widgetThemesPath: widgetThemesPath,
         themeConverterDartPath: themeConverterDartPath,
         capabilitySharedGroups: capabilitySharedGroups,
         capabilityComposites: capabilityComposites,
@@ -141,7 +137,6 @@ RegistrySelection resolveRegistrySelection(
       indexSchemaPath: indexSchemaPath,
       themesPath: themesPath,
       themesSchemaPath: themesSchemaPath,
-      widgetThemesPath: widgetThemesPath,
       themeConverterDartPath: themeConverterDartPath,
       capabilitySharedGroups: capabilitySharedGroups,
       capabilityComposites: capabilityComposites,
@@ -164,7 +159,6 @@ RegistrySelection resolveRegistrySelection(
     indexSchemaPath: indexSchemaPath,
     themesPath: themesPath,
     themesSchemaPath: themesSchemaPath,
-    widgetThemesPath: widgetThemesPath,
     themeConverterDartPath: themeConverterDartPath,
     capabilitySharedGroups: capabilitySharedGroups,
     capabilityComposites: capabilityComposites,

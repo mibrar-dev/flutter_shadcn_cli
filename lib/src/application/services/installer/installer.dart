@@ -4,10 +4,9 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_entry.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_loader.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/registry/widget_theme_index_loader.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_preset_loader.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/registry/widget_theme_index_entry.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/registry_theme_converter_client.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/theme_css.dart';
@@ -45,7 +44,6 @@ class Installer {
   final String? registryBaseUrlOverride;
   final String? themesPathOverride;
   final String? themesSchemaPathOverride;
-  final String? widgetThemesPathOverride;
   final String? themeConverterDartPathOverride;
   final Set<String>? includeFileKindsOverride;
   final Set<String>? excludeFileKindsOverride;
@@ -79,7 +77,6 @@ class Installer {
     this.registryBaseUrlOverride,
     this.themesPathOverride,
     this.themesSchemaPathOverride,
-    this.widgetThemesPathOverride,
     this.themeConverterDartPathOverride,
     this.includeFileKindsOverride,
     this.excludeFileKindsOverride,

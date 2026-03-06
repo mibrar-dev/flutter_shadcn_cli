@@ -231,8 +231,6 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
             themesPath: existing.themesPath ?? entry.themesPath,
             themesSchemaPath:
                 existing.themesSchemaPath ?? entry.themesSchemaPath,
-            widgetThemesPath:
-                existing.widgetThemesPath ?? entry.widgetThemesPath,
             themeConverterDartPath:
                 existing.themeConverterDartPath ?? entry.themeConverterDartPath,
             installPath: existing.installPath ?? installRoot,
@@ -249,7 +247,6 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
             indexSchemaPath: entry.indexSchemaPath,
             themesPath: entry.themesPath,
             themesSchemaPath: entry.themesSchemaPath,
-            widgetThemesPath: entry.widgetThemesPath,
             themeConverterDartPath: entry.themeConverterDartPath,
             installPath: installRoot,
             sharedPath: sharedRoot,
@@ -276,8 +273,6 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       themesPath: configEntry.themesPath ?? directoryEntry.themesPath,
       themesSchemaPath:
           configEntry.themesSchemaPath ?? directoryEntry.themesSchemaPath,
-      widgetThemesPath:
-          configEntry.widgetThemesPath ?? directoryEntry.widgetThemesPath,
       folderStructurePath:
           configEntry.folderStructurePath ?? directoryEntry.folderStructurePath,
       metaPath: configEntry.metaPath ?? directoryEntry.metaPath,

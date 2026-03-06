@@ -72,7 +72,6 @@ void main() {
         'orient_ui': RegistryConfigEntry(
           includeFiles: ['preview'],
           excludeFiles: ['meta'],
-          widgetThemesPath: 'registry/manifests/widget_theme.index.json',
           enabled: true,
         ),
       },
@@ -87,10 +86,6 @@ void main() {
     expect(
       loaded.registryConfig('orient_ui')?.includeFiles,
       ['preview'],
-    );
-    expect(
-      loaded.registryConfig('orient_ui')?.widgetThemesPath,
-      'registry/manifests/widget_theme.index.json',
     );
   });
 }

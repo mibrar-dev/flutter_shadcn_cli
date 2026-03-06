@@ -866,7 +866,6 @@ void main() {
               'registryPath': registryRoot.path,
               'installPath': 'lib/ui/shadcn',
               'sharedPath': 'lib/ui/shadcn/shared',
-              'widgetThemesPath': 'registry/manifests/widget_theme.index.json',
               'themeConverterDartPath':
                   'registry/manifests/theme_converter.dart',
               'enabled': true
@@ -876,7 +875,6 @@ void main() {
               'registryPath': registryRoot.path,
               'installPath': 'lib/ui/alt',
               'sharedPath': 'lib/ui/alt/shared',
-              'widgetThemesPath': 'registry/manifests/widget_theme.index.json',
               'themeConverterDartPath':
                   'registry/manifests/theme_converter.dart',
               'enabled': true
@@ -1229,32 +1227,6 @@ void _writeRegistryFixtures(Directory registryRoot) {
     }),
   );
 
-  final widgetThemeIndex = File(
-    p.join(registryRoot.path, 'manifests', 'widget_theme.index.json'),
-  )..createSync(recursive: true);
-  widgetThemeIndex.writeAsStringSync(
-    const JsonEncoder.withIndent('  ').convert({
-      'components': [
-        {
-          'componentId': 'button',
-          'label': 'Button',
-          'defaultTarget': 'PrimaryButtonTheme',
-          'targets': [
-            {
-              'id': 'PrimaryButtonTheme',
-              'label': 'Primary',
-              'default': true,
-              'schemaPath':
-                  'registry/components/control/button/registry/theme.schema.json',
-              'configPath':
-                  'registry/components/control/button/_impl/themes/config/button_theme_config.dart'
-            }
-          ]
-        }
-      ]
-    }),
-  );
-
   final themeConverter = File(
     p.join(registryRoot.path, 'manifests', 'theme_converter.dart'),
   )..createSync(recursive: true);
@@ -1316,19 +1288,7 @@ Future<void> main(List<String> args) async {
   final namespace = request['namespace']?.toString() ?? '';
   final context = request['context'] as Map<String, dynamic>? ?? const {};
   final installPath = context['installPath']?.toString() ?? '';
-  final registrySourceRoot = context['registrySourceRoot']?.toString() ?? '';
-  final widgetThemesPath = context['widgetThemesPath']?.toString() ?? '';
-
-  final manifestFile = File(joinPath(registrySourceRoot, widgetThemesPath));
-  final manifest = jsonDecode(await manifestFile.readAsString()) as Map<String, dynamic>;
-  final components = (manifest['components'] as List? ?? const [])
-      .whereType<Map>()
-      .map((entry) => entry.map((key, value) => MapEntry(key.toString(), value)))
-      .toList();
-  final component = components.firstWhere(
-    (entry) => entry['componentId'] == componentId || entry['id'] == componentId,
-  );
-  final target = component['defaultTarget']?.toString() ?? 'global';
+  final payloadFile = request['payloadFile']?.toString() ?? '';
   final hostPath = joinPath(
     joinPath(joinPath(installPath, 'components'), componentId),
     'button_theme_host.dart',
@@ -1343,7 +1303,7 @@ Future<void> main(List<String> args) async {
       'scope': 'widget',
       'resolvedNamespace': namespace,
       'resolvedComponent': componentId,
-      'resolvedTargetThemeType': target,
+      'resolvedTargetThemeType': 'PrimaryButtonTheme',
       'installPlan': {
         'operations': [
           {
@@ -1361,9 +1321,10 @@ Future<void> main(List<String> args) async {
     return;
   }
 
-  final source = request['source'] as Map<String, dynamic>? ?? const {};
-  final payload = await _loadSource(source);
-  final selectedTarget = payload['target']?.toString() ?? target;
+  final payload = jsonDecode(await File(payloadFile).readAsString())
+      as Map<String, dynamic>;
+  final selectedTarget =
+      payload['targetThemeType']?.toString() ?? 'PrimaryButtonTheme';
   stdout.write(jsonEncode({
     'scope': 'widget',
     'resolvedNamespace': namespace,
@@ -1381,7 +1342,7 @@ Future<void> main(List<String> args) async {
           'type': 'patch_file',
           'path': hostPath,
           'find': '__BUTTON_THEME_SOURCE__',
-          'replace': source['type']?.toString() ?? 'unknown',
+          'replace': 'cache',
         },
         {
           'type': 'write_file',

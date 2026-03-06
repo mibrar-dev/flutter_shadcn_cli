@@ -67,6 +67,11 @@ class ThemePresetLoader {
     );
   }
 
+  Future<File> cachePresetJson(ThemeIndexEntry entry) async {
+    await _loadPresetJson(entry);
+    return _cacheFile(entry.id);
+  }
+
   Future<Map<String, dynamic>> _loadPresetJson(ThemeIndexEntry entry) async {
     final cacheFile = _cacheFile(entry.id);
 
@@ -81,7 +86,8 @@ class ThemePresetLoader {
     }
 
     if (offline) {
-      throw Exception('Offline mode: cached theme preset not found for ${entry.id}.');
+      throw Exception(
+          'Offline mode: cached theme preset not found for ${entry.id}.');
     }
 
     final content = await _readPresetContent(entry.file);
@@ -164,7 +170,8 @@ class ThemePresetLoader {
 
       final stdout = result.stdout.toString().trim();
       if (stdout.isEmpty) {
-        throw Exception('Theme converter returned empty output for "$themeId".');
+        throw Exception(
+            'Theme converter returned empty output for "$themeId".');
       }
       final decoded = jsonDecode(stdout);
       if (decoded is! Map) {
@@ -269,7 +276,8 @@ class ThemePresetLoader {
           return localFile.readAsStringSync();
         }
       }
-      throw Exception('Theme preset file not found locally: ${candidates.join(', ')}');
+      throw Exception(
+          'Theme preset file not found locally: ${candidates.join(', ')}');
     }
 
     Object lastError = Exception('Theme preset file not found.');

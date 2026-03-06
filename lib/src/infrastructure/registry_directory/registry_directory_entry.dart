@@ -68,7 +68,6 @@ class RegistryDirectoryEntry {
   String? get indexSchemaPath => paths['indexSchemaJson'];
   String? get themesPath => paths['themesJson'];
   String? get themesSchemaPath => paths['themesSchemaJson'];
-  String? get widgetThemesPath => paths['widgetThemesJson'];
   String? get themeConverterDartPath => paths['themeConverterDart'];
   String? get folderStructurePath => paths['folderStructureJson'];
   String? get metaPath => paths['metaJson'];

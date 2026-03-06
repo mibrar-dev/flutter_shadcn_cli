@@ -48,6 +48,7 @@ class RegistryThemeConverterResponse {
   final String? resolvedTargetThemeType;
   final List<RegistryThemeInstallOperation> operations;
   final Map<String, dynamic>? preview;
+  final List<RegistryThemeConverterMessage> messages;
 
   const RegistryThemeConverterResponse({
     required this.scope,
@@ -56,6 +57,7 @@ class RegistryThemeConverterResponse {
     this.resolvedComponent,
     this.resolvedTargetThemeType,
     this.preview,
+    this.messages = const <RegistryThemeConverterMessage>[],
   });
 
   factory RegistryThemeConverterResponse.fromJson(Map<String, dynamic> json) {
@@ -72,6 +74,18 @@ class RegistryThemeConverterResponse {
             .where((entry) => entry.isValid)
             .toList()
         : const <RegistryThemeInstallOperation>[];
+    final rawMessages = json['messages'];
+    final messages = rawMessages is List
+        ? rawMessages
+            .whereType<Map>()
+            .map(
+              (entry) => RegistryThemeConverterMessage.fromJson(
+                entry.map((key, value) => MapEntry(key.toString(), value)),
+              ),
+            )
+            .where((entry) => entry.isValid)
+            .toList()
+        : const <RegistryThemeConverterMessage>[];
     return RegistryThemeConverterResponse(
       scope: json['scope']?.toString() ?? '',
       resolvedNamespace: json['resolvedNamespace']?.toString(),
@@ -81,8 +95,28 @@ class RegistryThemeConverterResponse {
       preview: (json['preview'] as Map?)?.map(
         (key, value) => MapEntry(key.toString(), value),
       ),
+      messages: messages,
     );
   }
+}
+
+class RegistryThemeConverterMessage {
+  final String level;
+  final String text;
+
+  const RegistryThemeConverterMessage({
+    required this.level,
+    required this.text,
+  });
+
+  factory RegistryThemeConverterMessage.fromJson(Map<String, dynamic> json) {
+    return RegistryThemeConverterMessage(
+      level: json['level']?.toString() ?? 'info',
+      text: json['text']?.toString() ?? '',
+    );
+  }
+
+  bool get isValid => text.trim().isNotEmpty;
 }
 
 class RegistryThemeConverterClient {
