@@ -99,11 +99,16 @@ Developer flags remain hidden from normal help. They become available only when 
 
 ## Command Metadata Design
 
-Extend command metadata so docs and usage can be generated from one source. The metadata should cover:
+Extend command metadata so docs and usage can be generated from one source. The source of truth should live in Dart code next to the CLI command registry, not in a YAML or JSON sidecar, so command visibility, grouping, and docs metadata change in the same review as parser or dispatcher changes.
+
+Add a focused metadata model near the existing command registry, for example `lib/src/presentation/cli/command_metadata.dart`, and have `command_registry.dart`, usage output, docs generation, and command-doc freshness tests read from it.
+
+The metadata should cover:
 
 - command id
 - aliases
 - group slug
+- sort order within the group
 - one-line description
 - visibility: public or advanced
 - usage
@@ -114,6 +119,8 @@ Extend command metadata so docs and usage can be generated from one source. The 
 - see-also links
 
 Generated docs should use this metadata instead of scraping help text.
+
+Group and command ordering must be encoded in metadata. Use explicit group order plus a per-command `sortOrder` integer so the generated index is deterministic and reflects user workflow order rather than alphabetic order.
 
 ## Docs Structure
 
@@ -185,7 +192,7 @@ No generated command group should nest deeper than `docs/reference/commands/<gro
 
 ## Generated `commands/index.md`
 
-The generated index should be the master command cheat sheet. It should contain one section per group, with commands sorted by likely usage rather than alphabetically.
+The generated index should be the master command cheat sheet. It should contain one section per group. Groups and commands should be sorted by the explicit order values defined in command metadata, not alphabetically.
 
 Each bullet should use this format:
 
