@@ -13,7 +13,8 @@ Future<int> runUpgradeCommand({
     print('Upgrades flutter_shadcn_cli to the latest version from pub.dev.');
     print('');
     print('Options:');
-    print('  --force, -f        Force upgrade even if already on latest version');
+    print(
+        '  --force, -f        Force upgrade even if already on latest version');
     print('  --help, -h         Show this message');
     return ExitCodes.success;
   }

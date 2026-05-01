@@ -9,9 +9,20 @@ import 'package:json_schema/json_schema.dart';
 import 'package:path/path.dart' as p;
 
 class SchemaValidator {
-  final http.Client _client;
+  static final Map<String, Future<JsonSchema>> _schemaCache = {};
 
-  SchemaValidator({http.Client? client}) : _client = client ?? http.Client();
+  final http.Client _client;
+  final bool _ownsClient;
+
+  SchemaValidator({http.Client? client})
+      : _client = client ?? http.Client(),
+        _ownsClient = client == null;
+
+  void close() {
+    if (_ownsClient) {
+      _client.close();
+    }
+  }
 
   Future<SchemaValidationResult> validate({
     required dynamic data,
@@ -20,12 +31,7 @@ class SchemaValidator {
     CliLogger? logger,
   }) async {
     try {
-      final schemaContent = await _readSchema(
-        baseUrl: baseUrl,
-        schemaPath: schemaPath,
-      );
-      final schemaData = jsonDecode(schemaContent);
-      final schema = JsonSchema.create(schemaData);
+      final schema = await _schemaFor(baseUrl: baseUrl, schemaPath: schemaPath);
       final result = schema.validate(data);
       final errors = result.errors.map((e) => e.toString()).toList();
       return SchemaValidationResult(isValid: result.isValid, errors: errors);
@@ -36,6 +42,52 @@ class SchemaValidator {
         errors: ['Failed to validate schema: $e'],
       );
     }
+  }
+
+  Future<JsonSchema> _schemaFor({
+    required String baseUrl,
+    required String schemaPath,
+  }) async {
+    final key = _cacheKey(baseUrl: baseUrl, schemaPath: schemaPath);
+    final cached = _schemaCache[key];
+    if (cached != null) {
+      return cached;
+    }
+    final future = () async {
+      final schemaContent = await _readSchema(
+        baseUrl: baseUrl,
+        schemaPath: schemaPath,
+      );
+      final schemaData = jsonDecode(schemaContent);
+      return JsonSchema.create(schemaData);
+    }();
+    _schemaCache[key] = future;
+    try {
+      return await future;
+    } catch (_) {
+      _schemaCache.remove(key);
+      rethrow;
+    }
+  }
+
+  String _cacheKey({
+    required String baseUrl,
+    required String schemaPath,
+  }) {
+    final trimmedSchemaPath = schemaPath.trim();
+    if (_isHttpUrl(trimmedSchemaPath)) {
+      return trimmedSchemaPath;
+    }
+    final uri = Uri.tryParse(baseUrl);
+    if (uri == null || !uri.hasScheme || uri.scheme == 'file') {
+      final rootPath =
+          uri != null && uri.scheme == 'file' ? uri.toFilePath() : baseUrl;
+      return p.normalize(p.join(rootPath, trimmedSchemaPath));
+    }
+    return ResolverV1.resolveUrl(
+      baseUrl,
+      ResolverV1.normalizeRelativePath(trimmedSchemaPath),
+    ).toString();
   }
 
   Future<String> _readSchema({
@@ -59,9 +111,8 @@ class SchemaValidator {
 
     final uri = Uri.tryParse(baseUrl);
     if (uri == null || !uri.hasScheme || uri.scheme == 'file') {
-      final rootPath = uri != null && uri.scheme == 'file'
-          ? uri.toFilePath()
-          : baseUrl;
+      final rootPath =
+          uri != null && uri.scheme == 'file' ? uri.toFilePath() : baseUrl;
       final localPath = p.normalize(p.join(rootPath, trimmedSchemaPath));
       final file = File(localPath);
       if (!file.existsSync()) {

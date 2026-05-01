@@ -301,19 +301,33 @@ class ThemePresetLoader {
     final safeId =
         themeId.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_').toLowerCase();
     final root = _cacheRootDir();
-    return File(p.join(root.path, 'themes', '$safeId.json'));
+    return File(
+      ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: root.path,
+        destinationRelativePath: p.join('themes', '$safeId.json'),
+      ),
+    );
   }
 
   File _converterCacheFile() {
     final root = _cacheRootDir();
-    return File(p.join(root.path, 'themes', 'theme_converter.dart'));
+    return File(
+      ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: root.path,
+        destinationRelativePath: p.join('themes', 'theme_converter.dart'),
+      ),
+    );
   }
 
   Directory _cacheRootDir() {
     final rootPath = cacheRootPath?.trim().isNotEmpty == true
         ? cacheRootPath!.trim()
         : p.join(_cacheDir.replaceFirst('~', _homeDir()), registryId);
-    return Directory(rootPath);
+    final root = Directory(rootPath);
+    if (!root.existsSync()) {
+      root.createSync(recursive: true);
+    }
+    return root;
   }
 
   bool _isStale(File file) {

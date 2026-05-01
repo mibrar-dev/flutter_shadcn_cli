@@ -70,8 +70,9 @@ Future<int> runFeedbackCommand({
   final feedbackFlagNamespace = (rootArgs['registry-name'] as String?)?.trim();
   final needsFeedbackSelection = feedbackNamespaceOverride != null ||
       (feedbackFlagNamespace != null && feedbackFlagNamespace.isNotEmpty);
-  final feedbackSelection =
-      needsFeedbackSelection ? resolveRegistry(feedbackNamespaceOverride) : null;
+  final feedbackSelection = needsFeedbackSelection
+      ? resolveRegistry(feedbackNamespaceOverride)
+      : null;
 
   final feedbackMgr = FeedbackManager(logger: logger);
   await feedbackMgr.showFeedbackMenu(

@@ -1,109 +1,247 @@
 import 'dart:io';
-import 'package:path/path.dart' as p;
+
 import 'package:flutter_shadcn_cli/src/logger.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_metadata.dart';
+import 'package:path/path.dart' as p;
 
-class CommandDocMeta {
-  final String name;
-  final String description;
-  final List<String> aliases;
+String renderCommandReferenceIndex() {
+  final buffer = StringBuffer()
+    ..writeln('# Command Reference')
+    ..writeln()
+    ..writeln(
+      'Generated from CLI command metadata. Do not edit these files by hand.',
+    )
+    ..writeln();
 
-  const CommandDocMeta({
-    required this.name,
-    required this.description,
-    this.aliases = const [],
-  });
+  for (final group in _sortedGroups()) {
+    buffer
+      ..writeln('## ${group.title}')
+      ..writeln();
+    if (group.slug == 'advanced') {
+      buffer
+        ..writeln('Advanced commands require `--advanced`.')
+        ..writeln();
+    }
+    for (final command in _sortedCommands(group)) {
+      buffer.writeln(
+        '- [`flutter_shadcn ${command.id}`](./${group.slug}/${command.id}.md) - ${command.description}',
+      );
+    }
+    buffer.writeln();
+  }
+
+  return _finalizeMarkdown(buffer);
 }
 
-const _commandDocs = <CommandDocMeta>[
-  CommandDocMeta(name: 'init', description: 'Initialize the project.'),
-  CommandDocMeta(name: 'add', description: 'Install components.'),
-  CommandDocMeta(
-      name: 'remove',
-      description: 'Remove installed components.',
-      aliases: ['rm']),
-  CommandDocMeta(
-      name: 'dry-run', description: 'Preview what would be installed.'),
-  CommandDocMeta(name: 'assets', description: 'Install font/icon assets.'),
-  CommandDocMeta(
-      name: 'platform', description: 'Manage platform target files.'),
-  CommandDocMeta(
-      name: 'registries', description: 'List available/configured registries.'),
-  CommandDocMeta(
-      name: 'default', description: 'Set or show default registry namespace.'),
-  CommandDocMeta(name: 'theme', description: 'Manage theme presets.'),
-  CommandDocMeta(
-      name: 'sync', description: 'Sync paths and theme from config.'),
-  CommandDocMeta(name: 'doctor', description: 'Registry diagnostics.'),
-  CommandDocMeta(name: 'validate', description: 'Validate registry integrity.'),
-  CommandDocMeta(name: 'audit', description: 'Audit installed components.'),
-  CommandDocMeta(
-      name: 'deps', description: 'Compare registry deps vs pubspec.'),
-  CommandDocMeta(
-      name: 'list', description: 'List available components.', aliases: ['ls']),
-  CommandDocMeta(name: 'search', description: 'Search for components.'),
-  CommandDocMeta(
-      name: 'info', description: 'Show component details.', aliases: ['i']),
-  CommandDocMeta(name: 'install-skill', description: 'Install AI skills.'),
-  CommandDocMeta(name: 'version', description: 'Show CLI version.'),
-  CommandDocMeta(
-      name: 'upgrade', description: 'Upgrade CLI to latest version.'),
-  CommandDocMeta(name: 'feedback', description: 'Submit feedback.'),
-  CommandDocMeta(name: 'docs', description: 'Regenerate documentation site.'),
-];
+String renderCommandPage(CliCommandGroupMeta group, CliCommandMeta command) {
+  final buffer = StringBuffer()
+    ..writeln('# flutter_shadcn ${command.id}')
+    ..writeln()
+    ..writeln('> ${command.description}')
+    ..writeln();
+
+  if (command.advanced) {
+    buffer
+      ..writeln('This command requires `--advanced`.')
+      ..writeln();
+  }
+
+  if (command.aliases.isNotEmpty) {
+    buffer
+      ..writeln('## Aliases')
+      ..writeln()
+      ..writeln(command.aliases.map((alias) => '- `$alias`').join('\n'))
+      ..writeln();
+  }
+
+  buffer
+    ..writeln('## Usage')
+    ..writeln()
+    ..writeln('```bash')
+    ..writeln(command.usage)
+    ..writeln('```')
+    ..writeln();
+
+  _writeArguments(buffer, command);
+  _writeFlags(buffer, command);
+  _writeExamples(buffer, command);
+  _writeNotes(buffer, command);
+  _writeSeeAlso(buffer, group, command);
+
+  return _finalizeMarkdown(buffer);
+}
+
+Map<String, String> renderCommandReferenceFiles() {
+  final files = <String, String>{
+    'index.md': renderCommandReferenceIndex(),
+  };
+
+  for (final group in _sortedGroups()) {
+    for (final command in _sortedCommands(group)) {
+      files[p.posix.join(group.slug, '${command.id}.md')] =
+          renderCommandPage(group, command);
+    }
+  }
+
+  return files;
+}
 
 Future<void> generateDocsSite({
   required String cliRoot,
   required CliLogger logger,
 }) async {
-  final siteRoot = Directory(p.join(cliRoot, 'doc', 'site'));
-  final commandsDir = Directory(p.join(siteRoot.path, 'commands'));
-  if (!siteRoot.existsSync()) {
-    logger.warn('Docs site not found at ${siteRoot.path}');
+  final commandsRoot = Directory(
+    p.join(cliRoot, 'docs', 'reference', 'commands'),
+  );
+  if (commandsRoot.existsSync()) {
+    commandsRoot.deleteSync(recursive: true);
+  }
+  commandsRoot.createSync(recursive: true);
+
+  final files = renderCommandReferenceFiles();
+  for (final entry in files.entries) {
+    final file = File(p.join(commandsRoot.path, entry.key));
+    file.parent.createSync(recursive: true);
+    file.writeAsStringSync(entry.value);
+    logger.info('Wrote ${file.path}');
+  }
+
+  logger.success('Command reference docs regenerated.');
+}
+
+void _writeArguments(StringBuffer buffer, CliCommandMeta command) {
+  buffer
+    ..writeln('## Arguments')
+    ..writeln();
+
+  if (command.arguments.isEmpty) {
+    buffer
+      ..writeln('This command does not define positional arguments.')
+      ..writeln();
     return;
   }
-  if (!commandsDir.existsSync()) {
-    commandsDir.createSync(recursive: true);
+
+  buffer
+    ..writeln('| Argument | Required | Description |')
+    ..writeln('|----------|----------|-------------|');
+  for (final argument in command.arguments) {
+    buffer.writeln(
+      '| `${argument.name}` | ${argument.required ? 'Yes' : 'No'} | ${argument.description} |',
+    );
+  }
+  buffer.writeln();
+}
+
+void _writeFlags(StringBuffer buffer, CliCommandMeta command) {
+  buffer
+    ..writeln('## Flags')
+    ..writeln();
+
+  final flags = command.flags;
+  if (flags.isEmpty) {
+    buffer
+      ..writeln('This command does not define command-specific flags.')
+      ..writeln();
+    return;
   }
 
-  for (final command in _commandDocs) {
-    final docPath = p.join(commandsDir.path, '${command.name}.md');
-    final file = File(docPath);
-    if (!file.existsSync()) {
-      final aliasLine = command.aliases.isNotEmpty
-          ? '\n## Alias\n\n- ${command.aliases.join(', ')}\n'
-          : '';
-      file.writeAsStringSync(
-        '# ${command.name}\n\n'
-        '## Purpose\n${command.description}\n\n'
-        '## Syntax\n\n'
-        '```bash\n'
-        'flutter_shadcn ${command.name}\n'
-        '```\n'
-        '$aliasLine',
-      );
-      logger.info('Created ${file.path}');
+  buffer
+    ..writeln('| Flag | Short | Default | Description |')
+    ..writeln('|------|-------|---------|-------------|');
+  for (final flag in flags) {
+    final description = flag.advanced
+        ? '${flag.description} Requires `--advanced`.'
+        : flag.description;
+    buffer.writeln(
+      '| `${flag.name}` | ${_tableCode(flag.short)} | ${_tableCode(flag.defaultValue)} | $description |',
+    );
+  }
+  buffer.writeln();
+}
+
+void _writeExamples(StringBuffer buffer, CliCommandMeta command) {
+  if (command.examples.isEmpty) {
+    return;
+  }
+
+  buffer
+    ..writeln('## Examples')
+    ..writeln()
+    ..writeln('```bash');
+  for (final example in command.examples) {
+    buffer.writeln(example);
+  }
+  buffer
+    ..writeln('```')
+    ..writeln();
+}
+
+void _writeNotes(StringBuffer buffer, CliCommandMeta command) {
+  if (command.notes.isEmpty) {
+    return;
+  }
+
+  buffer
+    ..writeln('## Notes')
+    ..writeln()
+    ..writeln(command.notes)
+    ..writeln();
+}
+
+void _writeSeeAlso(
+  StringBuffer buffer,
+  CliCommandGroupMeta group,
+  CliCommandMeta command,
+) {
+  if (command.seeAlso.isEmpty) {
+    return;
+  }
+
+  buffer
+    ..writeln('## See Also')
+    ..writeln();
+  for (final id in command.seeAlso) {
+    final target = _findCommand(id);
+    if (target == null) {
+      continue;
+    }
+    final (targetGroup, targetCommand) = target;
+    final link = targetGroup.slug == group.slug
+        ? '${targetCommand.id}.md'
+        : '../${targetGroup.slug}/${targetCommand.id}.md';
+    buffer.writeln('- [`flutter_shadcn ${targetCommand.id}`]($link)');
+  }
+  buffer.writeln();
+}
+
+List<CliCommandGroupMeta> _sortedGroups() {
+  return [...cliCommandMetadata]
+    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+}
+
+List<CliCommandMeta> _sortedCommands(CliCommandGroupMeta group) {
+  return [...group.commands]
+    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+}
+
+(CliCommandGroupMeta, CliCommandMeta)? _findCommand(String id) {
+  for (final group in cliCommandMetadata) {
+    for (final command in group.commands) {
+      if (command.id == id || command.aliases.contains(id)) {
+        return (group, command);
+      }
     }
   }
+  return null;
+}
 
-  final indexPath = p.join(commandsDir.path, 'index.md');
-  final indexLines = <String>[
-    '# Command Reference',
-    '',
-    'Each command is documented with purpose, syntax, options, behavior flow, files used, and examples.',
-    '',
-  ];
-  final aliasNotes = _commandDocs
-      .where((c) => c.aliases.isNotEmpty)
-      .map((c) => '${c.aliases.join(', ')} → ${c.name}')
-      .toList();
-  if (aliasNotes.isNotEmpty) {
-    indexLines.add('Aliases: ${aliasNotes.join(', ')}.');
-    indexLines.add('');
+String _tableCode(String value) {
+  if (value.isEmpty) {
+    return '';
   }
-  for (final command in _commandDocs) {
-    indexLines.add('- [${command.name}](${command.name}.md)');
-  }
-  File(indexPath).writeAsStringSync(indexLines.join('\n'));
+  return '`$value`';
+}
 
-  logger.success('Docs site regenerated.');
+String _finalizeMarkdown(StringBuffer buffer) {
+  return '${buffer.toString().trimRight()}\n';
 }

@@ -6,7 +6,9 @@ extension InstallerManifestPart on Installer {
   Future<void> _updateComponentManifest() async {
     await _ensureConfigLoaded();
     final installPath = _installPath(_cachedConfig);
-    final manifestFile = File(p.join(targetDir, installPath, 'components.json'));
+    final manifestFile = File(
+      _resolveProjectPath(p.join(installPath, 'components.json')),
+    );
     final installed = await _installedComponentIds();
     if (installed.isEmpty) {
       if (await manifestFile.exists()) {
@@ -23,7 +25,10 @@ extension InstallerManifestPart on Installer {
       if (component == null) {
         continue;
       }
-      componentMeta[id] = {'version': component.version, 'tags': component.tags};
+      componentMeta[id] = {
+        'version': component.version,
+        'tags': component.tags
+      };
     }
     final payload = {
       'schemaVersion': 1,
@@ -37,11 +42,18 @@ extension InstallerManifestPart on Installer {
     if (!await manifestFile.parent.exists()) {
       await manifestFile.parent.create(recursive: true);
     }
-    await manifestFile.writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
+    await manifestFile
+        .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
   }
 
   Directory _componentManifestDirectory() {
-    return Directory(p.join(targetDir, '.shadcn', 'components'));
+    return Directory(_resolveProjectPath(p.join('.shadcn', 'components')));
+  }
+
+  File _componentManifestFile(String componentId) {
+    return File(
+      _resolveProjectPath(p.join('.shadcn', 'components', '$componentId.json')),
+    );
   }
 
   Future<void> _writeComponentManifest(Component component) async {
@@ -49,7 +61,7 @@ extension InstallerManifestPart on Installer {
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
-    final file = File(p.join(dir.path, '${component.id}.json'));
+    final file = _componentManifestFile(component.id);
     String? installedAt;
     if (await file.exists()) {
       try {
@@ -77,11 +89,12 @@ extension InstallerManifestPart on Installer {
       'files': component.files.map((f) => f.source).toList()..sort(),
       'registryRoot': registry.registryRoot.root,
     };
-    await file.writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
+    await file
+        .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
   }
 
   Future<void> _removeComponentManifest(String componentId) async {
-    final file = File(p.join(_componentManifestDirectory().path, '$componentId.json'));
+    final file = _componentManifestFile(componentId);
     if (await file.exists()) {
       await file.delete();
     }
@@ -126,7 +139,7 @@ extension InstallerManifestPart on Installer {
     Set<String>? installedOverride,
     Set<String>? managedOverride,
   }) async {
-    final pubspecFile = File(p.join(targetDir, 'pubspec.yaml'));
+    final pubspecFile = File(_resolveProjectPath('pubspec.yaml'));
     if (!pubspecFile.existsSync()) {
       return;
     }
@@ -146,7 +159,8 @@ extension InstallerManifestPart on Installer {
         workingDirectory: targetDir,
       );
       if (result.exitCode != 0) {
-        logger.detail('Some dependencies could not be removed: ${result.stderr}');
+        logger
+            .detail('Some dependencies could not be removed: ${result.stderr}');
       }
     }
 
@@ -160,7 +174,8 @@ extension InstallerManifestPart on Installer {
         continue;
       }
       if (version is String && version.isNotEmpty) {
-        final cleanVersion = version.startsWith('^') ? version.substring(1) : version;
+        final cleanVersion =
+            version.startsWith('^') ? version.substring(1) : version;
         toAdd.add('$dep:$cleanVersion');
       } else {
         toAdd.add(dep);
@@ -211,8 +226,8 @@ extension InstallerManifestPart on Installer {
       targetDir,
       defaultNamespace: namespace,
     );
-    final mergedRegistries =
-        Map<String, RegistryStateEntry>.from(existingState.registries ?? const {});
+    final mergedRegistries = Map<String, RegistryStateEntry>.from(
+        existingState.registries ?? const {});
     mergedRegistries[namespace] = RegistryStateEntry(
       installPath: _installPath(config),
       sharedPath: _sharedPath(config),
@@ -240,8 +255,8 @@ extension InstallerManifestPart on Installer {
     final newShared = _sharedPath(config);
 
     if (state.installPath != null && state.installPath != newInstall) {
-      final oldDir = Directory(p.join(targetDir, state.installPath!));
-      final newDir = Directory(p.join(targetDir, newInstall));
+      final oldDir = Directory(_resolveProjectPath(state.installPath!));
+      final newDir = Directory(_resolveProjectPath(newInstall));
       if (oldDir.existsSync()) {
         if (!newDir.parent.existsSync()) {
           newDir.parent.createSync(recursive: true);
@@ -251,8 +266,8 @@ extension InstallerManifestPart on Installer {
     }
 
     if (state.sharedPath != null && state.sharedPath != newShared) {
-      final oldShared = Directory(p.join(targetDir, state.sharedPath!));
-      final newSharedDir = Directory(p.join(targetDir, newShared));
+      final oldShared = Directory(_resolveProjectPath(state.sharedPath!));
+      final newSharedDir = Directory(_resolveProjectPath(newShared));
       if (oldShared.existsSync()) {
         if (!newSharedDir.parent.existsSync()) {
           newSharedDir.parent.createSync(recursive: true);

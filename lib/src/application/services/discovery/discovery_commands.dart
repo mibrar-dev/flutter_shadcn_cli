@@ -128,8 +128,7 @@ Future<int> handleListCommand({
       return offline ? ExitCodes.offlineUnavailable : ExitCodes.networkError;
     }
     logger.error('Failed to load components: $e');
-    logger.info(
-        'Tip: Check your registry URL or run with --registry-url for a custom location.');
+    logger.info('Tip: Check the configured registry URL and try again.');
     return offline ? ExitCodes.offlineUnavailable : ExitCodes.networkError;
   }
 }
@@ -289,8 +288,7 @@ Future<int> handleSearchCommand({
       return offline ? ExitCodes.offlineUnavailable : ExitCodes.networkError;
     }
     logger.error('Failed to search components: $e');
-    logger.info(
-        'Tip: Check your registry URL or run with --registry-url for a custom location.');
+    logger.info('Tip: Check the configured registry URL and try again.');
     return offline ? ExitCodes.offlineUnavailable : ExitCodes.networkError;
   }
 }
@@ -488,8 +486,7 @@ Future<int> handleInfoCommand({
       return offline ? ExitCodes.offlineUnavailable : ExitCodes.networkError;
     }
     logger.error('Failed to load component info: $e');
-    logger.info(
-        'Tip: Check your registry URL or run with --registry-url for a custom location.');
+    logger.info('Tip: Check the configured registry URL and try again.');
     return offline ? ExitCodes.offlineUnavailable : ExitCodes.networkError;
   }
 }

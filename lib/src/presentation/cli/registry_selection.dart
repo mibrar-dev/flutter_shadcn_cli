@@ -3,8 +3,9 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
-import 'package:flutter_shadcn_cli/src/registry.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/arg_helpers.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
+import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:path/path.dart' as p;
 
 class RegistrySelection {
@@ -53,24 +54,24 @@ RegistrySelection resolveRegistrySelection(
   String? namespaceOverride,
 }) {
   final selectedNamespace = namespaceOverride ??
-      (args?['registry-name'] as String?)?.trim() ??
+      optionalStringOption(args, 'registry-name')?.trim() ??
       config.effectiveDefaultNamespace;
   final selectedEntry = config.registryConfig(selectedNamespace);
   if (selectedEntry == null &&
-      ((args?['registry-name'] as String?)?.trim().isNotEmpty == true ||
+      (optionalStringOption(args, 'registry-name')?.trim().isNotEmpty == true ||
           config.hasRegistries)) {
     stderr.writeln('Error: Registry namespace "$selectedNamespace" not found.');
     exit(ExitCodes.configInvalid);
   }
 
-  final mode = (args?['registry'] as String?) ??
+  final mode = optionalStringOption(args, 'registry') ??
       selectedEntry?.registryMode ??
       config.registryMode ??
       'auto';
-  final pathOverride = (args?['registry-path'] as String?) ??
+  final pathOverride = optionalStringOption(args, 'registry-path') ??
       selectedEntry?.registryPath ??
       config.registryPath;
-  final urlOverride = (args?['registry-url'] as String?) ??
+  final urlOverride = optionalStringOption(args, 'registry-url') ??
       selectedEntry?.baseUrl ??
       selectedEntry?.registryUrl ??
       config.registryUrl;

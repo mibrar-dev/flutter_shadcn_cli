@@ -2,10 +2,26 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/config/registry_config_entry.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
 import 'package:path/path.dart' as p;
 
+const Object _copyWithUnset = Object();
+
+class ShadcnConfigLoadException implements Exception {
+  final String path;
+  final Object cause;
+
+  const ShadcnConfigLoadException({
+    required this.path,
+    required this.cause,
+  });
+
+  @override
+  String toString() => 'Failed to load config JSON at $path: $cause';
+}
+
 class ShadcnConfig {
-  static const String legacyDefaultNamespace = 'shadcn';
+  static const String fallbackDefaultNamespace = 'shadcn';
 
   final String? classPrefix;
   final String? themeId;
@@ -169,31 +185,40 @@ class ShadcnConfig {
 
   static Future<ShadcnConfig> load(
     String targetDir, {
-    String defaultNamespace = legacyDefaultNamespace,
+    String defaultNamespace = fallbackDefaultNamespace,
   }) async {
     final file = configFile(targetDir);
     if (!await file.exists()) {
       return const ShadcnConfig();
     }
+    final content = await file.readAsString();
     try {
-      final content = await file.readAsString();
-      final raw = jsonDecode(content) as Map<String, dynamic>;
-      final migrated = _migrateLegacyConfig(
+      final decoded = jsonDecode(content);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('config root must be a JSON object');
+      }
+      final raw = decoded;
+      final normalized = _normalizeConfigShape(
         raw,
         defaultNamespace: defaultNamespace,
       );
-      final config = ShadcnConfig.fromJson(migrated);
-      if (_needsLegacyMigration(raw)) {
+      final config = ShadcnConfig.fromJson(normalized);
+      if (_needsConfigNormalization(raw)) {
         await save(targetDir, config);
       }
       return config;
-    } catch (_) {
-      return const ShadcnConfig();
+    } catch (error) {
+      throw ShadcnConfigLoadException(path: file.path, cause: error);
     }
   }
 
   static Future<void> save(String targetDir, ShadcnConfig config) async {
-    final file = configFile(targetDir);
+    final file = File(
+      ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: targetDir,
+        destinationRelativePath: p.join('.shadcn', 'config.json'),
+      ),
+    );
     if (!await file.parent.exists()) {
       await file.parent.create(recursive: true);
     }
@@ -201,42 +226,42 @@ class ShadcnConfig {
   }
 
   ShadcnConfig copyWith({
-    String? classPrefix,
-    String? themeId,
-    String? registryMode,
-    String? registryPath,
-    String? registryUrl,
-    String? installPath,
-    String? sharedPath,
-    bool? includeReadme,
-    bool? includeMeta,
-    bool? includePreview,
-    List<String>? includeFiles,
-    List<String>? excludeFiles,
-    bool? checkUpdates,
-    Map<String, String>? pathAliases,
-    Map<String, Map<String, String>>? platformTargets,
-    String? defaultNamespace,
-    Map<String, RegistryConfigEntry>? registries,
+    Object? classPrefix = _copyWithUnset,
+    Object? themeId = _copyWithUnset,
+    Object? registryMode = _copyWithUnset,
+    Object? registryPath = _copyWithUnset,
+    Object? registryUrl = _copyWithUnset,
+    Object? installPath = _copyWithUnset,
+    Object? sharedPath = _copyWithUnset,
+    Object? includeReadme = _copyWithUnset,
+    Object? includeMeta = _copyWithUnset,
+    Object? includePreview = _copyWithUnset,
+    Object? includeFiles = _copyWithUnset,
+    Object? excludeFiles = _copyWithUnset,
+    Object? checkUpdates = _copyWithUnset,
+    Object? pathAliases = _copyWithUnset,
+    Object? platformTargets = _copyWithUnset,
+    Object? defaultNamespace = _copyWithUnset,
+    Object? registries = _copyWithUnset,
   }) {
     return ShadcnConfig(
-      classPrefix: classPrefix ?? this.classPrefix,
-      themeId: themeId ?? this.themeId,
-      registryMode: registryMode ?? this.registryMode,
-      registryPath: registryPath ?? this.registryPath,
-      registryUrl: registryUrl ?? this.registryUrl,
-      installPath: installPath ?? this.installPath,
-      sharedPath: sharedPath ?? this.sharedPath,
-      includeReadme: includeReadme ?? this.includeReadme,
-      includeMeta: includeMeta ?? this.includeMeta,
-      includePreview: includePreview ?? this.includePreview,
-      includeFiles: includeFiles ?? this.includeFiles,
-      excludeFiles: excludeFiles ?? this.excludeFiles,
-      checkUpdates: checkUpdates ?? this.checkUpdates,
-      pathAliases: pathAliases ?? this.pathAliases,
-      platformTargets: platformTargets ?? this.platformTargets,
-      defaultNamespace: defaultNamespace ?? this.defaultNamespace,
-      registries: registries ?? this.registries,
+      classPrefix: _copyWithValue(classPrefix, this.classPrefix),
+      themeId: _copyWithValue(themeId, this.themeId),
+      registryMode: _copyWithValue(registryMode, this.registryMode),
+      registryPath: _copyWithValue(registryPath, this.registryPath),
+      registryUrl: _copyWithValue(registryUrl, this.registryUrl),
+      installPath: _copyWithValue(installPath, this.installPath),
+      sharedPath: _copyWithValue(sharedPath, this.sharedPath),
+      includeReadme: _copyWithValue(includeReadme, this.includeReadme),
+      includeMeta: _copyWithValue(includeMeta, this.includeMeta),
+      includePreview: _copyWithValue(includePreview, this.includePreview),
+      includeFiles: _copyWithValue(includeFiles, this.includeFiles),
+      excludeFiles: _copyWithValue(excludeFiles, this.excludeFiles),
+      checkUpdates: _copyWithValue(checkUpdates, this.checkUpdates),
+      pathAliases: _copyWithValue(pathAliases, this.pathAliases),
+      platformTargets: _copyWithValue(platformTargets, this.platformTargets),
+      defaultNamespace: _copyWithValue(defaultNamespace, this.defaultNamespace),
+      registries: _copyWithValue(registries, this.registries),
     );
   }
 
@@ -270,10 +295,10 @@ class ShadcnConfig {
     if (registries != null && registries.isNotEmpty) {
       return registries.keys.first;
     }
-    return legacyDefaultNamespace;
+    return fallbackDefaultNamespace;
   }
 
-  static bool _needsLegacyMigration(Map<String, dynamic> raw) {
+  static bool _needsConfigNormalization(Map<String, dynamic> raw) {
     if (raw['registries'] is Map) {
       return false;
     }
@@ -284,11 +309,11 @@ class ShadcnConfig {
         raw.containsKey('registryUrl');
   }
 
-  static Map<String, dynamic> _migrateLegacyConfig(
+  static Map<String, dynamic> _normalizeConfigShape(
     Map<String, dynamic> raw, {
     required String defaultNamespace,
   }) {
-    if (!_needsLegacyMigration(raw)) {
+    if (!_needsConfigNormalization(raw)) {
       return raw;
     }
 
@@ -297,7 +322,7 @@ class ShadcnConfig {
             ? (raw['defaultNamespace'] as String).trim()
             : defaultNamespace;
 
-    final migrated = Map<String, dynamic>.from(raw);
+    final normalized = Map<String, dynamic>.from(raw);
     final registries = <String, dynamic>{
       namespace: {
         'registryMode': raw['registryMode'],
@@ -313,10 +338,17 @@ class ShadcnConfig {
         'enabled': true,
       },
     };
-    migrated['defaultNamespace'] = namespace;
-    migrated['registries'] = registries;
-    return migrated;
+    normalized['defaultNamespace'] = namespace;
+    normalized['registries'] = registries;
+    return normalized;
   }
+}
+
+T? _copyWithValue<T>(Object? value, T? current) {
+  if (identical(value, _copyWithUnset)) {
+    return current;
+  }
+  return value as T?;
 }
 
 List<String>? _stringListOrNull(dynamic raw) {

@@ -6,7 +6,6 @@ import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 
-
 /// Manages loading and caching of registry index.json with staleness checking.
 class IndexLoader {
   static const _cacheDir = '~/.flutter_shadcn/cache';
@@ -180,7 +179,8 @@ class IndexLoader {
     }
 
     final normalized = p.normalize(basePath);
-    final normalizedIndexPath = indexPath.trim().isEmpty ? 'index.json' : indexPath;
+    final normalizedIndexPath =
+        indexPath.trim().isEmpty ? 'index.json' : indexPath;
     final candidates = <String>[
       p.join(normalized, normalizedIndexPath),
       p.join(normalized, 'registry', normalizedIndexPath),

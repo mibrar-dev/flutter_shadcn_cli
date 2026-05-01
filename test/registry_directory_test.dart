@@ -3,6 +3,7 @@ import 'dart:io';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
+import 'package:http/http.dart' as http;
 import 'package:test/test.dart';
 
 void main() {
@@ -337,6 +338,59 @@ void main() {
       );
     });
 
+    test('reuses compiled registries schema for repeated local loads',
+        () async {
+      final localFile = File(
+        '${tempProject.path}/local_dev/registries.json',
+      )..createSync(recursive: true);
+      localFile.writeAsStringSync(
+        jsonEncode({
+          'schemaVersion': 1,
+          'registries': [
+            {
+              'id': 'local_shadcn',
+              'displayName': 'Local Shadcn',
+              'maintainers': ['team'],
+              'repo': 'https://github.com/example/local',
+              'license': 'MIT',
+              'minCliVersion': '0.1.0',
+              'baseUrl': 'https://example.com/local/',
+              'paths': {'componentsJson': 'components.json'},
+              'install': {'namespace': 'local_shadcn', 'root': 'lib/ui/local'}
+            }
+          ]
+        }),
+      );
+      final schemaFile = File('${tempProject.path}/registries.schema.json')
+        ..writeAsStringSync(_permissiveRegistriesSchema());
+      final client = RegistryDirectoryClient(schemaPath: schemaFile.path);
+
+      await client.load(
+        projectRoot: tempProject.path,
+        directoryPath: localFile.path,
+        currentCliVersion: '0.1.8',
+      );
+      schemaFile.writeAsStringSync('{not-json');
+      final second = await client.load(
+        projectRoot: tempProject.path,
+        directoryPath: localFile.path,
+        currentCliVersion: '0.1.8',
+      );
+
+      expect(second.registries.single.namespace, 'local_shadcn');
+    });
+
+    test('does not close injected HTTP client', () {
+      final client = _CloseTrackingClient();
+      final directoryClient = RegistryDirectoryClient(client: client);
+
+      directoryClient.close();
+
+      expect(client.closed, isFalse);
+      client.close();
+      expect(client.closed, isTrue);
+    });
+
     test('RegistryDirectoryEntry parses all paths/capabilities/trust getters',
         () {
       final entry = RegistryDirectoryEntry.fromJson({
@@ -393,4 +447,31 @@ void main() {
       expect(entry.trust.isSha256, isTrue);
     });
   });
+}
+
+String _permissiveRegistriesSchema() {
+  return jsonEncode({
+    r'$schema': 'https://json-schema.org/draft/2020-12/schema',
+    'type': 'object',
+    'required': ['schemaVersion', 'registries'],
+    'properties': {
+      'schemaVersion': {'type': 'integer'},
+      'registries': {'type': 'array'},
+    },
+  });
+}
+
+class _CloseTrackingClient extends http.BaseClient {
+  bool closed = false;
+
+  @override
+  Future<http.StreamedResponse> send(http.BaseRequest request) {
+    throw UnimplementedError();
+  }
+
+  @override
+  void close() {
+    closed = true;
+    super.close();
+  }
 }

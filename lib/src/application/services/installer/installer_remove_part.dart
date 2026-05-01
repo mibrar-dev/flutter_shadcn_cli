@@ -82,9 +82,9 @@ extension InstallerRemovePart on Installer {
 
   Future<void> _removeAllInstallArtifacts() async {
     final config = _cachedConfig ?? const ShadcnConfig();
-    final installRoot = Directory(p.join(targetDir, _installPath(config)));
-    final sharedRoot = Directory(p.join(targetDir, _sharedPath(config)));
-    final configRoot = Directory(p.join(targetDir, '.shadcn'));
+    final installRoot = Directory(_resolveProjectPath(_installPath(config)));
+    final sharedRoot = Directory(_resolveProjectPath(_sharedPath(config)));
+    final configRoot = Directory(_resolveProjectPath('.shadcn'));
 
     if (installRoot.existsSync()) {
       await installRoot.delete(recursive: true);
@@ -100,7 +100,7 @@ extension InstallerRemovePart on Installer {
     final parts = p.split(installPath);
     for (var i = parts.length - 1; i >= 0; i--) {
       final parentPath = p.joinAll(parts.sublist(0, i + 1));
-      final parentDir = Directory(p.join(targetDir, parentPath));
+      final parentDir = Directory(_resolveProjectPath(parentPath));
       if (parentDir.existsSync()) {
         final contents = parentDir.listSync();
         if (contents.isEmpty) {
@@ -120,9 +120,9 @@ extension InstallerRemovePart on Installer {
     }
     final installPath = _installPath(_cachedConfig);
     final componentsDir =
-        Directory(p.join(targetDir, installPath, 'components'));
+        Directory(_resolveProjectPath(p.join(installPath, 'components')));
     final compositesDir = enableComposites
-        ? Directory(p.join(targetDir, installPath, 'composites'))
+        ? Directory(_resolveProjectPath(p.join(installPath, 'composites')))
         : null;
     if (!componentsDir.existsSync() &&
         (compositesDir == null || !compositesDir.existsSync())) {

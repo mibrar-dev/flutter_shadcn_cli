@@ -26,7 +26,8 @@ extension MultiRegistryAddPart on MultiRegistryManager {
         allowDirectoryFallback: true,
       );
       if (source.directoryEntry != null) {
-        config = await _upsertConfigFromDirectory(config, source.directoryEntry!);
+        config =
+            await _upsertConfigFromDirectory(config, source.directoryEntry!);
       }
       final supportsSharedGroups = source.configEntry?.capabilitySharedGroups ??
           source.directoryEntry?.capabilities.sharedGroups ??
@@ -34,7 +35,8 @@ extension MultiRegistryAddPart on MultiRegistryManager {
       final supportsComposites = source.configEntry?.capabilityComposites ??
           source.directoryEntry?.capabilities.composites ??
           true;
-      final registry = await _loadRegistryForSource(source, projectRoot: projectRoot);
+      final registry =
+          await _loadRegistryForSource(source, projectRoot: projectRoot);
       final installer = Installer(
         registry: registry,
         targetDir: projectRoot,
@@ -45,7 +47,6 @@ extension MultiRegistryAddPart on MultiRegistryManager {
         registryNamespace: source.namespace,
         includeFileKindsOverride: includeFileKinds,
         excludeFileKindsOverride: excludeFileKinds,
-        enableLegacyCoreBootstrap: false,
         enableSharedGroups: supportsSharedGroups,
         enableComposites: supportsComposites,
       );
@@ -82,7 +83,11 @@ extension MultiRegistryAddPart on MultiRegistryManager {
         },
       );
     } catch (e) {
-      throw MultiRegistryException(e.toString().replaceFirst('Exception: ', ''));
+      if (e is RegistrySchemaValidationException) {
+        rethrow;
+      }
+      throw MultiRegistryException(
+          e.toString().replaceFirst('Exception: ', ''));
     }
   }
 }

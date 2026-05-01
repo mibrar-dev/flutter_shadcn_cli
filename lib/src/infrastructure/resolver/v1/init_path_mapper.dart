@@ -50,15 +50,17 @@ class InitPathMapper {
     }
 
     final normalizedFrom = from.replaceAll('\\', '/');
+    final sourcePath =
+        base == null ? filePath : mapSourcePath(filePath: filePath, base: base);
     final filePrefix =
         base == null ? '$normalizedFrom/' : '$base/$normalizedFrom/';
-    if (!filePath.startsWith(filePrefix)) {
+    if (!sourcePath.startsWith(filePrefix)) {
       throw ResolverV1Exception(
         'copyDir source file is outside expected prefix: $filePath',
       );
     }
 
-    final relativeTail = filePath.substring(filePrefix.length);
+    final relativeTail = sourcePath.substring(filePrefix.length);
     if (relativeTail.isEmpty) {
       throw ResolverV1Exception('copyDir source file must point to a file');
     }
@@ -66,6 +68,6 @@ class InitPathMapper {
     if (destBase != null) {
       destination = p.posix.join(destBase, destination);
     }
-    return destination;
+    return p.posix.normalize(destination);
   }
 }

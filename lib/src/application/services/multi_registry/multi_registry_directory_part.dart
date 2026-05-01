@@ -178,14 +178,41 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       directoryEntry = null;
     }
 
+    final overrideSource = _sourceOverrideForNamespace(
+      namespace: namespace,
+      configEntry: configEntry,
+      directoryEntry: directoryEntry,
+    );
+    if (overrideSource != null) {
+      _sources[namespace] = overrideSource;
+      return overrideSource;
+    }
+
     if (configEntry != null &&
         ((configEntry.registryMode == 'local' &&
                 configEntry.registryPath != null) ||
             configEntry.registryUrl != null ||
             configEntry.baseUrl != null)) {
-      final effectiveEntry = directoryEntry == null
+      var effectiveEntry = directoryEntry == null
           ? configEntry
           : _mergeConfigWithDirectoryDefaults(configEntry, directoryEntry);
+      final localPath = effectiveEntry.registryPath;
+      if ((effectiveEntry.registryMode == 'local' || localPath != null) &&
+          localPath != null &&
+          localPath.isNotEmpty) {
+        effectiveEntry = effectiveEntry.copyWith(
+          componentsPath: _pathForLocalOverride(
+            localRegistryPath: localPath,
+            path: configEntry.componentsPath,
+            fallback: directoryEntry?.componentsPath,
+            detectComponentsManifest: true,
+          ),
+          componentsSchemaPath: _pathForLocalOverride(
+            localRegistryPath: localPath,
+            path: configEntry.componentsSchemaPath,
+          ),
+        );
+      }
       final source = RegistrySource.fromConfig(
         namespace: namespace,
         configEntry: effectiveEntry,
@@ -208,6 +235,155 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     final source = RegistrySource.fromDirectory(entry);
     _sources[namespace] = source;
     return source;
+  }
+
+  RegistrySource? _sourceOverrideForNamespace({
+    required String namespace,
+    required RegistryConfigEntry? configEntry,
+    required RegistryDirectoryEntry? directoryEntry,
+  }) {
+    final path = registryPathOverride?.trim();
+    final url = registryUrlOverride?.trim();
+    if (path != null && path.isNotEmpty) {
+      final componentsPath = _pathForLocalOverride(
+        localRegistryPath: path,
+        path: configEntry?.componentsPath ?? directoryEntry?.componentsPath,
+        fallback: 'components.json',
+        detectComponentsManifest: true,
+      );
+      final componentsSchemaPath = _pathForLocalOverride(
+        localRegistryPath: path,
+        path: configEntry?.componentsSchemaPath ??
+            directoryEntry?.componentsSchemaPath,
+      );
+      final installRoot = configEntry?.installPath ??
+          directoryEntry?.installRoot ??
+          'lib/ui/$namespace';
+      final sharedRoot = configEntry?.sharedPath ?? '$installRoot/shared';
+      return RegistrySource.fromConfig(
+        namespace: namespace,
+        configEntry: RegistryConfigEntry(
+          registryMode: 'local',
+          registryPath: path,
+          componentsPath: componentsPath,
+          componentsSchemaPath: componentsSchemaPath,
+          installPath: installRoot,
+          sharedPath: sharedRoot,
+          capabilitySharedGroups: configEntry?.capabilitySharedGroups ??
+              directoryEntry?.capabilities.sharedGroups,
+          capabilityComposites: configEntry?.capabilityComposites ??
+              directoryEntry?.capabilities.composites,
+          capabilityTheme: configEntry?.capabilityTheme ??
+              directoryEntry?.capabilities.theme,
+          enabled: configEntry?.enabled ?? true,
+        ),
+      );
+    }
+    if (url != null && url.isNotEmpty) {
+      final installRoot = configEntry?.installPath ??
+          directoryEntry?.installRoot ??
+          'lib/ui/$namespace';
+      final sharedRoot = configEntry?.sharedPath ?? '$installRoot/shared';
+      return RegistrySource.fromConfig(
+        namespace: namespace,
+        configEntry: RegistryConfigEntry(
+          registryMode: 'remote',
+          registryUrl: url,
+          baseUrl: url,
+          componentsPath:
+              configEntry?.componentsPath ?? directoryEntry?.componentsPath,
+          componentsSchemaPath: configEntry?.componentsSchemaPath ??
+              directoryEntry?.componentsSchemaPath,
+          installPath: installRoot,
+          sharedPath: sharedRoot,
+          capabilitySharedGroups: configEntry?.capabilitySharedGroups ??
+              directoryEntry?.capabilities.sharedGroups,
+          capabilityComposites: configEntry?.capabilityComposites ??
+              directoryEntry?.capabilities.composites,
+          capabilityTheme: configEntry?.capabilityTheme ??
+              directoryEntry?.capabilities.theme,
+          enabled: configEntry?.enabled ?? true,
+        ),
+      );
+    }
+    return null;
+  }
+
+  String _inlineActionBaseUrl({
+    required RegistryDirectoryEntry entry,
+    required RegistryConfigEntry? configEntry,
+  }) {
+    final path = registryPathOverride?.trim();
+    if (path != null && path.isNotEmpty) {
+      return _localOverrideSourceRoot(path);
+    }
+    final url = registryUrlOverride?.trim();
+    if (url != null && url.isNotEmpty) {
+      return url;
+    }
+    return configEntry?.baseUrl ?? configEntry?.registryUrl ?? entry.baseUrl;
+  }
+
+  String _localOverrideSourceRoot(String path) {
+    final normalized = _resolveLocalOverridePath(path);
+    if (p.basename(normalized) == 'registry') {
+      return p.dirname(normalized);
+    }
+    return normalized;
+  }
+
+  String _resolveLocalOverridePath(String path) {
+    final trimmed = path.trim();
+    if (p.isAbsolute(trimmed)) {
+      return p.normalize(trimmed);
+    }
+    return p.normalize(p.join(findProjectRootFrom(targetDir), trimmed));
+  }
+
+  String? _pathForLocalOverride({
+    required String localRegistryPath,
+    required String? path,
+    String? fallback,
+    bool detectComponentsManifest = false,
+  }) {
+    final value = path ??
+        (detectComponentsManifest
+            ? _detectLocalOverridePath(localRegistryPath)
+            : null) ??
+        fallback;
+    if (value == null || value.isEmpty) {
+      return null;
+    }
+    final normalizedLocal = _resolveLocalOverridePath(localRegistryPath);
+    if (p.basename(normalizedLocal) == 'registry' &&
+        value.startsWith('registry/')) {
+      return value.substring('registry/'.length);
+    }
+    return value;
+  }
+
+  String? _detectLocalOverridePath(String localRegistryPath) {
+    final localRoot = _resolveLocalOverridePath(localRegistryPath);
+    for (final candidate in const [
+      'manifests/components.json',
+      'components.json',
+    ]) {
+      if (File(p.join(localRoot, candidate)).existsSync()) {
+        return candidate;
+      }
+    }
+    final sourceRoot = _localOverrideSourceRoot(localRegistryPath);
+    final candidates = <String>[
+      'registry/manifests/components.json',
+      'manifests/components.json',
+      'components.json',
+    ];
+    for (final candidate in candidates) {
+      if (File(p.join(sourceRoot, candidate)).existsSync()) {
+        return candidate;
+      }
+    }
+    return null;
   }
 
   Future<ShadcnConfig> _upsertConfigFromDirectory(
@@ -265,8 +441,10 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       registryUrl: configEntry.registryUrl ?? directoryEntry.baseUrl,
       componentsPath:
           configEntry.componentsPath ?? directoryEntry.componentsPath,
-      componentsSchemaPath: configEntry.componentsSchemaPath ??
-          directoryEntry.componentsSchemaPath,
+      componentsSchemaPath: configEntry.registryPath == null
+          ? configEntry.componentsSchemaPath ??
+              directoryEntry.componentsSchemaPath
+          : configEntry.componentsSchemaPath,
       indexPath: configEntry.indexPath ?? directoryEntry.indexPath,
       indexSchemaPath:
           configEntry.indexSchemaPath ?? directoryEntry.indexSchemaPath,

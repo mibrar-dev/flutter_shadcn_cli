@@ -27,6 +27,7 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/commands/remove_command.
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/search_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/sync_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands_registry.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/arg_helpers.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/theme_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/upgrade_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/validate_command.dart';
@@ -51,13 +52,20 @@ Future<void> runCliBootstrap(List<String> arguments) async {
     exit(ExitCodes.usage);
   }
 
+  final advanced = argResults['advanced'] == true;
   if (argResults['help'] == true) {
-    printCliUsage();
+    printCliUsage(advanced: advanced);
     exit(0);
   }
 
   if (argResults.command == null) {
-    printCliUsage();
+    printCliUsage(advanced: advanced);
+    exit(ExitCodes.usage);
+  }
+
+  final advancedGateError = _advancedGateError(argResults, advanced);
+  if (advancedGateError != null) {
+    stderr.writeln('Error: $advancedGateError');
     exit(ExitCodes.usage);
   }
 
@@ -67,24 +75,30 @@ Future<void> runCliBootstrap(List<String> arguments) async {
   final offline = argResults['offline'] == true;
   final logger = CliLogger(verbose: verbose);
   var config = await ShadcnConfig.load(targetDir);
-  final registriesUrl = (argResults['registries-url'] as String?)?.trim();
-  final registriesPath = (argResults['registries-path'] as String?)?.trim();
-  if ((registriesUrl?.isNotEmpty ?? false) &&
-      (registriesPath?.isNotEmpty ?? false)) {
+  final registriesPath =
+      optionalStringOption(argResults, 'registries-path')?.trim();
+  final registryPathOverride =
+      optionalStringOption(argResults, 'registry-path')?.trim();
+  final registryUrlOverride =
+      optionalStringOption(argResults, 'registry-url')?.trim();
+  if ((registryPathOverride?.isNotEmpty ?? false) &&
+      (registryUrlOverride?.isNotEmpty ?? false)) {
     stderr.writeln(
-      'Error: Use only one of --registries-url or --registries-path.',
+      'Error: --registry-path and --registry-url cannot be used together.',
     );
     exit(ExitCodes.usage);
   }
   final multiRegistry = MultiRegistryManager(
     targetDir: targetDir,
     offline: offline,
-    skipIntegrity: argResults['skip-integrity'] == true,
+    skipIntegrity: optionalBoolOption(argResults, 'skip-integrity'),
     logger: logger,
-    directoryUrl: registriesUrl?.isNotEmpty == true
-        ? registriesUrl!
-        : defaultRegistriesDirectoryUrl,
+    directoryUrl: defaultRegistriesDirectoryUrl,
     directoryPath: registriesPath?.isNotEmpty == true ? registriesPath : null,
+    registryPathOverride:
+        registryPathOverride?.isNotEmpty == true ? registryPathOverride : null,
+    registryUrlOverride:
+        registryUrlOverride?.isNotEmpty == true ? registryUrlOverride : null,
   );
   try {
     // Auto-check for updates (rate-limited to once per 24 hours)
@@ -104,30 +118,11 @@ Future<void> runCliBootstrap(List<String> arguments) async {
       argResults: argResults,
       config: config,
       multiRegistry: multiRegistry,
-      registriesUrl: registriesUrl,
+      registriesUrl: null,
       registriesPath: registriesPath,
     );
     final routeInitToMultiRegistry = routeDecision.routeInitToMultiRegistry;
     final routeAddToMultiRegistry = routeDecision.routeAddToMultiRegistry;
-
-    if (argResults['dev'] == true) {
-      final resolvedDevPath = resolveLocalRoot(
-        argResults['dev-path'] as String?,
-        roots.localRegistryRoot,
-        config.registryPath,
-      );
-      if (resolvedDevPath == null) {
-        stderr.writeln('Error: Unable to resolve local registry for dev mode.');
-        stderr.writeln('Set SHADCN_REGISTRY_ROOT or --dev-path.');
-        exit(ExitCodes.registryNotFound);
-      }
-      config = config.copyWith(
-        registryMode: 'local',
-        registryPath: resolvedDevPath,
-      );
-      await ShadcnConfig.save(targetDir, config);
-      logger.success('Saved dev registry path: $resolvedDevPath');
-    }
 
     if (argResults.command!.name == 'doctor') {
       final doctorCommand = argResults.command!;
@@ -160,6 +155,19 @@ Future<void> runCliBootstrap(List<String> arguments) async {
       return;
     }
 
+    if (_isThemeHelpRequest(argResults)) {
+      final themeExit = await runThemeCommand(
+        themeCommand: argResults.command!,
+        rootArgs: argResults,
+        installer: null,
+        registrySupportsTheme: null,
+      );
+      if (themeExit != ExitCodes.success) {
+        exitCode = themeExit;
+      }
+      return;
+    }
+
     final commandNamespaceOverride =
         resolveCommandNamespaceOverride(argResults);
     Registry? registry;
@@ -180,8 +188,12 @@ Future<void> runCliBootstrap(List<String> arguments) async {
         preloadedSelection = preloaded.selection;
       }
     } on RegistryBootstrapException catch (e) {
-      stderr.writeln('Error loading registry: ${e.message}');
-      stderr.writeln('Registry root: ${e.registryRoot}');
+      if (e.exitCode() == ExitCodes.usage) {
+        stderr.writeln('Error: ${e.message}');
+      } else {
+        stderr.writeln('Error loading registry: ${e.message}');
+        stderr.writeln('Registry root: ${e.registryRoot}');
+      }
       exit(e.exitCode());
     }
 
@@ -387,4 +399,37 @@ void _ensureExecutablePath() {
   } catch (_) {
     return;
   }
+}
+
+String? _advancedGateError(ArgResults argResults, bool advanced) {
+  if (advanced) {
+    return null;
+  }
+  final commandName = argResults.command?.name;
+  if (commandName == 'docs' || commandName == 'install-skill') {
+    return 'The $commandName command requires --advanced.';
+  }
+  for (final name in const [
+    'registry-path',
+    'registry-url',
+    'registries-path',
+    'skip-integrity',
+  ]) {
+    if (argResults.wasParsed(name)) {
+      return 'The --$name flag requires --advanced.';
+    }
+  }
+  return null;
+}
+
+bool _isThemeHelpRequest(ArgResults argResults) {
+  final command = argResults.command;
+  if (command?.name != 'theme') {
+    return false;
+  }
+  if (command?['help'] == true) {
+    return true;
+  }
+  return command?.command?.name == 'widget' &&
+      command?.command?['help'] == true;
 }

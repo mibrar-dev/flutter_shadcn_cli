@@ -1,6 +1,7 @@
 import 'package:flutter_shadcn_cli/src/application/dto/add_request.dart';
 import 'package:flutter_shadcn_cli/src/application/dto/qualified_component_ref.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/core/utils/component_ref_normalizer.dart';
 
 typedef ComponentExistsInNamespace = Future<bool> Function(
   String namespace,
@@ -11,36 +12,7 @@ class AddResolutionService {
   const AddResolutionService();
 
   static QualifiedComponentRef? parseQualifiedComponentRef(String token) {
-    final trimmed = token.trim();
-    if (trimmed.isEmpty) {
-      return null;
-    }
-
-    if (trimmed.startsWith('@')) {
-      final slash = trimmed.indexOf('/');
-      if (slash <= 1 || slash == trimmed.length - 1) {
-        return null;
-      }
-      final namespace = trimmed.substring(1, slash).trim();
-      final componentId = trimmed.substring(slash + 1).trim();
-      if (namespace.isEmpty || componentId.isEmpty) {
-        return null;
-      }
-      return QualifiedComponentRef(
-        namespace: namespace,
-        componentId: componentId,
-      );
-    }
-
-    final split = trimmed.split(':');
-    if (split.length == 2 && split[0].isNotEmpty && split[1].isNotEmpty) {
-      return QualifiedComponentRef(
-        namespace: split[0].trim(),
-        componentId: split[1].trim(),
-      );
-    }
-
-    return null;
+    return ComponentRefNormalizer.parse(token);
   }
 
   Future<List<AddRequest>> resolveAddRequests({
@@ -71,11 +43,10 @@ class AddResolutionService {
         );
         continue;
       }
-
-      if (enabled.contains(defaultNamespace) &&
-          await componentExists(defaultNamespace, token)) {
-        resolved.add(AddRequest(namespace: defaultNamespace, componentId: token));
-        continue;
+      if (ComponentRefNormalizer.looksQualified(token)) {
+        throw Exception(
+          'Invalid component address "$token". Use @namespace/component',
+        );
       }
 
       final candidates = <String>[];
@@ -92,7 +63,7 @@ class AddResolutionService {
         candidates.sort();
         throw Exception(
           'Component "$token" is ambiguous across registries (${candidates.join(', ')}). '
-          'Use namespace-qualified form: @<namespace>/$token',
+          'Use @namespace/component',
         );
       }
       resolved.add(

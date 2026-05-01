@@ -42,7 +42,8 @@ void main() {
 
       final loader = IndexLoader(
         registryId: 'index_loader_path_test',
-        registryBaseUrl: 'http://${server.address.host}:${server.port}/registry',
+        registryBaseUrl:
+            'http://${server.address.host}:${server.port}/registry',
         indexPath: 'manifests/index.json',
         refresh: true,
       );

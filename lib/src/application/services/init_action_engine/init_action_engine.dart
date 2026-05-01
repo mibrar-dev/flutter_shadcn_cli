@@ -17,8 +17,17 @@ part 'init_font_asset_spec_part.dart';
 
 class InitActionEngine {
   final http.Client _client;
+  final bool _ownsClient;
 
-  InitActionEngine({http.Client? client}) : _client = client ?? http.Client();
+  InitActionEngine({http.Client? client})
+      : _client = client ?? http.Client(),
+        _ownsClient = client == null;
+
+  void close() {
+    if (_ownsClient) {
+      _client.close();
+    }
+  }
 
   Future<InitExecutionResult> executeRegistryInit({
     required String projectRoot,
@@ -229,9 +238,8 @@ class InitActionEngine {
       );
     }
     final usesDirMapping = fromRaw != null && toRaw != null;
-    final from = usesDirMapping
-        ? ResolverV1.normalizeRelativePath(fromRaw)
-        : null;
+    final from =
+        usesDirMapping ? ResolverV1.normalizeRelativePath(fromRaw) : null;
     final to = usesDirMapping ? ResolverV1.normalizeRelativePath(toRaw) : null;
 
     final hasFiles = action['files'] is List;
@@ -303,7 +311,12 @@ class InitActionEngine {
     String projectRoot,
     Map<String, dynamic> action,
   ) async {
-    final file = File(p.join(projectRoot, 'pubspec.yaml'));
+    final file = File(
+      ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: projectRoot,
+        destinationRelativePath: 'pubspec.yaml',
+      ),
+    );
     if (!file.existsSync()) {
       throw InitActionEngineException('pubspec.yaml not found in project root');
     }
@@ -383,6 +396,15 @@ class InitActionEngine {
     required String baseUrl,
     required String relativePath,
   }) async {
+    final localBase = baseUrl.trim();
+    if (p.isAbsolute(localBase)) {
+      final safeRelative = ResolverV1.normalizeRelativePath(relativePath);
+      final file = File(p.normalize(p.join(localBase, safeRelative)));
+      if (!await file.exists()) {
+        throw InitActionEngineException('File not found: ${file.path}');
+      }
+      return file.readAsBytes();
+    }
     final uri = ResolverV1.resolveUrl(baseUrl, relativePath);
     final response = await _client.get(uri);
     if (response.statusCode < 200 || response.statusCode >= 300) {
@@ -733,7 +755,12 @@ class InitActionEngine {
     String projectRoot,
     InitPubspecDelta delta,
   ) async {
-    final file = File(p.join(projectRoot, 'pubspec.yaml'));
+    final file = File(
+      ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: projectRoot,
+        destinationRelativePath: 'pubspec.yaml',
+      ),
+    );
     if (!file.existsSync()) {
       return;
     }

@@ -11,14 +11,14 @@ void main() {
   group('E2E fixtures', () {
     late Directory tempRoot;
     late Directory appRoot;
-    late Directory legacyRegistryBase;
+    late Directory registryBase;
 
     setUp(() {
       tempRoot = Directory.systemTemp.createTempSync('shadcn_e2e_fixture_');
       appRoot = Directory(p.join(tempRoot.path, 'app'))..createSync();
-      legacyRegistryBase = Directory(p.join(tempRoot.path, 'legacy_reg'))
+      registryBase = Directory(p.join(tempRoot.path, 'registry_base'))
         ..createSync();
-      _writeMinimalRegistry(legacyRegistryBase);
+      _writeMinimalRegistry(registryBase);
       File(p.join(appRoot.path, 'pubspec.yaml')).writeAsStringSync(
         [
           'name: fixture_app',
@@ -35,14 +35,15 @@ void main() {
       }
     });
 
-    test('old config/state fixture supports add shadcn:button', () async {
+    test('older-shaped config/state fixture supports add shadcn:button',
+        () async {
       final packageRoot = await _packageRoot();
       final oldConfig = jsonDecode(
         File(p.join(packageRoot, 'test', 'fixtures', 'old_config.json'))
             .readAsStringSync(),
       ) as Map<String, dynamic>;
       oldConfig['registryMode'] = 'local';
-      oldConfig['registryPath'] = p.join(legacyRegistryBase.path, 'registry');
+      oldConfig['registryPath'] = p.join(registryBase.path, 'registry');
       File(p.join(appRoot.path, '.shadcn', 'config.json'))
           .writeAsStringSync(jsonEncode(oldConfig));
       File(p.join(appRoot.path, '.shadcn', 'state.json')).writeAsStringSync(
@@ -71,11 +72,11 @@ void main() {
         ).existsSync(),
         isTrue,
       );
-      final migratedState = jsonDecode(
+      final normalizedState = jsonDecode(
         File(p.join(appRoot.path, '.shadcn', 'state.json')).readAsStringSync(),
       ) as Map<String, dynamic>;
-      expect(migratedState['registries'], isA<Map>());
-      expect(migratedState['managedDependencies'], isA<List>());
+      expect(normalizedState['registries'], isA<Map>());
+      expect(normalizedState['managedDependencies'], isA<List>());
     });
 
     test('init shadcn executes inline init fixture actions', () async {
@@ -101,7 +102,10 @@ void main() {
         if (path == '/registries.json') {
           final entry = Map<String, dynamic>.from(registryEntry)
             ..['baseUrl'] = 'https://example.com/registry/'
-            ..['paths'] = {'componentsJson': 'components.json'};
+            ..['paths'] = {
+              'componentsJson': 'components.json',
+              'componentsSchemaJson': 'components.schema.json',
+            };
           request.response.write(
             jsonEncode({
               'schemaVersion': 1,
@@ -127,6 +131,26 @@ void main() {
         }
         if (path == '/registry/components/button/button.dart') {
           request.response.write('class Button {}');
+          await request.response.close();
+          return;
+        }
+        if (path == '/components.json') {
+          request.response.write(
+            jsonEncode({
+              'schemaVersion': 1,
+              'name': 'inline_registry',
+              'defaults': {
+                'installPath': 'lib/ui/shadcn',
+                'sharedPath': 'lib/ui/shadcn/shared',
+              },
+              'components': [],
+            }),
+          );
+          await request.response.close();
+          return;
+        }
+        if (path == '/components.schema.json') {
+          request.response.write(jsonEncode({}));
           await request.response.close();
           return;
         }
@@ -209,10 +233,13 @@ void _writeMinimalRegistry(Directory baseDir) {
   )..createSync(recursive: true);
   File(p.join(componentDir.path, 'button.dart'))
       .writeAsStringSync('class Button {}');
+  File(p.join(registryRoot.path, 'components.schema.json')).writeAsStringSync(
+    jsonEncode({r'$schema': 'https://json-schema.org/draft/2020-12/schema'}),
+  );
   File(p.join(registryRoot.path, 'components.json')).writeAsStringSync(
     jsonEncode({
       'schemaVersion': 1,
-      'name': 'legacy_registry',
+      'name': 'test_registry',
       'flutter': {'minSdk': '3.0.0'},
       'defaults': {
         'installPath': 'lib/ui/shadcn',

@@ -242,6 +242,8 @@ void _writeRegistryFixtures(Directory registryRoot) {
   File(p.join(registryRoot.path, 'components.json')).writeAsStringSync(
     const JsonEncoder.withIndent('  ').convert(registryJson),
   );
+  File(p.join(registryRoot.path, 'components.schema.json'))
+      .writeAsStringSync(jsonEncode({}));
 
   final themeConverter = File(
     p.join(registryRoot.path, 'manifests', 'theme_converter.dart'),

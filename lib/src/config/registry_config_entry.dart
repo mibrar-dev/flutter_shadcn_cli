@@ -1,3 +1,5 @@
+const Object _copyWithUnset = Object();
+
 class RegistryConfigEntry {
   final String? registryMode;
   final String? registryPath;
@@ -123,64 +125,74 @@ class RegistryConfigEntry {
   }
 
   RegistryConfigEntry copyWith({
-    String? registryMode,
-    String? registryPath,
-    String? registryUrl,
-    String? baseUrl,
-    String? componentsPath,
-    String? componentsSchemaPath,
-    String? indexPath,
-    String? indexSchemaPath,
-    String? themesPath,
-    String? themesSchemaPath,
-    String? folderStructurePath,
-    String? metaPath,
-    String? themeConverterDartPath,
-    String? installPath,
-    String? sharedPath,
-    bool? includeReadme,
-    bool? includeMeta,
-    bool? includePreview,
-    List<String>? includeFiles,
-    List<String>? excludeFiles,
-    bool? capabilitySharedGroups,
-    bool? capabilityComposites,
-    bool? capabilityTheme,
-    String? trustMode,
-    String? trustSha256,
-    bool? enabled,
+    Object? registryMode = _copyWithUnset,
+    Object? registryPath = _copyWithUnset,
+    Object? registryUrl = _copyWithUnset,
+    Object? baseUrl = _copyWithUnset,
+    Object? componentsPath = _copyWithUnset,
+    Object? componentsSchemaPath = _copyWithUnset,
+    Object? indexPath = _copyWithUnset,
+    Object? indexSchemaPath = _copyWithUnset,
+    Object? themesPath = _copyWithUnset,
+    Object? themesSchemaPath = _copyWithUnset,
+    Object? folderStructurePath = _copyWithUnset,
+    Object? metaPath = _copyWithUnset,
+    Object? themeConverterDartPath = _copyWithUnset,
+    Object? installPath = _copyWithUnset,
+    Object? sharedPath = _copyWithUnset,
+    Object? includeReadme = _copyWithUnset,
+    Object? includeMeta = _copyWithUnset,
+    Object? includePreview = _copyWithUnset,
+    Object? includeFiles = _copyWithUnset,
+    Object? excludeFiles = _copyWithUnset,
+    Object? capabilitySharedGroups = _copyWithUnset,
+    Object? capabilityComposites = _copyWithUnset,
+    Object? capabilityTheme = _copyWithUnset,
+    Object? trustMode = _copyWithUnset,
+    Object? trustSha256 = _copyWithUnset,
+    Object? enabled = _copyWithUnset,
   }) {
     return RegistryConfigEntry(
-      registryMode: registryMode ?? this.registryMode,
-      registryPath: registryPath ?? this.registryPath,
-      registryUrl: registryUrl ?? this.registryUrl,
-      baseUrl: baseUrl ?? this.baseUrl,
-      componentsPath: componentsPath ?? this.componentsPath,
-      componentsSchemaPath: componentsSchemaPath ?? this.componentsSchemaPath,
-      indexPath: indexPath ?? this.indexPath,
-      indexSchemaPath: indexSchemaPath ?? this.indexSchemaPath,
-      themesPath: themesPath ?? this.themesPath,
-      themesSchemaPath: themesSchemaPath ?? this.themesSchemaPath,
-      folderStructurePath: folderStructurePath ?? this.folderStructurePath,
-      metaPath: metaPath ?? this.metaPath,
+      registryMode: _copyWithValue(registryMode, this.registryMode),
+      registryPath: _copyWithValue(registryPath, this.registryPath),
+      registryUrl: _copyWithValue(registryUrl, this.registryUrl),
+      baseUrl: _copyWithValue(baseUrl, this.baseUrl),
+      componentsPath: _copyWithValue(componentsPath, this.componentsPath),
+      componentsSchemaPath:
+          _copyWithValue(componentsSchemaPath, this.componentsSchemaPath),
+      indexPath: _copyWithValue(indexPath, this.indexPath),
+      indexSchemaPath: _copyWithValue(indexSchemaPath, this.indexSchemaPath),
+      themesPath: _copyWithValue(themesPath, this.themesPath),
+      themesSchemaPath: _copyWithValue(themesSchemaPath, this.themesSchemaPath),
+      folderStructurePath:
+          _copyWithValue(folderStructurePath, this.folderStructurePath),
+      metaPath: _copyWithValue(metaPath, this.metaPath),
       themeConverterDartPath:
-          themeConverterDartPath ?? this.themeConverterDartPath,
-      installPath: installPath ?? this.installPath,
-      sharedPath: sharedPath ?? this.sharedPath,
-      includeReadme: includeReadme ?? this.includeReadme,
-      includeMeta: includeMeta ?? this.includeMeta,
-      includePreview: includePreview ?? this.includePreview,
-      includeFiles: includeFiles ?? this.includeFiles,
-      excludeFiles: excludeFiles ?? this.excludeFiles,
+          _copyWithValue(themeConverterDartPath, this.themeConverterDartPath),
+      installPath: _copyWithValue(installPath, this.installPath),
+      sharedPath: _copyWithValue(sharedPath, this.sharedPath),
+      includeReadme: _copyWithValue(includeReadme, this.includeReadme),
+      includeMeta: _copyWithValue(includeMeta, this.includeMeta),
+      includePreview: _copyWithValue(includePreview, this.includePreview),
+      includeFiles: _copyWithValue(includeFiles, this.includeFiles),
+      excludeFiles: _copyWithValue(excludeFiles, this.excludeFiles),
       capabilitySharedGroups:
-          capabilitySharedGroups ?? this.capabilitySharedGroups,
-      capabilityComposites: capabilityComposites ?? this.capabilityComposites,
-      capabilityTheme: capabilityTheme ?? this.capabilityTheme,
-      trustMode: trustMode ?? this.trustMode,
-      trustSha256: trustSha256 ?? this.trustSha256,
-      enabled: enabled ?? this.enabled,
+          _copyWithValue(capabilitySharedGroups, this.capabilitySharedGroups),
+      capabilityComposites:
+          _copyWithValue(capabilityComposites, this.capabilityComposites),
+      capabilityTheme: _copyWithValue(capabilityTheme, this.capabilityTheme),
+      trustMode: _copyWithValue(trustMode, this.trustMode),
+      trustSha256: _copyWithValue(trustSha256, this.trustSha256),
+      enabled: _copyWithValue(enabled, this.enabled) ?? this.enabled,
     );
   }
+}
+
+T? _copyWithValue<T>(Object? value, T? current) {
+  if (identical(value, _copyWithUnset)) {
+    return current;
+  }
+  return value as T?;
 }
 
 List<String>? _stringListOrNull(dynamic raw) {

@@ -30,13 +30,23 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     } catch (_) {
       directoryEntry = null;
     }
+    final configured = config.registryConfig(namespace);
     final source = directoryEntry != null
-        ? RegistrySource.fromDirectory(directoryEntry)
+        ? (configured != null ||
+                (registryPathOverride?.trim().isNotEmpty ?? false) ||
+                (registryUrlOverride?.trim().isNotEmpty ?? false)
+            ? await _resolveSourceForNamespace(
+                namespace,
+                config,
+                allowDirectoryFallback: true,
+              )
+            : RegistrySource.fromDirectory(directoryEntry))
         : await _resolveSourceForNamespace(
             namespace,
             config,
             allowDirectoryFallback: false,
           );
+    await _validateRegistryForNamespaceInit(source, projectRoot: projectRoot);
     if (directoryEntry != null) {
       config = await _upsertConfigFromDirectory(config, directoryEntry);
     }
@@ -60,9 +70,12 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       return;
     }
 
-    final configured = config.registryConfig(namespace);
-    final overrideBaseUrl = configured?.baseUrl ?? configured?.registryUrl;
-    final initEntry = overrideBaseUrl != null && overrideBaseUrl.isNotEmpty
+    final updatedConfigured = config.registryConfig(namespace);
+    final overrideBaseUrl = _inlineActionBaseUrl(
+      entry: directoryEntry,
+      configEntry: updatedConfigured,
+    );
+    final initEntry = overrideBaseUrl.isNotEmpty
         ? RegistryDirectoryEntry(
             id: directoryEntry.id,
             displayName: directoryEntry.displayName,
@@ -148,7 +161,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     stdout.write('Shared files path (default: $defaultPath). Enter to keep: ');
     final input = stdin.readLineSync()?.trim() ?? '';
     final nextPath = input.isEmpty ? defaultPath : input;
-    final registries = Map<String, RegistryConfigEntry>.from(config.registries ?? {});
+    final registries =
+        Map<String, RegistryConfigEntry>.from(config.registries ?? {});
     final nextEntry = (current ?? const RegistryConfigEntry()).copyWith(
       sharedPath: nextPath,
       installPath: current?.installPath ?? source.installRoot,
@@ -179,7 +193,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     final sharedDefault = (current?.sharedPath?.trim().isNotEmpty ?? false)
         ? current!.sharedPath!.trim()
         : source.sharedRoot;
-    final registries = Map<String, RegistryConfigEntry>.from(config.registries ?? {});
+    final registries =
+        Map<String, RegistryConfigEntry>.from(config.registries ?? {});
     final nextEntry = (current ?? const RegistryConfigEntry()).copyWith(
       installPath: nextPath,
       sharedPath: sharedDefault,
@@ -187,6 +202,19 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     );
     registries[namespace] = nextEntry;
     return config.copyWith(registries: registries);
+  }
+
+  Future<void> _validateRegistryForNamespaceInit(
+    RegistrySource source, {
+    required String projectRoot,
+  }) async {
+    if (skipIntegrity) {
+      logger.warn(
+        'components.json validation skipped for init (${source.namespace}).',
+      );
+      return;
+    }
+    await _loadRegistryForSource(source, projectRoot: projectRoot);
   }
 
   Future<void> _resolveInitTheme({
@@ -203,7 +231,11 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     }
 
     final registryId = _themeRegistryId(namespace, registryEntry.baseUrl);
-    final cacheRoot = p.join(projectRoot, '.shadcn', 'cache', 'registry', registryId);
+    final cacheRoot = ProjectPathGuard.resolveSafeWritePath(
+      projectRoot: projectRoot,
+      destinationRelativePath:
+          p.join('.shadcn', 'cache', 'registry', registryId),
+    );
     final indexLoader = ThemeIndexLoader(
       registryId: registryId,
       registryBaseUrl: registryEntry.baseUrl,
@@ -235,7 +267,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
 
     final selected = assumeYes
         ? _defaultThemeEntry(indexData, entries)
-        : _promptThemeSelection(namespace: namespace, entries: entries, indexData: indexData);
+        : _promptThemeSelection(
+            namespace: namespace, entries: entries, indexData: indexData);
     if (selected == null) {
       logger.info('Skipping theme selection.');
       return;
@@ -247,7 +280,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       config,
       allowDirectoryFallback: true,
     );
-    final registry = await _loadRegistryForSource(source, projectRoot: projectRoot);
+    final registry =
+        await _loadRegistryForSource(source, projectRoot: projectRoot);
     final installer = Installer(
       registry: registry,
       targetDir: projectRoot,
@@ -302,7 +336,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     required List<ThemeIndexEntry> entries,
     required Map<String, dynamic> indexData,
   }) {
-    logger.info('Select a starter theme for @$namespace (press Enter to skip):');
+    logger
+        .info('Select a starter theme for @$namespace (press Enter to skip):');
     for (var i = 0; i < entries.length; i++) {
       final preset = entries[i];
       logger.info('  ${i + 1}) ${preset.name} (${preset.id})');
