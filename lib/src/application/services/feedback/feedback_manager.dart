@@ -339,17 +339,9 @@ class FeedbackManager {
   }
 
   String _registryContextBlock(String? namespace, String? baseUrl) {
-    final lines = <String>[];
-    if (namespace != null && namespace.trim().isNotEmpty) {
-      lines.add('**Registry Namespace:** ${namespace.trim()}');
-    }
-    if (baseUrl != null && baseUrl.trim().isNotEmpty) {
-      lines.add('**Registry URL:** ${baseUrl.trim()}');
-    }
-    if (lines.isEmpty) {
-      return '';
-    }
-    return lines.join('\n');
+    return '''
+**Registry Namespace:** ${namespace?.trim() ?? ''}
+**Registry URL:** ${baseUrl?.trim() ?? ''}''';
   }
 
   String _buildIssueBody({
@@ -362,24 +354,24 @@ ${_preIssueChecklist()}
 
 $filledTemplate
 
----
+## System Info
+
 **CLI Version:** v${VersionManager.currentVersion}
 **OS:** ${Platform.operatingSystem} ${Platform.operatingSystemVersion}
 **Dart:** ${Platform.version}
-**Report Date (UTC):** ${DateTime.now().toUtc().toIso8601String()}
 ${_registryContextBlock(registryNamespace, registryBaseUrl)}
+**Report Date (UTC):** ${DateTime.now().toUtc().toIso8601String()}
 ''';
   }
 
   String _preIssueChecklist() {
     return '''
 ## Pre-Issue Checklist
-<!-- How to fill checklist: replace [ ] with [x] for completed items. -->
-- [ ] I searched existing issues and did not find a duplicate.
-- [ ] I ran `flutter_shadcn version` and confirmed the CLI version above.
-- [ ] I ran `flutter_shadcn doctor` in the target project.
-- [ ] I reproduced with `--verbose` and included relevant logs.
-- [ ] I included registry context (namespace/URL) when relevant.
+
+- [ ] I searched [existing issues](https://github.com/yourorg/flutter_shadcn/issues) and found no duplicate.
+- [ ] I ran `flutter_shadcn doctor` and included the output in Logs below.
+- [ ] I ran the failing command with `--verbose` and included the output in Logs below.
+- [ ] I confirmed the CLI version in the system info block is current.
 ''';
   }
 
@@ -648,18 +640,25 @@ flutter_shadcn ...
 ''';
       case FeedbackType.other:
         return '''
-## Feedback
-<!-- Share your thoughts, suggestions, or general comments -->
+## Issue Type
 
-## Category
-<!-- What aspect of the CLI does this relate to? -->
-<!-- Select one or more by changing [ ] to [x], e.g. - [x] User Experience -->
-- [ ] User Experience
-- [ ] Developer Experience
-- [ ] Design/Aesthetics
-- [ ] Workflow/Process
-- [ ] Integration with other tools
-- [ ] Other: ___________
+- [ ] Bug — something is broken
+- [ ] Regression — something that worked before is now broken
+- [ ] Feature request — something new
+- [ ] Documentation — missing or wrong docs
+- [ ] Question
+
+## What happened?
+<!-- What did you do, what did you expect, what actually happened? -->
+
+## Steps to Reproduce
+<!-- List the exact commands you ran -->
+
+1.
+2.
+
+## Logs
+<!-- Paste output from running your command with --verbose -->
 
 ## Details
 <!-- Provide as much context as you'd like -->

@@ -1,33 +1,48 @@
 ---
 name: General feedback
-about: UX, docs, workflow, or integration feedback
+about: Bugs, regressions, feature requests, docs issues, and questions
 labels: [feedback, cli]
 ---
 
 ## Pre-Issue Checklist
-<!-- How to fill checklist: replace [ ] with [x] for completed items. -->
-- [ ] I searched existing issues and did not find a duplicate.
-- [ ] I selected the best category below.
-- [ ] I included enough context for maintainers to reproduce or evaluate.
 
-## Feedback
+- [ ] I searched [existing issues](https://github.com/yourorg/flutter_shadcn/issues) and found no duplicate.
+- [ ] I ran `flutter_shadcn doctor` and included the output in Logs below.
+- [ ] I ran the failing command with `--verbose` and included the output in Logs below.
+- [ ] I confirmed the CLI version in the system info block is current.
 
-## Category
-<!-- Select one or more by changing [ ] to [x], e.g. - [x] User Experience -->
-- [ ] User Experience
-- [ ] Developer Experience
-- [ ] Design / Output Style
-- [ ] Workflow / Process
-- [ ] Integration with Other Tools
-- [ ] Other
+## Issue Type
+
+- [ ] Bug — something is broken
+- [ ] Regression — something that worked before is now broken
+- [ ] Feature request — something new
+- [ ] Documentation — missing or wrong docs
+- [ ] Question
+
+## What happened?
+
+<!-- What did you do, what did you expect, what actually happened? -->
+
+## Steps to Reproduce
+
+<!-- List the exact commands you ran -->
+
+1.
+2.
+
+## Logs
+
+<!-- Paste output from running your command with --verbose -->
 
 ## Details
 
 ## Suggestions
 
-## Environment (Optional)
-- CLI Version:
-- OS:
-- Dart:
-- Registry Namespace:
-- Registry URL/Path:
+## System Info
+
+**CLI Version:**
+**OS:**
+**Dart:**
+**Registry Namespace:**
+**Registry URL:**
+**Report Date (UTC):**

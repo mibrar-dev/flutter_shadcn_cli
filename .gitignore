@@ -2,3 +2,6 @@
 .pub-cache/
 build/
 AGENTS.md
+Continuum App.code-workspace
+PROJECT_AUDIT_REPORT.md
+graphify-out/
