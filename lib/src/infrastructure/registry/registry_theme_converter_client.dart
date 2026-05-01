@@ -154,6 +154,7 @@ class RegistryThemeConverterClient {
       final result = await processRunner.run(
         'dart',
         [scriptFile.path, inputFile.path],
+        workingDirectory: scriptFile.parent.path,
       );
       if (result.exitCode != 0) {
         final stderr = result.stderr.toString().trim();

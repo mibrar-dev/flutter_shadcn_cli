@@ -2,6 +2,8 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/io/process_runner.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/registry/registry_theme_converter_client.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
@@ -194,7 +196,55 @@ void main() {
         isTrue,
       );
     });
+
+    test('converter process receives a stable working directory', () async {
+      final runner = _WorkingDirectoryAssertingProcessRunner();
+      final client = RegistryThemeConverterClient(
+        registryId: 'shadcn',
+        registryBaseUrl: tempRoot.path,
+        converterPath: 'registry/manifests/theme_converter.dart',
+        cacheRootPath: p.join(tempRoot.path, 'cache'),
+        processRunner: runner,
+      );
+
+      await client.execute({
+        'scope': 'widget',
+        'action': 'apply',
+        'namespace': 'shadcn',
+        'componentId': 'button',
+      });
+
+      expect(runner.seenWorkingDirectory, isNotNull);
+      expect(Directory(runner.seenWorkingDirectory!).existsSync(), isTrue);
+    });
   });
+}
+
+class _WorkingDirectoryAssertingProcessRunner extends ProcessRunner {
+  String? seenWorkingDirectory;
+
+  @override
+  Future<ProcessResult> run(
+    String executable,
+    List<String> args, {
+    String? workingDirectory,
+  }) async {
+    seenWorkingDirectory = workingDirectory;
+    if (workingDirectory == null ||
+        workingDirectory.trim().isEmpty ||
+        !Directory(workingDirectory).existsSync()) {
+      return ProcessResult(1, 255, '', 'missing stable working directory');
+    }
+    return ProcessResult(
+      1,
+      0,
+      jsonEncode({
+        'scope': 'widget',
+        'installPlan': {'operations': []},
+      }),
+      '',
+    );
+  }
 }
 
 void _writeRegistryFixtures(Directory registryRoot) {
