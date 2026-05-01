@@ -11,9 +11,9 @@ Future<int> runDocsCommand({
   if (command['help'] == true) {
     print('Usage: flutter_shadcn docs [--generate]');
     print('');
-    print('Regenerate /doc/site documentation from sources.');
+    print('Regenerate docs/reference/commands from CLI metadata.');
     print('Options:');
-    print('  --generate, -g     Regenerate documentation (default)');
+    print('  --generate, -g     Regenerate command reference docs (default)');
     print('  --help, -h         Show this message');
     return ExitCodes.success;
   }

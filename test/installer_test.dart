@@ -851,6 +851,8 @@ class ColorSchemes {
 
   File(p.join(registryRoot.path, 'components.json')).writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(registryJson));
+  File(p.join(registryRoot.path, 'components.schema.json'))
+      .writeAsStringSync(jsonEncode({}));
 
   File(p.join(registryRoot.path, 'manifests', 'theme.index.json'))
     ..createSync(recursive: true)

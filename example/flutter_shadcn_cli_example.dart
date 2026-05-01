@@ -18,14 +18,10 @@
 /// flutter_shadcn init
 /// ```
 ///
-/// Or with all options:
+/// Initialize a specific registry namespace:
 ///
 /// ```bash
-/// flutter_shadcn init \
-///   --yes \
-///   --install-path ui/shadcn \
-///   --shared-path ui/shadcn/shared \
-///   --theme blue
+/// flutter_shadcn init shadcn --yes
 /// ```
 ///
 /// ## Add components
@@ -34,18 +30,17 @@
 /// # Add a single component
 /// flutter_shadcn add button
 ///
+/// # Add a namespaced component
+/// flutter_shadcn add @shadcn/button
+///
 /// # Add multiple components
 /// flutter_shadcn add button dialog accordion
-///
-/// # Add all components
-/// flutter_shadcn add --all
 /// ```
 ///
 /// ## Remove components
 ///
 /// ```bash
 /// flutter_shadcn remove button
-/// flutter_shadcn remove --all
 /// ```
 ///
 /// ## Check project status

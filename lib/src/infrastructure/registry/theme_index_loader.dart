@@ -108,7 +108,12 @@ class ThemeIndexLoader {
     if (!cacheDir.existsSync()) {
       cacheDir.createSync(recursive: true);
     }
-    return File(p.join(cacheDir.path, 'theme.index.json'));
+    return File(
+      ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: cacheDir.path,
+        destinationRelativePath: 'theme.index.json',
+      ),
+    );
   }
 
   bool _isStale(File file) {
@@ -169,9 +174,8 @@ class ThemeIndexLoader {
     }
 
     final normalizedBase = p.normalize(basePath);
-    final normalizedThemesPath = themesPath.trim().isEmpty
-        ? 'theme.index.json'
-        : themesPath.trim();
+    final normalizedThemesPath =
+        themesPath.trim().isEmpty ? 'theme.index.json' : themesPath.trim();
     final candidates = <String>[
       p.join(normalizedBase, normalizedThemesPath),
       p.join(normalizedBase, 'registry', normalizedThemesPath),

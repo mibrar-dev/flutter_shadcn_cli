@@ -1,7 +1,10 @@
 import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/core/utils/component_ref_normalizer.dart';
+import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/arg_helpers.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/bootstrap_route_decision.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/registry_bootstrap_exception.dart';
@@ -77,6 +80,14 @@ Future<RegistryBootstrapSelection?> preloadRegistryIfNeeded({
   required CliLogger logger,
 }) async {
   final commandName = argResults.command!.name;
+  final malformedAddress = _malformedQualifiedComponentAddress(argResults);
+  if (malformedAddress != null) {
+    throw RegistryBootstrapException(
+      '',
+      'Invalid component address "$malformedAddress". Use @namespace/component',
+      ExitCodes.usage,
+    );
+  }
   final needsRegistry = const {
     'init',
     'theme',
@@ -84,7 +95,6 @@ Future<RegistryBootstrapSelection?> preloadRegistryIfNeeded({
     'dry-run',
     'remove',
     'sync',
-    'assets',
     'validate',
     'audit',
     'deps',
@@ -104,7 +114,7 @@ Future<RegistryBootstrapSelection?> preloadRegistryIfNeeded({
     namespaceOverride: namespaceOverride,
   );
   final cachePath = componentsJsonCachePath(selection.registryRoot);
-  final skipIntegrity = argResults['skip-integrity'] == true;
+  final skipIntegrity = optionalBoolOption(argResults, 'skip-integrity');
   try {
     final registry = await Registry.load(
       registryRoot: selection.registryRoot,
@@ -122,6 +132,24 @@ Future<RegistryBootstrapSelection?> preloadRegistryIfNeeded({
   } catch (e) {
     throw RegistryBootstrapException(selection.registryRoot.root, e.toString());
   }
+}
+
+String? _malformedQualifiedComponentAddress(ArgResults argResults) {
+  if (argResults.command?.name != 'remove') {
+    return null;
+  }
+  final command = argResults.command!;
+  final removeAll = command['all'] == true || command.rest.contains('all');
+  if (removeAll) {
+    return null;
+  }
+  for (final token in command.rest) {
+    if (ComponentRefNormalizer.looksQualified(token) &&
+        MultiRegistryManager.parseComponentRef(token) == null) {
+      return token;
+    }
+  }
+  return null;
 }
 
 String parseInitNamespaceToken(String token) {
@@ -145,15 +173,4 @@ bool hasConfiguredRegistryMap(ShadcnConfig config) {
     }
   }
   return false;
-}
-
-bool hasExplicitLegacyRegistrySelection(ArgResults args) {
-  if (args.wasParsed('registry-path') || args.wasParsed('registry-url')) {
-    return true;
-  }
-  if (!args.wasParsed('registry')) {
-    return false;
-  }
-  final mode = (args['registry'] as String?)?.trim().toLowerCase();
-  return mode != null && mode.isNotEmpty && mode != 'auto';
 }

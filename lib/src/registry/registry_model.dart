@@ -8,10 +8,23 @@ import 'package:flutter_shadcn_cli/src/registry/components_schema_validator.dart
 import 'package:flutter_shadcn_cli/src/registry/registry_location.dart';
 import 'package:flutter_shadcn_cli/src/registry/shared_item.dart';
 
+class RegistrySchemaValidationException implements Exception {
+  final List<String> errors;
+
+  const RegistrySchemaValidationException(this.errors);
+
+  @override
+  String toString() {
+    return 'components.json schema validation failed (${errors.length} issues).';
+  }
+}
+
 class Registry {
   final Map<String, dynamic> data;
   final RegistryLocation registryRoot;
   final RegistryLocation sourceRoot;
+  List<Component>? _componentsCache;
+  Map<String, Component>? _componentLookupCache;
 
   Registry(this.data, this.registryRoot, this.sourceRoot);
 
@@ -66,6 +79,7 @@ class Registry {
       registryRoot: registryRoot,
       sourceRoot: sourceRoot,
       schemaPath: schemaPath,
+      skipIntegrity: skipIntegrity,
       logger: logger,
     );
   }
@@ -75,24 +89,25 @@ class Registry {
     required RegistryLocation registryRoot,
     required RegistryLocation sourceRoot,
     String? schemaPath,
+    bool skipIntegrity = false,
     CliLogger? logger,
   }) async {
     final data = jsonDecode(content);
-
-    final schemaSource = ComponentsSchemaValidator.resolveSchemaSource(
-      data: data is Map<String, dynamic> ? data : const {},
-      registryRoot: registryRoot,
-      schemaPathOverride: schemaPath,
-    );
-    if (schemaSource != null) {
+    if (!skipIntegrity) {
+      final schemaSource = ComponentsSchemaValidator.resolveSchemaSource(
+        data: data is Map<String, dynamic> ? data : const {},
+        registryRoot: registryRoot,
+        schemaPathOverride: schemaPath,
+      );
+      if (schemaSource == null) {
+        return Registry(data, registryRoot, sourceRoot);
+      }
       final result = await ComponentsSchemaValidator.validateWithJsonSchema(
         data,
         schemaSource,
       );
       if (!result.isValid) {
-        logger?.warn(
-          'components.json schema validation failed (${result.errors.length} issues).',
-        );
+        throw RegistrySchemaValidationException(result.errors);
       }
     }
 
@@ -112,21 +127,34 @@ class Registry {
   }
 
   List<Component> get components {
+    final cached = _componentsCache;
+    if (cached != null) {
+      return cached;
+    }
     final raw = data['components'];
     if (raw is! List) {
-      return [];
+      _componentsCache = const [];
+      return _componentsCache!;
     }
-    return raw.map((e) => Component.fromJson(e)).toList();
+    _componentsCache = List.unmodifiable(
+      raw.map((e) => Component.fromJson(e)),
+    );
+    return _componentsCache!;
   }
 
   Component? getComponent(String name) {
-    try {
-      return components.firstWhere(
-        (c) => c.id == name || c.name.toLowerCase() == name.toLowerCase(),
-      );
-    } catch (e) {
-      return null;
+    final lookup = _componentLookupCache ??= _buildComponentLookup();
+    return lookup[name] ?? lookup[name.toLowerCase()];
+  }
+
+  Map<String, Component> _buildComponentLookup() {
+    final lookup = <String, Component>{};
+    for (final component in components) {
+      lookup.putIfAbsent(component.id, () => component);
+      lookup.putIfAbsent(component.id.toLowerCase(), () => component);
+      lookup.putIfAbsent(component.name.toLowerCase(), () => component);
     }
+    return lookup;
   }
 
   Future<List<int>> readSourceBytes(String relativePath) {
@@ -154,7 +182,8 @@ class Registry {
     if (expected == null || expected.isEmpty) {
       return;
     }
-    final digest = sha256.convert(utf8.encode(content)).toString().toLowerCase();
+    final digest =
+        sha256.convert(utf8.encode(content)).toString().toLowerCase();
     logger?.detail('components.json sha256: $digest');
     if (digest != expected) {
       throw Exception(

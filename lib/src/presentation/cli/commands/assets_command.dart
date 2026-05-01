@@ -1,7 +1,6 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer_orchestrator.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';
@@ -17,12 +16,6 @@ Future<int> runAssetsCommand({
   required ShadcnConfig config,
   required CliLogger logger,
 }) async {
-  final activeInstaller = installer;
-  if (activeInstaller == null) {
-    stderr.writeln('Error: Installer is not available.');
-    return ExitCodes.registryNotFound;
-  }
-  final orchestrator = InstallerOrchestrator(activeInstaller);
   if (command['help'] == true) {
     print('Usage: flutter_shadcn assets [options]');
     print('');
@@ -36,9 +29,7 @@ Future<int> runAssetsCommand({
     return ExitCodes.success;
   }
   if (command['list'] == true) {
-    print('Available assets:');
-    print('  icon_fonts');
-    print('  typography_fonts');
+    print('Available assets are defined by inline registry actions.');
     return ExitCodes.success;
   }
 
@@ -62,15 +53,8 @@ Future<int> runAssetsCommand({
     return ExitCodes.success;
   }
 
-  await orchestrator.runBulkInstall(() async {
-    final components = <String>[];
-    if (installAll || installIcons) {
-      components.add('icon_fonts');
-    }
-    if (installAll || installTypography) {
-      components.add('typography_fonts');
-    }
-    await orchestrator.addComponents(components);
-  });
-  return ExitCodes.success;
+  stderr.writeln(
+    'Error: No inline registry actions are available for the selected assets.',
+  );
+  return ExitCodes.componentMissing;
 }

@@ -283,7 +283,12 @@ class RegistryThemeConverterClient {
     if (!cacheDir.existsSync()) {
       cacheDir.createSync(recursive: true);
     }
-    return File(p.join(cacheDir.path, 'theme_converter.dart'));
+    return File(
+      ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: cacheDir.path,
+        destinationRelativePath: 'theme_converter.dart',
+      ),
+    );
   }
 
   static const _cacheDir = '~/.flutter_shadcn/cache';

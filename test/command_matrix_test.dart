@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:isolate';
 
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
@@ -8,19 +9,19 @@ void main() {
   group('Command matrix', () {
     late Directory tempRoot;
     late Directory appRoot;
-    late Directory legacyRegistryBase;
+    late Directory registryBase;
     late String packageRoot;
     late String cliEntrypoint;
 
-    setUp(() {
-      packageRoot = Directory.current.path;
+    setUp(() async {
+      packageRoot = await _packageRoot();
       cliEntrypoint = p.join(packageRoot, 'bin', 'shadcn.dart');
       tempRoot = Directory.systemTemp.createTempSync('shadcn_cmd_matrix_');
       appRoot = Directory(p.join(tempRoot.path, 'app'))..createSync();
-      legacyRegistryBase = Directory(p.join(tempRoot.path, 'legacy_registry'))
+      registryBase = Directory(p.join(tempRoot.path, 'registry_base'))
         ..createSync();
       _writePubspec(appRoot);
-      _writeMinimalRegistry(legacyRegistryBase);
+      _writeMinimalRegistry(registryBase);
     });
 
     tearDown(() {
@@ -35,28 +36,23 @@ void main() {
         docsCommands,
         unorderedEquals(_documentedCliCommands),
       );
-      expect(
-          File(p.join(packageRoot, 'doc', 'site', 'commands', 'index.md'))
-              .existsSync(),
-          isTrue);
     });
 
     test('all documented commands resolve with --help', () async {
-      final registryRoot = p.join(legacyRegistryBase.path, 'registry');
+      final registryRoot = p.join(registryBase.path, 'registry');
       final failures = <String>[];
       for (final command in _documentedCliCommands) {
+        final advancedCommand = _advancedCliCommands.contains(command);
         final result = await _runCli(
           cliEntrypoint: cliEntrypoint,
           cwd: appRoot.path,
           args: [
             '--offline',
-            '--registry',
-            'local',
-            '--registry-path',
-            registryRoot,
+            if (advancedCommand) '--advanced',
             command,
             '--help',
           ],
+          environment: {'SHADCN_REGISTRY_ROOT': registryRoot},
         );
         if (result.exitCode != 0) {
           failures.add(
@@ -83,11 +79,11 @@ void main() {
       }
     });
 
-    test('legacy config/state migrate and add shadcn:button', () async {
-      _writeLegacyConfigAndState(
+    test('older-shaped config/state normalize and add shadcn:button', () async {
+      _writeOlderShapeConfigAndState(
         packageRoot: packageRoot,
         appRoot: appRoot.path,
-        registryPath: p.join(legacyRegistryBase.path, 'registry'),
+        registryPath: p.join(registryBase.path, 'registry'),
       );
       final result = await _runCli(
         cliEntrypoint: cliEntrypoint,
@@ -114,26 +110,27 @@ void main() {
       );
       expect(installed.existsSync(), isTrue);
 
-      final migratedConfig = jsonDecode(
+      final normalizedConfig = jsonDecode(
         File(p.join(appRoot.path, '.shadcn', 'config.json')).readAsStringSync(),
       ) as Map<String, dynamic>;
-      final migratedState = jsonDecode(
+      final normalizedState = jsonDecode(
         File(p.join(appRoot.path, '.shadcn', 'state.json')).readAsStringSync(),
       ) as Map<String, dynamic>;
 
-      expect(migratedConfig['registries'], isA<Map>());
-      expect(migratedState['registries'], isA<Map>());
+      expect(normalizedConfig['registries'], isA<Map>());
+      expect(normalizedState['registries'], isA<Map>());
       expect(
-        migratedState['managedDependencies'],
+        normalizedState['managedDependencies'],
         unorderedEquals(['gap', 'data_widget']),
       );
     });
 
-    test('legacy config supports @namespace/component add syntax', () async {
-      _writeLegacyConfigAndState(
+    test('older-shaped config supports @namespace/component add syntax',
+        () async {
+      _writeOlderShapeConfigAndState(
         packageRoot: packageRoot,
         appRoot: appRoot.path,
-        registryPath: p.join(legacyRegistryBase.path, 'registry'),
+        registryPath: p.join(registryBase.path, 'registry'),
       );
       final result = await _runCli(
         cliEntrypoint: cliEntrypoint,
@@ -164,7 +161,7 @@ void main() {
     });
 
     test('registry selector token works across command set', () async {
-      final registryPath = p.join(legacyRegistryBase.path, 'registry');
+      final registryPath = p.join(registryBase.path, 'registry');
       Directory(p.join(appRoot.path, '.shadcn')).createSync(recursive: true);
       File(p.join(appRoot.path, '.shadcn', 'config.json')).writeAsStringSync(
         jsonEncode({
@@ -236,19 +233,27 @@ void main() {
   });
 }
 
+Future<String> _packageRoot() async {
+  final packageUri = await Isolate.resolvePackageUri(
+    Uri.parse('package:flutter_shadcn_cli/flutter_shadcn_cli.dart'),
+  );
+  if (packageUri == null) {
+    throw Exception('Could not resolve package root');
+  }
+  return p.dirname(p.dirname(File.fromUri(packageUri).path));
+}
+
 const List<String> _documentedCliCommands = <String>[
   'add',
   'assets',
   'audit',
   'default',
   'deps',
-  'docs',
   'doctor',
   'dry-run',
   'feedback',
   'info',
   'init',
-  'install-skill',
   'list',
   'platform',
   'registries',
@@ -261,22 +266,28 @@ const List<String> _documentedCliCommands = <String>[
   'version',
 ];
 
+const Set<String> _advancedCliCommands = <String>{
+  'docs',
+  'install-skill',
+};
+
 List<String> _loadDocCommandIds(String packageRoot) {
-  final dir = Directory(p.join(packageRoot, 'doc', 'site', 'commands'));
-  if (!dir.existsSync()) {
-    throw StateError('Missing docs command directory: ${dir.path}');
+  final commandsFile = File(p.join(packageRoot, 'docs', 'user', 'commands.md'));
+  if (!commandsFile.existsSync()) {
+    throw StateError('Missing user commands doc: ${commandsFile.path}');
   }
-  final ids = dir
-      .listSync()
-      .whereType<File>()
-      .map((file) => p.basenameWithoutExtension(file.path))
-      .where((name) => name != 'index')
-      .toList()
-    ..sort();
-  return ids;
+  final ids = <String>{};
+  final commandLine = RegExp(r'^flutter_shadcn\s+([a-z][a-z-]*)\b');
+  for (final line in commandsFile.readAsLinesSync()) {
+    final match = commandLine.firstMatch(line.trim());
+    if (match != null) {
+      ids.add(match.group(1)!);
+    }
+  }
+  return ids.toList()..sort();
 }
 
-void _writeLegacyConfigAndState({
+void _writeOlderShapeConfigAndState({
   required String packageRoot,
   required String appRoot,
   required String registryPath,
@@ -301,6 +312,7 @@ Future<ProcessResult> _runCli({
   required String cliEntrypoint,
   required String cwd,
   required List<String> args,
+  Map<String, String> environment = const {},
 }) {
   return Process.run(
     Platform.resolvedExecutable,
@@ -309,6 +321,7 @@ Future<ProcessResult> _runCli({
     environment: {
       ...Platform.environment,
       'CI': 'true',
+      ...environment,
     },
   );
 }
@@ -334,10 +347,12 @@ void _writeMinimalRegistry(Directory baseDir) {
   )..createSync(recursive: true);
   File(p.join(componentDir.path, 'button.dart'))
       .writeAsStringSync('class Button {}');
+  File(p.join(registryRoot.path, 'components.schema.json'))
+      .writeAsStringSync(jsonEncode({}));
   File(p.join(registryRoot.path, 'components.json')).writeAsStringSync(
     jsonEncode({
       'schemaVersion': 1,
-      'name': 'legacy_registry',
+      'name': 'test_registry',
       'flutter': {'minSdk': '3.0.0'},
       'defaults': {
         'installPath': 'lib/ui/shadcn',

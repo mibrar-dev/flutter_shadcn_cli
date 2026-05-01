@@ -13,7 +13,29 @@ extension InstallerPubspecPart on Installer {
       destPath = destPath.replaceAll('{$key}', value);
     });
 
-    return p.join(targetDir, destPath);
+    return _resolveProjectOrAbsolutePath(destPath);
+  }
+
+  String _resolveProjectPath(String relativePath) {
+    return ProjectPathGuard.resolveSafeWritePath(
+      projectRoot: targetDir,
+      destinationRelativePath: relativePath,
+    );
+  }
+
+  String _resolveProjectOrAbsolutePath(String path) {
+    if (!p.isAbsolute(path)) {
+      return _resolveProjectPath(path);
+    }
+    final rootAbs = p.normalize(p.absolute(targetDir));
+    final normalized = p.normalize(path);
+    if (normalized != rootAbs && !p.isWithin(rootAbs, normalized)) {
+      return ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: targetDir,
+        destinationRelativePath: path,
+      );
+    }
+    return _resolveProjectPath(p.relative(normalized, from: rootAbs));
   }
 
   String _installPath(ShadcnConfig? config) {
@@ -149,7 +171,7 @@ extension InstallerPubspecPart on Installer {
       return;
     }
 
-    final pubspecFile = File(p.join(targetDir, 'pubspec.yaml'));
+    final pubspecFile = File(_resolveProjectPath('pubspec.yaml'));
     if (!pubspecFile.existsSync()) {
       logger.warn('pubspec.yaml not found; skipping dependency updates.');
       return;
@@ -170,7 +192,7 @@ extension InstallerPubspecPart on Installer {
     if (assets.isEmpty) {
       return;
     }
-    final pubspecFile = File(p.join(targetDir, 'pubspec.yaml'));
+    final pubspecFile = File(_resolveProjectPath('pubspec.yaml'));
     if (!pubspecFile.existsSync()) {
       logger.warn('pubspec.yaml not found; skipping asset updates.');
       return;
@@ -191,7 +213,7 @@ extension InstallerPubspecPart on Installer {
     if (fonts.isEmpty) {
       return;
     }
-    final pubspecFile = File(p.join(targetDir, 'pubspec.yaml'));
+    final pubspecFile = File(_resolveProjectPath('pubspec.yaml'));
     if (!pubspecFile.existsSync()) {
       logger.warn('pubspec.yaml not found; skipping font updates.');
       return;

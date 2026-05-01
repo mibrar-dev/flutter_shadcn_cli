@@ -2,37 +2,32 @@ import 'package:args/args.dart';
 
 ArgParser buildCliParser() {
   return ArgParser()
+    ..addFlag(
+      'advanced',
+      negatable: false,
+      help: 'Show and enable developer and experimental features',
+    )
     ..addFlag('verbose', abbr: 'v', negatable: false)
     ..addFlag('help', abbr: 'h', negatable: false)
-    ..addFlag('wip', negatable: false, help: 'Enable WIP features')
-    ..addFlag('experimental',
-        negatable: false, help: 'Enable experimental features')
+    ..addFlag('wip', negatable: false, hide: true)
+    ..addFlag('experimental', negatable: false, hide: true)
     ..addFlag('offline',
         negatable: false,
         help: 'Disable network calls and use cached registry data only')
-    ..addFlag('dev',
-        negatable: false, help: 'Persist local registry for dev mode')
-    ..addOption('dev-path', help: 'Local registry path to persist for dev mode')
-    ..addOption('registry',
-        allowed: ['auto', 'local', 'remote'], defaultsTo: 'auto')
     ..addOption(
       'registry-name',
       help: 'Registry namespace selection (e.g. shadcn, orient)',
     )
-    ..addOption('registry-path', help: 'Path to local registry folder')
-    ..addOption('registry-url', help: 'Remote registry base URL (repo root)')
+    ..addOption('registry-path', hide: true)
+    ..addOption('registry-url', hide: true)
     ..addFlag(
       'skip-integrity',
       negatable: false,
-      help: 'Skip registry SHA-256 integrity verification (development only)',
-    )
-    ..addOption(
-      'registries-url',
-      help: 'Remote registries.json directory URL for multi-registry mode',
+      hide: true,
     )
     ..addOption(
       'registries-path',
-      help: 'Local registries.json file or directory path (dev mode)',
+      hide: true,
     )
     ..addCommand(
       'init',
@@ -51,8 +46,8 @@ ArgParser buildCliParser() {
         ..addFlag('list', negatable: false)
         ..addFlag('refresh', negatable: false, help: 'Refresh cache')
         ..addOption('apply', abbr: 'a')
-        ..addOption('apply-file', help: 'Apply theme from local JSON file')
-        ..addOption('apply-url', help: 'Apply theme from JSON URL')
+        ..addOption('apply-file', hide: true)
+        ..addOption('apply-url', hide: true)
         ..addCommand(
           'widget',
           ArgParser()
@@ -64,11 +59,11 @@ ArgParser buildCliParser() {
             )
             ..addOption(
               'apply-file',
-              help: 'Apply widget theme from a local JSON file',
+              hide: true,
             )
             ..addOption(
               'apply-url',
-              help: 'Apply widget theme from a JSON URL',
+              hide: true,
             )
             ..addFlag(
               'reset',
@@ -152,7 +147,7 @@ ArgParser buildCliParser() {
         ..addFlag('generate',
             abbr: 'g',
             negatable: false,
-            help: 'Regenerate /doc/site documentation')
+            help: 'Regenerate docs/reference/commands documentation')
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
@@ -277,23 +272,130 @@ List<String> normalizeCliArgs(List<String> args) {
   if (args.isEmpty) {
     return args;
   }
+  var normalized = _hoistGlobalAdvancedFlag(List<String>.from(args));
+  normalized = _hoistHiddenDeveloperFlags(normalized);
+  normalized = _normalizeThemeWidgetNamespace(normalized);
+  normalized = _normalizeCommandAlias(normalized);
+  return normalized;
+}
+
+List<String> _hoistGlobalAdvancedFlag(List<String> args) {
+  final normalized = <String>[];
+  var sawAdvanced = false;
+  for (final token in args) {
+    if (token == '--advanced') {
+      sawAdvanced = true;
+      continue;
+    }
+    normalized.add(token);
+  }
+  return sawAdvanced ? ['--advanced', ...normalized] : normalized;
+}
+
+List<String> _normalizeThemeWidgetNamespace(List<String> args) {
+  final commandIndex = _findCommandIndex(args);
+  if (commandIndex == null) {
+    return args;
+  }
   final normalized = List<String>.from(args);
   if (normalized.length >= 3 &&
-      normalized.first == 'theme' &&
-      normalized[1].startsWith('@') &&
-      !normalized[1].contains('/') &&
-      normalized[2] == 'widget') {
-    final namespaceToken = normalized.removeAt(1);
-    normalized.insert(2, namespaceToken);
+      normalized[commandIndex] == 'theme' &&
+      normalized.length > commandIndex + 2 &&
+      normalized[commandIndex + 1].startsWith('@') &&
+      !normalized[commandIndex + 1].contains('/') &&
+      normalized[commandIndex + 2] == 'widget') {
+    final namespaceToken = normalized.removeAt(commandIndex + 1);
+    normalized.insert(commandIndex + 2, namespaceToken);
+  }
+  return normalized;
+}
+
+List<String> _normalizeCommandAlias(List<String> args) {
+  final commandIndex = _findCommandIndex(args);
+  if (commandIndex == null) {
+    return args;
   }
   final aliasMap = <String, String>{
     'ls': 'list',
     'rm': 'remove',
     'i': 'info',
   };
-  final mapped = aliasMap[normalized.first];
+  final mapped = aliasMap[args[commandIndex]];
   if (mapped == null) {
-    return normalized;
+    return args;
   }
-  return [mapped, ...normalized.skip(1)];
+  final normalized = List<String>.from(args);
+  normalized[commandIndex] = mapped;
+  return normalized;
 }
+
+List<String> _hoistHiddenDeveloperFlags(List<String> args) {
+  final commandIndex = _findCommandIndex(args);
+  if (commandIndex == null) {
+    return args;
+  }
+  final leading = args.sublist(0, commandIndex);
+  final hoisted = <String>[];
+  final commandAndRest = <String>[];
+
+  var i = commandIndex;
+  while (i < args.length) {
+    final token = args[i];
+    final isAfterCommand = i > commandIndex;
+    if (isAfterCommand && _isHiddenDeveloperFlagToken(token)) {
+      hoisted.add(token);
+      if (_hiddenDeveloperValueOptions.contains(token) && i + 1 < args.length) {
+        hoisted.add(args[i + 1]);
+        i += 2;
+        continue;
+      }
+      i++;
+      continue;
+    }
+    commandAndRest.add(token);
+    i++;
+  }
+
+  return [...leading, ...hoisted, ...commandAndRest];
+}
+
+int? _findCommandIndex(List<String> args) {
+  for (var i = 0; i < args.length; i++) {
+    final token = args[i];
+    if (token == '--') {
+      return i + 1 < args.length ? i + 1 : null;
+    }
+    if (token.startsWith('-')) {
+      if (_rootValueOptions.contains(token) && i + 1 < args.length) {
+        i++;
+      }
+      continue;
+    }
+    return i;
+  }
+  return null;
+}
+
+bool _isHiddenDeveloperFlagToken(String token) {
+  if (_hiddenDeveloperFlagOptions.contains(token) ||
+      _hiddenDeveloperValueOptions.contains(token)) {
+    return true;
+  }
+  return _hiddenDeveloperValueOptions
+      .any((option) => token.startsWith('$option='));
+}
+
+const _hiddenDeveloperValueOptions = <String>{
+  '--registries-path',
+  '--registry-path',
+  '--registry-url',
+};
+
+const _hiddenDeveloperFlagOptions = <String>{
+  '--skip-integrity',
+};
+
+const _rootValueOptions = <String>{
+  '--registry-name',
+  ..._hiddenDeveloperValueOptions,
+};

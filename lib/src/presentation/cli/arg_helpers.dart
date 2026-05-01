@@ -5,6 +5,39 @@ import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:path/path.dart' as p;
 
+String? optionalStringOption(ArgResults? args, String name) {
+  if (args == null) {
+    return null;
+  }
+  try {
+    return args[name] as String?;
+  } on ArgumentError {
+    return null;
+  }
+}
+
+bool optionalBoolOption(ArgResults? args, String name) {
+  if (args == null) {
+    return false;
+  }
+  try {
+    return args[name] == true;
+  } on ArgumentError {
+    return false;
+  }
+}
+
+bool wasOptionalParsed(ArgResults? args, String name) {
+  if (args == null) {
+    return false;
+  }
+  try {
+    return args.wasParsed(name);
+  } on ArgumentError {
+    return false;
+  }
+}
+
 bool hasConfiguredRegistryMap(ShadcnConfig config) {
   final registries = config.registries;
   if (registries == null || registries.isEmpty) {

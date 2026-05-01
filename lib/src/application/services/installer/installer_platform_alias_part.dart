@@ -80,8 +80,9 @@ extension InstallerPlatformAliasPart on Installer {
       );
 
       if (instructions.infoPlist.isNotEmpty) {
-        final plistLines =
-            instructions.infoPlist.entries.map((e) => '${e.key}: ${e.value}').toList();
+        final plistLines = instructions.infoPlist.entries
+            .map((e) => '${e.key}: ${e.value}')
+            .toList();
         await _writePlatformSection(
           platform: platform,
           section: 'infoPlist',
@@ -105,7 +106,7 @@ extension InstallerPlatformAliasPart on Installer {
       logger.detail('No target configured for $platform/$section.');
       return;
     }
-    final fullPath = p.join(targetDir, targetPath);
+    final fullPath = _resolveProjectPath(targetPath);
     final file = File(fullPath);
     if (!await file.parent.exists()) {
       await file.parent.create(recursive: true);
@@ -165,7 +166,8 @@ extension InstallerPlatformAliasPart on Installer {
     if (prefix == null || prefix.isEmpty) {
       return;
     }
-    final componentsDir = Directory(p.join(targetDir, _installPath(config), 'components'));
+    final componentsDir = Directory(
+        _resolveProjectPath(p.join(_installPath(config), 'components')));
     if (!componentsDir.existsSync()) {
       return;
     }
@@ -191,9 +193,10 @@ extension InstallerPlatformAliasPart on Installer {
       if (!mainFile.existsSync()) {
         continue;
       }
-      final relativeDir =
-          p.relative(componentDir.path, from: p.join(targetDir, _installPath(config)));
-      final importPath = p.join(relativeDir, '$componentName.dart').replaceAll('\\', '/');
+      final relativeDir = p.relative(componentDir.path,
+          from: p.join(targetDir, _installPath(config)));
+      final importPath =
+          p.join(relativeDir, '$componentName.dart').replaceAll('\\', '/');
       imports.add(importPath);
       final contents = <String>[];
       final mainContent = mainFile.readAsStringSync();
@@ -208,7 +211,8 @@ extension InstallerPlatformAliasPart on Installer {
           contents.add(partFile.readAsStringSync());
         }
       }
-      final matches = contents.expand((content) => _classRegex.allMatches(content));
+      final matches =
+          contents.expand((content) => _classRegex.allMatches(content));
       for (final match in matches) {
         final className = match.group(2);
         if (className == null || className.startsWith('_')) {
@@ -216,7 +220,8 @@ extension InstallerPlatformAliasPart on Installer {
         }
         final typeParams = match.group(3);
         final aliasName = '$prefix$className';
-        aliases.putIfAbsent(aliasName, () => _AliasEntry(className, typeParams));
+        aliases.putIfAbsent(
+            aliasName, () => _AliasEntry(className, typeParams));
       }
     }
 
@@ -228,7 +233,8 @@ extension InstallerPlatformAliasPart on Installer {
       output.writeln("import '$importPath';");
     }
     output.writeln('');
-    final aliasEntries = aliases.entries.toList()..sort((a, b) => a.key.compareTo(b.key));
+    final aliasEntries = aliases.entries.toList()
+      ..sort((a, b) => a.key.compareTo(b.key));
     for (final entry in aliasEntries) {
       final aliasName = entry.key;
       final className = entry.value.className;
@@ -241,7 +247,8 @@ extension InstallerPlatformAliasPart on Installer {
       }
     }
 
-    final outputFile = File(p.join(targetDir, _installPath(config), 'app_components.dart'));
+    final outputFile = File(_resolveProjectPath(
+        p.join(_installPath(config), 'app_components.dart')));
     await outputFile.writeAsString(output.toString());
   }
 }

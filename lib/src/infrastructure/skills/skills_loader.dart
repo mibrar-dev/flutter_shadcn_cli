@@ -3,7 +3,6 @@ import 'dart:io';
 import 'package:flutter_shadcn_cli/src/skills/skills_index.dart';
 import 'package:path/path.dart' as p;
 
-
 /// Manages loading of skills.json index for skill discovery.
 class SkillsLoader {
   final String skillsBasePath;

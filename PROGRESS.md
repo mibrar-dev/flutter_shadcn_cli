@@ -3,6 +3,34 @@
 Date: 2026-02-22
 
 ## Completed
+- Multi-registry rewrite Task 1 parser boundary:
+  - removed public `--registry` parser support
+  - hid developer registry override flags from parser/root usage
+  - added minimal hidden-flag normalization after subcommands
+  - guarded stale optional parser reads after removing public options
+- Multi-registry rewrite Task 2 canonical component addressing:
+  - added shared component ref normalization for `@namespace/component` and `namespace:component`
+  - normalized parsed refs to namespace, component ID, and canonical `@namespace/component`
+  - changed ambiguity guidance to public canonical form only
+  - covered first-colon alias parsing and add-resolution behavior with focused tests
+- Multi-registry rewrite Task 3 current-engine command routing:
+  - routed public `init`, `add`, and `assets` flows through `MultiRegistryManager`
+  - stopped public assets from falling back to legacy component IDs like `icon_fonts` and `typography_fonts`
+  - kept developer `--registry-path` / `--registry-url` as current-engine source overrides and rejected using both together
+  - rejected multiple positional `init` namespace tokens and preserved parser rejection of `--install-fonts`
+- Multi-registry rewrite Task 4 copyFiles base-prefix alignment:
+  - chose the current registry shape: `copyFiles.files[]` may be relative to action `base`
+  - updated `resolver_spec.v3.md` to document relative-to-base `files[]`
+  - preserved strict prefix rejection for directory-mapped `copyFiles` index entries
+  - added resolver tests for relative-to-base mapping and prefix mismatch rejection
+- Multi-registry rewrite Task 5 symlink and canonical path hardening:
+  - canonicalized project root and nearest existing destination parent in `ProjectPathGuard`
+  - routed installer component writes, removals, manifests, aliases, platform writes, theme generated files, config/state/journal saves, registry-directory caches, and inline pubspec writes through guarded project paths
+  - added symlink escape coverage for inline init copyFiles and component add/install
+- Multi-registry rewrite Task 6 config/state load errors:
+  - invalid `.shadcn/config.json` and `.shadcn/state.json` now throw typed load exceptions
+  - missing config/state files still return empty defaults
+  - valid older-shaped config/state files still normalize into current registry maps
 - Baseline freeze doc added: `doc/refactor/BASELINE_MATRIX.md`
 - Architecture boundary doc added: `doc/architecture/CLEAN_ARCHITECTURE.md`
 - Command lifecycle + contributor rules docs added
@@ -119,6 +147,8 @@ Date: 2026-02-22
 - `test/config_state_migration_test.dart` (green)
 - `test/multi_registry_manager_test.dart` (green)
 - `test/init_action_engine_test.dart` (green)
+- `dart test test/cli_integration_test.dart --concurrency=1 --reporter=expanded` (green)
+- `dart test test/multi_registry_manager_test.dart --reporter=expanded` (green)
 
 ## Remaining
 - Optional: replace remaining installer `part` modules with discrete injected services
@@ -132,3 +162,54 @@ Date: 2026-02-22
       - `doc/architecture/CONTRIBUTING_RULES.md`
       - `doc/site/internals/architecture.md`
       - `doc/site/v0.2.0/internals/architecture.md`
+
+## Multi-registry production rewrite progress (2026-05-01)
+
+- Completed command boundary cleanup:
+  - removed public legacy `--registry` routing
+  - kept hidden developer overrides wired into the current multi-registry source path
+  - removed public init component-position behavior and legacy asset flags
+- Completed component address normalization:
+  - accepted both `@namespace/component` and `namespace:component`
+  - normalized internally to `@namespace/component`
+  - kept public docs/errors on canonical `@namespace/component`
+- Completed current-engine add/init/assets routing:
+  - public commands route through `MultiRegistryManager`
+  - removed old asset fallback component IDs
+  - preserved hidden local registry development overrides
+- Completed copyFiles base-prefix alignment:
+  - official registry path style is relative to `base`
+  - spec documents relative-to-base files
+  - prefix mismatch tests added
+- Completed symlink/canonical path hardening:
+  - project root and destination parent canonicalized before writes/removals
+  - installer writes, manifests, aliases, pubspec, theme cache, config/state, inline journals, and registry caches guarded
+  - symlink escape tests added for inline init and component install
+- Completed config/state typed load errors:
+  - invalid JSON throws typed load exceptions
+  - absent files still load empty defaults
+  - valid older-shaped files are normalized
+- Completed registry schema validation fatality:
+  - invalid explicit component schemas block public add/init/preloaded flows
+  - `--skip-integrity` bypasses validation only for developer mode
+  - explicit missing schema is fatal; implicit missing schema remains compatibility-skipped
+  - inline init does not require `components.json` for bootstrap, including offline/no-cache mode
+- Completed nullable `copyWith` field clearing:
+  - `ShadcnConfig.copyWith` and `RegistryConfigEntry.copyWith` now distinguish omitted arguments from explicit `null`
+  - registry URL/path/base URL, include/exclude filters, and aliases can be cleared
+
+## Verified gates (multi-registry rewrite)
+
+- `dart analyze` (green)
+- `dart test test/resolver_v1_test.dart test/config_state_migration_test.dart test/registry_directory_test.dart test/init_action_engine_test.dart test/multi_registry_manager_test.dart test/e2e_multi_registry_fixture_test.dart --reporter=expanded` (green)
+- `dart test test/cli_integration_test.dart --concurrency=1 --reporter=expanded` (green)
+- `dart test` (green on rerun; first run hit a transient installer-test timeout, isolated installer test passed)
+
+## Remaining multi-registry rewrite work
+
+- Performance pass:
+  - cache a component lookup map per registry instance
+  - cache compiled JSON schema validators per schema path/source
+  - confirm HTTP clients are injected/closed correctly
+  - reduce repeated config/directory reads inside a single command execution
+- After all verification gates pass, delete and recreate `doc/` and `README.md` with current-only user/developer/reference documentation.

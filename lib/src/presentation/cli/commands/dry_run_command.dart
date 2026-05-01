@@ -15,10 +15,12 @@ Future<int> runDryRunCommand({
     return ExitCodes.registryNotFound;
   }
   if (dryRunCommand['help'] == true) {
-    print('Usage: flutter_shadcn dry-run <component> [<component> ...] [--json]');
+    print(
+        'Usage: flutter_shadcn dry-run <component> [<component> ...] [--json]');
     print('       flutter_shadcn dry-run --all [--json]');
     print('');
-    print('Shows what would be installed (dependencies, shared modules, assets, fonts).');
+    print(
+        'Shows what would be installed (dependencies, shared modules, assets, fonts).');
     print('Options:');
     print('  --all, -a          Include every available component');
     print('  --json             Output machine-readable JSON');
@@ -42,7 +44,8 @@ Future<int> runDryRunCommand({
   }
   final plan = await activeInstaller.buildDryRunPlan(componentIds);
   final hasMissing = plan.missing.isNotEmpty;
-  final dryRunExitCode = hasMissing ? ExitCodes.componentMissing : ExitCodes.success;
+  final dryRunExitCode =
+      hasMissing ? ExitCodes.componentMissing : ExitCodes.success;
   if (dryRunCommand['json'] == true) {
     final warnings = <Map<String, dynamic>>[];
     if (hasMissing) {

@@ -88,4 +88,53 @@ void main() {
       ['preview'],
     );
   });
+
+  test('config copyWith can clear nullable routing and alias fields', () {
+    const config = ShadcnConfig(
+      registryPath: '/tmp/registry',
+      registryUrl: 'https://example.com/registry',
+      includeFiles: ['meta'],
+      excludeFiles: ['preview'],
+      pathAliases: {'ui': 'lib/ui'},
+    );
+
+    final cleared = config.copyWith(
+      registryPath: null,
+      registryUrl: null,
+      includeFiles: null,
+      excludeFiles: null,
+      pathAliases: null,
+    );
+
+    expect(cleared.registryPath, isNull);
+    expect(cleared.registryUrl, isNull);
+    expect(cleared.includeFiles, isNull);
+    expect(cleared.excludeFiles, isNull);
+    expect(cleared.pathAliases, isNull);
+  });
+
+  test('registry entry copyWith can clear nullable source and file filters',
+      () {
+    const entry = RegistryConfigEntry(
+      registryPath: '/tmp/registry',
+      registryUrl: 'https://example.com/registry',
+      baseUrl: 'https://example.com/base',
+      includeFiles: ['meta'],
+      excludeFiles: ['preview'],
+    );
+
+    final cleared = entry.copyWith(
+      registryPath: null,
+      registryUrl: null,
+      baseUrl: null,
+      includeFiles: null,
+      excludeFiles: null,
+    );
+
+    expect(cleared.registryPath, isNull);
+    expect(cleared.registryUrl, isNull);
+    expect(cleared.baseUrl, isNull);
+    expect(cleared.includeFiles, isNull);
+    expect(cleared.excludeFiles, isNull);
+  });
 }

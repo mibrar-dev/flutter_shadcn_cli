@@ -1,4 +1,7 @@
+import 'dart:io';
+
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
+import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
@@ -65,11 +68,17 @@ void main() {
 
   group('ProjectPathGuard', () {
     test('allows project-root relative writes', () {
+      final root = Directory.systemTemp.createTempSync('path_guard_');
+      addTearDown(() {
+        if (root.existsSync()) {
+          root.deleteSync(recursive: true);
+        }
+      });
       final safe = ProjectPathGuard.resolveSafeWritePath(
-        projectRoot: '/tmp/my_app',
+        projectRoot: root.path,
         destinationRelativePath: 'lib/ui/shadcn/button.dart',
       );
-      expect(safe, '/tmp/my_app/lib/ui/shadcn/button.dart');
+      expect(safe, p.join(root.path, 'lib/ui/shadcn/button.dart'));
     });
 
     test('rejects traversal outside project root', () {
@@ -102,6 +111,22 @@ void main() {
       expect(mapped, 'lib/ui/shadcn/shared/theme/theme.dart');
     });
 
+    test('maps copyFiles source path relative to base without rejecting prefix',
+        () {
+      final destination = InitPathMapper.mapCopyFileDestination(
+        filePath: 'theme/theme.dart',
+        base: 'registry/shared',
+        destBase: 'lib/ui/shadcn/shared',
+      );
+      final source = InitPathMapper.mapSourcePath(
+        filePath: 'theme/theme.dart',
+        base: 'registry/shared',
+      );
+
+      expect(destination, 'lib/ui/shadcn/shared/theme/theme.dart');
+      expect(source, 'registry/shared/theme/theme.dart');
+    });
+
     test('maps copyFiles source path by prepending base when needed', () {
       final sourceRel = InitPathMapper.mapSourcePath(
         filePath: 'theme/theme.dart',
@@ -119,6 +144,43 @@ void main() {
         destBase: 'lib/ui/shadcn',
       );
       expect(mapped, 'lib/ui/shadcn/components/button/button.dart');
+    });
+
+    test('maps copyDir destination when file path is relative to base', () {
+      final mapped = InitPathMapper.mapCopyDirDestination(
+        filePath: 'shared/fonts/bootstrap.otf',
+        from: 'shared/fonts',
+        to: 'assets/fonts',
+        base: 'registry',
+        destBase: '.',
+      );
+      expect(mapped, 'assets/fonts/bootstrap.otf');
+    });
+
+    test('rejects copyDir source outside base/from prefix', () {
+      expect(
+        () => InitPathMapper.mapCopyDirDestination(
+          filePath: 'registry/shared/button.dart',
+          from: 'components',
+          to: 'components',
+          base: 'registry',
+          destBase: 'lib/ui/shadcn',
+        ),
+        throwsA(isA<ResolverV1Exception>()),
+      );
+    });
+
+    test('rejects base-relative copyDir source outside from prefix', () {
+      expect(
+        () => InitPathMapper.mapCopyDirDestination(
+          filePath: 'shared/button.dart',
+          from: 'components',
+          to: 'components',
+          base: 'registry',
+          destBase: 'lib/ui/shadcn',
+        ),
+        throwsA(isA<ResolverV1Exception>()),
+      );
     });
   });
 }

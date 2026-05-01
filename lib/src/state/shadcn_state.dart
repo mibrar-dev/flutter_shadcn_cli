@@ -1,11 +1,25 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
 import 'package:flutter_shadcn_cli/src/state/registry_state_entry.dart';
 import 'package:path/path.dart' as p;
 
+class ShadcnStateLoadException implements Exception {
+  final String path;
+  final Object cause;
+
+  const ShadcnStateLoadException({
+    required this.path,
+    required this.cause,
+  });
+
+  @override
+  String toString() => 'Failed to load state JSON at $path: $cause';
+}
+
 class ShadcnState {
-  static const String legacyDefaultNamespace = 'shadcn';
+  static const String fallbackDefaultNamespace = 'shadcn';
 
   final String? installPath;
   final String? sharedPath;
@@ -65,31 +79,40 @@ class ShadcnState {
 
   static Future<ShadcnState> load(
     String targetDir, {
-    String defaultNamespace = legacyDefaultNamespace,
+    String defaultNamespace = fallbackDefaultNamespace,
   }) async {
     final file = stateFile(targetDir);
     if (!await file.exists()) {
       return const ShadcnState();
     }
+    final content = await file.readAsString();
     try {
-      final content = await file.readAsString();
-      final raw = jsonDecode(content) as Map<String, dynamic>;
-      final migrated = _migrateLegacyState(
+      final decoded = jsonDecode(content);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('state root must be a JSON object');
+      }
+      final raw = decoded;
+      final normalized = _normalizeStateShape(
         raw,
         defaultNamespace: defaultNamespace,
       );
-      final state = ShadcnState.fromJson(migrated);
-      if (_needsLegacyMigration(raw)) {
+      final state = ShadcnState.fromJson(normalized);
+      if (_needsStateNormalization(raw)) {
         await save(targetDir, state);
       }
       return state;
-    } catch (_) {
-      return const ShadcnState();
+    } catch (error) {
+      throw ShadcnStateLoadException(path: file.path, cause: error);
     }
   }
 
   static Future<void> save(String targetDir, ShadcnState state) async {
-    final file = stateFile(targetDir);
+    final file = File(
+      ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: targetDir,
+        destinationRelativePath: p.join('.shadcn', 'state.json'),
+      ),
+    );
     if (!await file.parent.exists()) {
       await file.parent.create(recursive: true);
     }
@@ -148,10 +171,10 @@ class ShadcnState {
     if (registries != null && registries.isNotEmpty) {
       return registries.keys.first;
     }
-    return legacyDefaultNamespace;
+    return fallbackDefaultNamespace;
   }
 
-  static bool _needsLegacyMigration(Map<String, dynamic> raw) {
+  static bool _needsStateNormalization(Map<String, dynamic> raw) {
     if (raw['registries'] is Map) {
       return false;
     }
@@ -160,11 +183,11 @@ class ShadcnState {
         raw.containsKey('themeId');
   }
 
-  static Map<String, dynamic> _migrateLegacyState(
+  static Map<String, dynamic> _normalizeStateShape(
     Map<String, dynamic> raw, {
     required String defaultNamespace,
   }) {
-    if (!_needsLegacyMigration(raw)) {
+    if (!_needsStateNormalization(raw)) {
       return raw;
     }
     final namespace =
@@ -172,15 +195,15 @@ class ShadcnState {
             ? (raw['defaultNamespace'] as String).trim()
             : defaultNamespace;
 
-    final migrated = Map<String, dynamic>.from(raw);
-    migrated['defaultNamespace'] = namespace;
-    migrated['registries'] = {
+    final normalized = Map<String, dynamic>.from(raw);
+    normalized['defaultNamespace'] = namespace;
+    normalized['registries'] = {
       namespace: {
         'installPath': raw['installPath'],
         'sharedPath': raw['sharedPath'],
         'themeId': raw['themeId'],
       },
     };
-    return migrated;
+    return normalized;
   }
 }

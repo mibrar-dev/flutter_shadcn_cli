@@ -89,7 +89,8 @@ extension InstallerFileInstallPart on Installer {
 
       if (owner != null && owner.isComponent && owner.id != component.id) {
         if (!dep.optional) {
-          logger.warn('File dependency ${dep.source} belongs to component ${owner.id}.');
+          logger.warn(
+              'File dependency ${dep.source} belongs to component ${owner.id}.');
         }
         continue;
       }
@@ -97,12 +98,14 @@ extension InstallerFileInstallPart on Installer {
       final resolvedMapping = mapping ??
           owner?.file ??
           RegistryFile(source: dep.source, destination: dep.source);
-      final destination = _resolveComponentDestination(component, resolvedMapping);
+      final destination =
+          _resolveComponentDestination(component, resolvedMapping);
       final target = File(destination);
       if (await target.exists()) {
         continue;
       }
-      if (!await _safeInstallDependency(component, resolvedMapping, availableFiles)) {
+      if (!await _safeInstallDependency(
+          component, resolvedMapping, availableFiles)) {
         if (!dep.optional) {
           logger.warn('Missing dependency file: ${dep.source}');
         }
@@ -156,6 +159,8 @@ extension InstallerFileInstallPart on Installer {
     try {
       await _installComponentFile(component, mapping, availableFiles);
       return true;
+    } on ResolverV1Exception {
+      rethrow;
     } catch (_) {
       return false;
     }
@@ -182,7 +187,7 @@ extension InstallerFileInstallPart on Installer {
     const registryPrefix = 'registry/';
     if (source.startsWith(registryPrefix)) {
       final relative = source.substring(registryPrefix.length);
-      return p.join(targetDir, installPath, relative);
+      return _resolveProjectPath(p.join(installPath, relative));
     }
 
     return _resolveDestinationPath(file.destination);

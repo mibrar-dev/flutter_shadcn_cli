@@ -60,19 +60,6 @@ extension InstallerSharedPart on Installer {
     } else {
       await _ensureConfigLoaded();
     }
-
-    final themeFilePath = _resolveColorSchemeFilePath();
-    if (enableLegacyCoreBootstrap && themeFilePath == null) {
-      final coreShared = _coreSharedIdsForInit();
-      final sharedToInstall =
-          (await _resolveSharedDependencyClosure(coreShared.toSet()))
-            ..removeWhere((id) => id.isEmpty);
-      final sharedList = sharedToInstall.toList()..sort();
-      for (final sharedId in sharedList) {
-        await installShared(sharedId);
-      }
-      await _updateDependencies({'data_widget': '^0.0.2', 'gap': '^3.0.1'});
-    }
   }
 
   Future<void> runBulkInstall(Future<void> Function() action) async {
@@ -173,7 +160,8 @@ extension InstallerSharedPart on Installer {
     }
   }
 
-  Future<Set<String>> _resolveSharedDependencyClosure(Set<String> seedIds) async {
+  Future<Set<String>> _resolveSharedDependencyClosure(
+      Set<String> seedIds) async {
     final resolved = <String>{};
     final pending = <String>[];
     for (final id in seedIds) {

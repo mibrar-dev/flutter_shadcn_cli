@@ -1,42 +1,64 @@
-import 'package:flutter_shadcn_cli/src/presentation/cli/command_registry.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_metadata.dart';
 
-void printCliUsage() {
+void printCliUsage({bool advanced = false}) {
   print('');
   print('flutter_shadcn CLI');
   print('Usage: flutter_shadcn <command> [arguments]');
   print('');
 
-  for (final category in cliCommandCategories) {
-    _printUsageSection(
-      category.name,
-      category.commands.map((entry) => MapEntry(entry.id, entry.description)).toList(),
-    );
+  for (final group in _sortedGroups()) {
+    final commands = _sortedCommands(group)
+        .where((command) => advanced || !command.advanced)
+        .map(
+          (command) => MapEntry(
+            command.aliases.isEmpty
+                ? command.id
+                : '${command.id} (alias: ${command.aliases.join(', ')})',
+            command.description,
+          ),
+        )
+        .toList();
+    if (commands.isEmpty) {
+      continue;
+    }
+    _printUsageSection(group.title, commands);
   }
 
   print('Global flags');
-  _printUsageFlagSection('General', const [
-    MapEntry('--verbose', 'Verbose logging'),
-    MapEntry('--offline', 'Disable network calls (use cache only)'),
-    MapEntry('--wip', 'Enable WIP features'),
-    MapEntry('--experimental', 'Enable experimental features'),
+  _printUsageFlagSection('General', [
+    if (advanced)
+      const MapEntry(
+        '--advanced',
+        'Show and enable developer and experimental features',
+      ),
+    const MapEntry('--verbose', 'Verbose logging'),
+    const MapEntry('--offline', 'Disable network calls (use cache only)'),
   ]);
 
   _printUsageFlagSection('Registry Selection', const [
-    MapEntry('--registry', 'auto|local|remote (default: auto)'),
     MapEntry('--registry-name', 'Registry namespace (e.g. shadcn)'),
-    MapEntry('--registry-path', 'Path to local registry folder'),
-    MapEntry('--registry-url', 'Remote registry base URL'),
-    MapEntry('--skip-integrity', 'Skip registry SHA-256 integrity checks'),
-    MapEntry('--registries-url', 'Remote registries.json URL'),
-    MapEntry('--registries-path', 'Local registries.json file/directory path'),
   ]);
 
-  _printUsageFlagSection('Dev Mode', const [
-    MapEntry('--dev', 'Persist local registry for dev mode'),
-    MapEntry('--dev-path', 'Local registry path to persist for dev mode'),
-  ]);
+  if (advanced) {
+    _printUsageFlagSection('Developer', const [
+      MapEntry('--registry-path', 'Use a local registry root'),
+      MapEntry('--registry-url', 'Use a remote registry URL'),
+      MapEntry('--registries-path', 'Use a local registries.json file'),
+      MapEntry('--skip-integrity', 'Skip registry integrity checks'),
+    ]);
+  }
 
   print('');
+}
+
+List<CliCommandGroupMeta> _sortedGroups() {
+  return [...cliCommandMetadata]
+    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
+}
+
+List<CliCommandMeta> _sortedCommands(CliCommandGroupMeta group) {
+  return [...group.commands]
+    ..sort((a, b) => a.sortOrder.compareTo(b.sortOrder));
 }
 
 void _printUsageSection(String title, List<MapEntry<String, String>> commands) {

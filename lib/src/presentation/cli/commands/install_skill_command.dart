@@ -30,7 +30,8 @@ Future<int> runInstallSkillCommand({
     );
     print('  --skill <id> --model   Install skill to specific model folder');
     print('  --skills-url           Override skills base URL/path');
-    print('  --symlink --model      Symlink one installed skill to other models');
+    print(
+        '  --symlink --model      Symlink one installed skill to other models');
     print(
       '  --uninstall <id>       Remove skill from one model (requires --model)',
     );
@@ -39,9 +40,8 @@ Future<int> runInstallSkillCommand({
   }
 
   final skillsOverride = command['skills-url'] as String?;
-  final resolvedSkillsUrl = skillsOverride?.isNotEmpty == true
-      ? skillsOverride!
-      : defaultSkillsUrl;
+  final resolvedSkillsUrl =
+      skillsOverride?.isNotEmpty == true ? skillsOverride! : defaultSkillsUrl;
   final skillMgr = SkillManager(
     projectRoot: targetDir,
     skillsBasePath: p.join(targetDir, 'skills'),
@@ -63,7 +63,8 @@ Future<int> runInstallSkillCommand({
   }
   if (command.wasParsed('uninstall')) {
     final skillId = command['uninstall'] as String;
-    final model = command.wasParsed('model') ? command['model'] as String? : null;
+    final model =
+        command.wasParsed('model') ? command['model'] as String? : null;
     if (model == null) {
       logger.error(
         '--uninstall requires --model, or use --uninstall-interactive for menu',
@@ -74,7 +75,8 @@ Future<int> runInstallSkillCommand({
     return ExitCodes.success;
   }
   if (command['symlink'] == true) {
-    final skillId = command.wasParsed('skill') ? command['skill'] as String : null;
+    final skillId =
+        command.wasParsed('skill') ? command['skill'] as String : null;
     final targetModel =
         command.wasParsed('model') ? command['model'] as String? : null;
     if (skillId == null || targetModel == null) {
@@ -121,7 +123,8 @@ Future<int> runInstallSkillCommand({
   }
   if (command.wasParsed('skill')) {
     final skillId = command['skill'] as String;
-    final model = command.wasParsed('model') ? command['model'] as String? : null;
+    final model =
+        command.wasParsed('model') ? command['model'] as String? : null;
     if (model != null) {
       await skillMgr.installSkill(skillId: skillId, model: model);
     } else {

@@ -35,6 +35,12 @@ void main() {
           await request.response.close();
           return;
         }
+        if (path == '/registry/shared/fonts/bootstrap.otf') {
+          request.response.statusCode = 200;
+          request.response.write('font-bytes');
+          await request.response.close();
+          return;
+        }
         if (path == '/registry/components/index.json') {
           request.response.statusCode = 200;
           request.response.write(
@@ -162,6 +168,31 @@ void main() {
       );
     });
 
+    test('copyFiles from/to accepts files relative to base', () async {
+      final entry = await _loadFixtureEntry(
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'from': 'shared/fonts',
+            'to': 'assets/fonts',
+            'base': 'registry',
+            'destBase': '.',
+            'files': ['shared/fonts/bootstrap.otf'],
+          }
+        ],
+      );
+      final engine = InitActionEngine();
+
+      await engine.executeRegistryInit(
+        projectRoot: projectRoot.path,
+        registry: entry,
+      );
+
+      final font = File(p.join(projectRoot.path, 'assets/fonts/bootstrap.otf'));
+      expect(font.readAsStringSync(), 'font-bytes');
+    });
+
     test('rejects path traversal attempts on destination writes', () async {
       final entry = await _loadFixtureEntry(
         baseUrl: 'http://${server.address.host}:${server.port}/',
@@ -182,6 +213,37 @@ void main() {
           registry: entry,
         ),
         throwsA(isA<ResolverV1Exception>()),
+      );
+    });
+
+    test('rejects symlink escape on destination writes', () async {
+      final outside = Directory(p.join(tempRoot.path, 'outside'))..createSync();
+      Directory(p.join(projectRoot.path, 'lib')).createSync();
+      Link(p.join(projectRoot.path, 'lib', 'ui')).createSync(outside.path);
+      final entry = await _loadFixtureEntry(
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'base': 'registry',
+            'destBase': 'lib/ui/shadcn',
+            'files': ['registry/shared/theme/color_scheme.dart'],
+          }
+        ],
+      );
+      final engine = InitActionEngine();
+
+      await expectLater(
+        () => engine.executeRegistryInit(
+          projectRoot: projectRoot.path,
+          registry: entry,
+        ),
+        throwsA(isA<ResolverV1Exception>()),
+      );
+      expect(
+        File(p.join(outside.path, 'shadcn/theme/color_scheme.dart'))
+            .existsSync(),
+        isFalse,
       );
     });
   });

@@ -17,16 +17,21 @@ const String defaultRegistriesDirectoryUrl =
 
 class RegistryDirectoryClient {
   final http.Client _client;
+  final bool _ownsClient;
   final String _schemaPath;
+  Future<JsonSchema>? _compiledSchema;
 
   RegistryDirectoryClient({
     http.Client? client,
     String schemaPath = 'lib/src/schemas/registries.schema.json',
   })  : _client = client ?? http.Client(),
+        _ownsClient = client == null,
         _schemaPath = schemaPath;
 
   void close() {
-    _client.close();
+    if (_ownsClient) {
+      _client.close();
+    }
   }
 
   Future<RegistryDirectory> load({
@@ -190,19 +195,36 @@ class RegistryDirectoryClient {
   }
 
   Future<void> _validateSchema(Map<String, dynamic> directoryJson) async {
-    final schemaFile = await _resolveSchemaFile();
-    if (!schemaFile.existsSync()) {
-      throw RegistryDirectoryException(
-        'Schema file not found: ${schemaFile.path}',
-      );
-    }
-    final schemaData = jsonDecode(await schemaFile.readAsString());
-    final schema = JsonSchema.create(schemaData);
+    final schema = await _schema();
     final result = schema.validate(directoryJson);
     if (!result.isValid) {
       final errors = result.errors.map((e) => e.toString()).join('; ');
       throw RegistryDirectoryException(
           'registries.json schema invalid: $errors');
+    }
+  }
+
+  Future<JsonSchema> _schema() async {
+    final cached = _compiledSchema;
+    if (cached != null) {
+      return cached;
+    }
+    final future = () async {
+      final schemaFile = await _resolveSchemaFile();
+      if (!schemaFile.existsSync()) {
+        throw RegistryDirectoryException(
+          'Schema file not found: ${schemaFile.path}',
+        );
+      }
+      final schemaData = jsonDecode(await schemaFile.readAsString());
+      return JsonSchema.create(schemaData);
+    }();
+    _compiledSchema = future;
+    try {
+      return await future;
+    } catch (_) {
+      _compiledSchema = null;
+      rethrow;
     }
   }
 
@@ -230,7 +252,12 @@ class RegistryDirectoryClient {
   }
 
   File _cacheFile(String projectRoot, String name) {
-    return File(p.join(projectRoot, '.shadcn', 'cache', name));
+    return File(
+      ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: projectRoot,
+        destinationRelativePath: p.join('.shadcn', 'cache', name),
+      ),
+    );
   }
 
   Future<String?> _readEtag(File metaCacheFile) async {

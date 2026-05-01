@@ -19,7 +19,8 @@ Future<int> runSearchCommand({
 }) async {
   if (searchCommand['help'] == true) {
     print('Usage: flutter_shadcn search <query> [--refresh] [--json]');
-    print('       flutter_shadcn search @<namespace> [query] [--refresh] [--json]');
+    print(
+        '       flutter_shadcn search @<namespace> [query] [--refresh] [--json]');
     print('');
     print('Searches for components by name, description, or tags.');
     print('Options:');

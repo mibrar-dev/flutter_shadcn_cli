@@ -8,7 +8,11 @@ import '../bin/shadcn.dart' as cli;
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 
+late final String _cliEntrypoint;
+
 void main() {
+  _cliEntrypoint = p.join(Directory.current.path, 'bin', 'shadcn.dart');
+
   group('CLI integration', () {
     late Directory tempRoot;
     late Directory registryRoot;
@@ -35,6 +39,7 @@ void main() {
     });
 
     tearDown(() {
+      exitCode = 0;
       Directory.current = originalCwd;
       if (tempRoot.existsSync()) {
         tempRoot.deleteSync(recursive: true);
@@ -43,10 +48,10 @@ void main() {
 
     test('add installs component and writes manifests', () async {
       await cli.main([
+        '--advanced',
+        '--offline',
         'add',
         'button',
-        '--registry',
-        'local',
         '--registry-path',
         registryRoot.path,
       ]);
@@ -114,79 +119,97 @@ void main() {
 
     test('doctor runs without crashing', () async {
       await cli.main([
+        '--advanced',
         'doctor',
-        '--registry',
-        'local',
         '--registry-path',
         registryRoot.path,
       ]);
     });
 
-    test('init installs positional components', () async {
-      await cli.main([
-        'init',
-        '--yes',
-        'button',
-        'dialog',
-        '--registry',
-        'local',
-        '--registry-path',
-        registryRoot.path,
-      ]);
-
-      final buttonFile = File(
-        p.join(
-          appRoot.path,
-          'lib',
-          'ui',
-          'shadcn',
-          'components',
+    test('init rejects multiple positional namespace tokens', () async {
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          'init',
+          '--yes',
           'button',
-          'button.dart',
-        ),
-      );
-      final dialogFile = File(
-        p.join(
-          appRoot.path,
-          'lib',
-          'ui',
-          'shadcn',
-          'components',
           'dialog',
-          'dialog.dart',
-        ),
+        ],
       );
 
-      expect(buttonFile.existsSync(), isTrue);
-      expect(dialogFile.existsSync(), isTrue);
+      expect(result.exitCode, ExitCodes.usage);
+      expect(result.stderr, contains('Usage: flutter_shadcn init'));
     });
 
-    test('init installs typography fonts when requested', () async {
-      await cli.main([
-        'init',
-        '--yes',
-        '--install-fonts',
-        '--registry',
-        'local',
-        '--registry-path',
-        registryRoot.path,
-      ]);
-
-      final typographyFile = File(
-        p.join(
-          appRoot.path,
-          'lib',
-          'ui',
-          'shadcn',
-          'components',
-          'typography_fonts',
-          'typography_fonts.dart',
-        ),
+    test('init --install-fonts is rejected by parser', () async {
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          'init',
+          '--yes',
+          '--install-fonts',
+        ],
       );
-      expect(typographyFile.existsSync(), isTrue);
+
+      expect(result.exitCode, ExitCodes.usage);
+      expect(result.stdout, contains('install-fonts'));
     });
 
-    test('add namespace-qualified component works with legacy config/state',
+    test('docs command requires advanced mode', () async {
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: ['docs', '--generate'],
+      );
+
+      expect(result.exitCode, ExitCodes.usage);
+      expect(result.stderr, contains('requires --advanced'));
+    });
+
+    test('advanced flag works after command', () async {
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: ['docs', '--advanced', '--help'],
+      );
+
+      expect(result.exitCode, ExitCodes.success);
+    });
+
+    test('theme help hides import flags unless advanced mode is enabled',
+        () async {
+      final normalHelp = await _runCli(
+        cwd: appRoot.path,
+        args: ['theme', '--help'],
+      );
+      final advancedHelp = await _runCli(
+        cwd: appRoot.path,
+        args: ['theme', '--advanced', '--help'],
+      );
+
+      expect(normalHelp.exitCode, ExitCodes.success);
+      expect(normalHelp.stdout, isNot(contains('--apply-file')));
+      expect(normalHelp.stdout, isNot(contains('--apply-url')));
+      expect(advancedHelp.exitCode, ExitCodes.success);
+      expect(advancedHelp.stdout, contains('--apply-file'));
+      expect(advancedHelp.stdout, contains('--apply-url'));
+    });
+
+    test('developer registry override requires advanced mode', () async {
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          'list',
+          '--registry-path',
+          registryRoot.path,
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.usage);
+      expect(
+          result.stderr, contains('--registry-path flag requires --advanced'));
+    });
+
+    test(
+        'add namespace-qualified component works with older-shaped config/state',
         () async {
       File(p.join(appRoot.path, '.shadcn', 'config.json')).writeAsStringSync(
         jsonEncode({
@@ -222,10 +245,10 @@ void main() {
         ),
       );
       expect(installFile.existsSync(), isTrue);
-      final migratedState = jsonDecode(
+      final normalizedState = jsonDecode(
         File(p.join(appRoot.path, '.shadcn', 'state.json')).readAsStringSync(),
       ) as Map<String, dynamic>;
-      expect(migratedState['registries'], isA<Map>());
+      expect(normalizedState['registries'], isA<Map>());
     });
 
     test('add @namespace/component installs from selected registry', () async {
@@ -329,7 +352,7 @@ void main() {
 
       await cli.main(['registries', '--json', '--offline']);
 
-      await cli.main(['add', 'button']);
+      await cli.main(['add', '@alt/button']);
       expect(
         File(
           p.join(
@@ -370,7 +393,10 @@ void main() {
         if (path == '/registries.json') {
           final entry = Map<String, dynamic>.from(registryEntry)
             ..['baseUrl'] = 'https://example.com/registry/'
-            ..['paths'] = {'componentsJson': 'components.json'};
+            ..['paths'] = {
+              'componentsJson': 'components.json',
+              'componentsSchemaJson': 'components.schema.json'
+            };
           request.response.write(
             jsonEncode({
               'schemaVersion': 1,
@@ -399,6 +425,16 @@ void main() {
           await request.response.close();
           return;
         }
+        if (path == '/components.json') {
+          request.response.write(_emptyComponentsJson());
+          await request.response.close();
+          return;
+        }
+        if (path == '/components.schema.json') {
+          request.response.write(jsonEncode({}));
+          await request.response.close();
+          return;
+        }
         request.response.statusCode = 404;
         await request.response.close();
       });
@@ -419,11 +455,20 @@ void main() {
         }),
       );
 
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        Map<String, dynamic>.from(registryEntry)
+          ..['paths'] = {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json'
+          },
+      ]);
+
       await cli.main([
+        '--advanced',
         'init',
         'shadcn',
-        '--registries-url',
-        'http://${server.address.host}:${server.port}/registries.json',
+        '--registries-path',
+        registriesPath,
       ]);
 
       expect(
@@ -480,7 +525,10 @@ void main() {
         if (path == '/registries.json') {
           final entry = Map<String, dynamic>.from(registryEntry)
             ..['baseUrl'] = 'https://example.com/registry/'
-            ..['paths'] = {'componentsJson': 'components.json'};
+            ..['paths'] = {
+              'componentsJson': 'components.json',
+              'componentsSchemaJson': 'components.schema.json'
+            };
           request.response.write(
             jsonEncode({
               'schemaVersion': 1,
@@ -509,6 +557,16 @@ void main() {
           await request.response.close();
           return;
         }
+        if (path == '/components.json') {
+          request.response.write(_emptyComponentsJson());
+          await request.response.close();
+          return;
+        }
+        if (path == '/components.schema.json') {
+          request.response.write(jsonEncode({}));
+          await request.response.close();
+          return;
+        }
         request.response.statusCode = 404;
         await request.response.close();
       });
@@ -529,10 +587,19 @@ void main() {
         }),
       );
 
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        Map<String, dynamic>.from(registryEntry)
+          ..['paths'] = {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json'
+          },
+      ]);
+
       await cli.main([
+        '--advanced',
         'init',
-        '--registries-url',
-        'http://${server.address.host}:${server.port}/registries.json',
+        '--registries-path',
+        registriesPath,
       ]);
 
       expect(
@@ -586,7 +653,10 @@ void main() {
                   'license': 'MIT',
                   'minCliVersion': '0.1.0',
                   'baseUrl': 'https://example.com/registry/',
-                  'paths': {'componentsJson': 'components.json'},
+                  'paths': {
+                    'componentsJson': 'components.json',
+                    'componentsSchemaJson': 'components.schema.json'
+                  },
                   'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
                   'init': {
                     'version': 1,
@@ -643,6 +713,11 @@ void main() {
           await request.response.close();
           return;
         }
+        if (path == '/components.schema.json') {
+          request.response.write(jsonEncode({}));
+          await request.response.close();
+          return;
+        }
         if (path == '/registry/shared/fonts/typography_fonts.dart') {
           request.response.write('class TypographyFonts {}');
           await request.response.close();
@@ -668,11 +743,60 @@ void main() {
         }),
       );
 
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        {
+          'id': 'shadcn_entry',
+          'displayName': 'Shadcn',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/registry/',
+          'paths': {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json'
+          },
+          'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
+          'init': {
+            'version': 1,
+            'actions': [
+              {
+                'type': 'ensureDirs',
+                'dirs': ['assets/fonts']
+              },
+              {
+                'type': 'copyFiles',
+                'base': 'registry',
+                'destBase': 'lib/ui/shadcn',
+                'files': ['registry/shared/fonts/typography_fonts.dart']
+              },
+              {
+                'type': 'mergePubspec',
+                'dependencies': {'google_fonts': '^6.2.1'},
+                'flutterAssets': ['assets/fonts/GeistSans-Regular.ttf'],
+                'flutterFonts': [
+                  {
+                    'family': 'GeistSans',
+                    'fonts': [
+                      {
+                        'asset': 'assets/fonts/GeistSans-Regular.ttf',
+                        'weight': 400
+                      }
+                    ]
+                  }
+                ]
+              }
+            ]
+          }
+        }
+      ]);
+
       await cli.main([
+        '--advanced',
         'assets',
         '--typography',
-        '--registries-url',
-        'http://${server.address.host}:${server.port}/registries.json',
+        '--registries-path',
+        registriesPath,
       ]);
       expect(
         File(
@@ -690,10 +814,11 @@ void main() {
       );
 
       await cli.main([
+        '--advanced',
         'remove',
         'typography_fonts',
-        '--registries-url',
-        'http://${server.address.host}:${server.port}/registries.json',
+        '--registries-path',
+        registriesPath,
       ]);
       expect(
         File(
@@ -711,31 +836,242 @@ void main() {
       );
     });
 
+    test('assets fails instead of installing removed asset component fallback',
+        () async {
+      File(p.join(appRoot.path, '.shadcn', 'config.json')).writeAsStringSync(
+        jsonEncode({
+          'defaultNamespace': 'shadcn',
+          'registries': {
+            'shadcn': {
+              'registryMode': 'local',
+              'registryPath': registryRoot.path,
+              'installPath': 'lib/ui/shadcn',
+              'sharedPath': 'lib/ui/shadcn/shared',
+              'enabled': true
+            }
+          }
+        }),
+      );
+
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        {
+          'id': 'shadcn_entry',
+          'displayName': 'Shadcn',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/registry/',
+          'paths': {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json'
+          },
+          'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
+        }
+      ]);
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          'assets',
+          '--typography',
+          '--registries-path',
+          registriesPath,
+        ],
+      );
+
+      expect(result.exitCode, isNot(ExitCodes.success));
+      expect(result.stderr, contains('inline registry actions'));
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'typography_fonts',
+            'typography_fonts.dart',
+          ),
+        ).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('rejects registry path and registry url overrides together', () async {
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--registry-path',
+          registryRoot.path,
+          '--registry-url',
+          'https://example.com/registry/',
+          'add',
+          'button',
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.usage);
+      expect(
+        result.stderr,
+        contains('--registry-path and --registry-url cannot be used together'),
+      );
+    });
+
+    test('add exits schema invalid when components schema fails', () async {
+      final invalidRegistry =
+          Directory(p.join(tempRoot.path, 'invalid_add_schema'))
+            ..createSync(recursive: true);
+      _writeRegistryFixtures(invalidRegistry);
+      _writeSchemaRequiringBlockedField(invalidRegistry);
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          '--registry-path',
+          invalidRegistry.path,
+          'add',
+          'button',
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.schemaInvalid);
+      expect(result.stderr, contains('schema validation failed'));
+    });
+
+    test('add bypasses invalid components schema with skip integrity',
+        () async {
+      final invalidRegistry =
+          Directory(p.join(tempRoot.path, 'invalid_add_schema_bypass'))
+            ..createSync(recursive: true);
+      _writeRegistryFixtures(invalidRegistry);
+      _writeSchemaRequiringBlockedField(invalidRegistry);
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          '--skip-integrity',
+          '--registry-path',
+          invalidRegistry.path,
+          'add',
+          'button',
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.success);
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'button',
+            'button.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('init exits schema invalid when components schema fails', () async {
+      final invalidRegistry =
+          Directory(p.join(tempRoot.path, 'invalid_init_schema'))
+            ..createSync(recursive: true);
+      _writeRegistryFixtures(invalidRegistry);
+      _writeSchemaRequiringBlockedField(invalidRegistry);
+      final registriesFile = _writeRegistriesFile(appRoot, [
+        {
+          'id': 'broken_entry',
+          'displayName': 'Broken',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/registry/',
+          'paths': {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json'
+          },
+          'install': {'namespace': 'broken', 'root': 'lib/ui/broken'},
+        },
+      ]);
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          '--registries-path',
+          registriesFile,
+          '--registry-path',
+          invalidRegistry.path,
+          'init',
+          'broken',
+          '--yes',
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.schemaInvalid);
+      expect(result.stderr, contains('schema validation failed'));
+    });
+
+    test('preloaded commands map schema failures to schema invalid', () async {
+      final invalidRegistry =
+          Directory(p.join(tempRoot.path, 'invalid_preload_schema'))
+            ..createSync(recursive: true);
+      _writeRegistryFixtures(invalidRegistry);
+      _writeSchemaRequiringBlockedField(invalidRegistry);
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          '--registry-path',
+          invalidRegistry.path,
+          'validate',
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.schemaInvalid);
+      expect(result.stderr, contains('schema validation failed'));
+    });
+
     test('validate reports schema failures', () async {
-      exitCode = 0;
       final invalidRegistry =
           Directory(p.join(tempRoot.path, 'invalid_registry'))
             ..createSync(recursive: true);
       File(p.join(invalidRegistry.path, 'components.json'))
           .writeAsStringSync('{"schemaVersion":1}');
 
-      await cli.main([
-        'validate',
-        '--registry',
-        'local',
-        '--registry-path',
-        invalidRegistry.path,
-      ]);
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          'validate',
+          '--registry-path',
+          invalidRegistry.path,
+        ],
+      );
 
-      expect(exitCode, ExitCodes.schemaInvalid);
+      expect(result.exitCode, ExitCodes.schemaInvalid);
+      expect(result.stderr, contains('schema validation failed'));
     });
 
     test('sync preserves component manifests', () async {
       await cli.main([
+        '--advanced',
+        '--offline',
         'add',
         'button',
-        '--registry',
-        'local',
         '--registry-path',
         registryRoot.path,
       ]);
@@ -767,9 +1103,8 @@ void main() {
       );
 
       await cli.main([
+        '--advanced',
         'list',
-        '--registry',
-        'remote',
         '--registry-url',
         registryUrl,
         '--offline',
@@ -796,7 +1131,10 @@ void main() {
               'license': 'MIT',
               'minCliVersion': '0.1.0',
               'baseUrl': 'https://example.com/local-dev/',
-              'paths': {'componentsJson': 'components.json'},
+              'paths': {
+                'componentsJson': 'components.json',
+                'componentsSchemaJson': 'components.schema.json'
+              },
               'install': {'namespace': 'localdev', 'root': 'lib/ui/localdev'}
             }
           ]
@@ -804,6 +1142,7 @@ void main() {
       );
 
       await cli.main([
+        '--advanced',
         'default',
         'localdev',
         '--registries-path',
@@ -884,6 +1223,7 @@ void main() {
       );
 
       await cli.main([
+        '--advanced',
         'theme',
         '@shadcn',
         'widget',
@@ -926,6 +1266,7 @@ void main() {
 
       exitCode = 0;
       await cli.main([
+        '--advanced',
         'theme',
         '@alt',
         'widget',
@@ -1192,6 +1533,8 @@ void _writeRegistryFixtures(Directory registryRoot) {
 
   File(p.join(registryRoot.path, 'components.json')).writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(registryJson));
+  File(p.join(registryRoot.path, 'components.schema.json'))
+      .writeAsStringSync(jsonEncode({}));
   File(p.join(registryRoot.path, 'index.json')).writeAsStringSync(
     const JsonEncoder.withIndent('  ').convert({
       'components': [
@@ -1354,6 +1697,60 @@ Future<void> main(List<String> args) async {
   }));
 }
 ''');
+}
+
+String _writeRegistriesFile(
+  Directory appRoot,
+  List<Map<String, dynamic>> entries,
+) {
+  final file = File(p.join(appRoot.path, 'registries.json'));
+  file.writeAsStringSync(
+    jsonEncode({
+      'schemaVersion': 1,
+      'registries': entries,
+    }),
+  );
+  return file.path;
+}
+
+String _emptyComponentsJson() {
+  return jsonEncode({
+    'schemaVersion': 1,
+    'name': 'inline_registry',
+    'defaults': {
+      'installPath': 'lib/ui/shadcn',
+      'sharedPath': 'lib/ui/shadcn/shared',
+    },
+    'components': [],
+  });
+}
+
+void _writeSchemaRequiringBlockedField(Directory registryRoot) {
+  File(p.join(registryRoot.path, 'components.schema.json')).writeAsStringSync(
+    jsonEncode({
+      r'$schema': 'https://json-schema.org/draft/2020-12/schema',
+      'type': 'object',
+      'required': ['blockedField'],
+      'properties': {
+        'blockedField': {'type': 'string'},
+      },
+    }),
+  );
+}
+
+Future<ProcessResult> _runCli({
+  required String cwd,
+  required List<String> args,
+}) {
+  return Process.run(
+    Platform.resolvedExecutable,
+    [_cliEntrypoint, ...args],
+    workingDirectory: cwd,
+    environment: {
+      ...Platform.environment,
+      'CI': 'true',
+    },
+  );
 }
 
 void _writePubspec(Directory targetRoot) {

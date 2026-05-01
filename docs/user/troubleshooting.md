@@ -1,0 +1,77 @@
+# Troubleshooting
+
+## Component Is Ambiguous
+
+If more than one enabled registry contains the same component name, unqualified `add button` fails. Use a qualified address:
+
+```bash
+flutter_shadcn add @shadcn/button
+```
+
+## Component Cannot Be Found
+
+Check the registry and component name:
+
+```bash
+flutter_shadcn list
+flutter_shadcn search button
+flutter_shadcn info @shadcn/button
+```
+
+If you are using `--offline`, retry without offline mode so the CLI can fetch fresh registry data.
+
+## Registry Cannot Be Loaded
+
+Run:
+
+```bash
+flutter_shadcn doctor
+```
+
+`doctor` prints registry resolution, config paths, schema validation status, and platform target paths.
+
+## Schema Validation Fails
+
+Public install, init, and add flows reject invalid registry schemas. This protects projects from installing malformed or unsafe registry data.
+
+For local unpublished registry work, use the developer-only workflow in [../developer/local-registry-development.md](../developer/local-registry-development.md).
+
+## File Write Rejected
+
+The CLI rejects path traversal and symlink escapes. Keep install paths inside your Flutter project.
+
+Examples of unsafe targets:
+
+- `../outside-project`
+- absolute paths outside the project root
+- symlinks that point outside the project
+
+## Offline Mode Fails
+
+Offline mode needs cached registry files. Run the command once online, then retry offline:
+
+```bash
+flutter_shadcn list
+flutter_shadcn --offline list
+```
+
+## Theme Command Says Registry Has No Themes
+
+Not every registry provides theme presets. Check registry capabilities:
+
+```bash
+flutter_shadcn registries
+```
+
+If the selected registry does not support themes, use a registry that declares theme capability.
+
+## Need Machine-Readable Output
+
+Use `--json` on commands that support it:
+
+```bash
+flutter_shadcn list --json
+flutter_shadcn info @shadcn/button --json
+flutter_shadcn doctor --json
+flutter_shadcn validate --json
+```

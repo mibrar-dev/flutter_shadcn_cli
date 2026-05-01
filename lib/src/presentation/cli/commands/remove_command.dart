@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer_orchestrator.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/core/utils/component_ref_normalizer.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
@@ -18,12 +19,6 @@ Future<int> runRemoveCommand({
   required String? preloadedNamespace,
   required CliLogger logger,
 }) async {
-  final activeInstaller = installer;
-  if (activeInstaller == null) {
-    stderr.writeln('Error: Installer is not available.');
-    return ExitCodes.registryNotFound;
-  }
-  final orchestrator = InstallerOrchestrator(activeInstaller);
   if (removeCommand['help'] == true) {
     print('Usage: flutter_shadcn remove <component> [<component> ...]');
     print('       flutter_shadcn remove --all');
@@ -36,6 +31,12 @@ Future<int> runRemoveCommand({
   final rest = removeCommand.rest;
   final removeAll = removeCommand['all'] == true || rest.contains('all');
   if (removeAll) {
+    final activeInstaller = installer;
+    if (activeInstaller == null) {
+      stderr.writeln('Error: Installer is not available.');
+      return ExitCodes.registryNotFound;
+    }
+    final orchestrator = InstallerOrchestrator(activeInstaller);
     final namespace =
         preloadedNamespace ?? selectedNamespaceForCommand(rootArgs, config);
     await multiRegistry.rollbackInlineAssets(
@@ -59,14 +60,13 @@ Future<int> runRemoveCommand({
   final normalized = <String>[];
   var inlineRollbackApplied = false;
   for (final token in rest) {
-    if (token.startsWith('@') && !token.contains('/')) {
-      final inlineNs = token.substring(1).trim();
-      if (inlineNs.isNotEmpty) {
-        currentNamespace = inlineNs;
-        continue;
-      }
-    }
     final parsed = MultiRegistryManager.parseComponentRef(token);
+    if (parsed == null && ComponentRefNormalizer.looksQualified(token)) {
+      stderr.writeln(
+        'Error: Invalid component address "$token". Use @namespace/component',
+      );
+      return ExitCodes.usage;
+    }
     final componentName = parsed?.componentId ?? token;
     final namespace = parsed?.namespace ?? currentNamespace;
     if (parsed != null &&
@@ -97,6 +97,12 @@ Future<int> runRemoveCommand({
     return ExitCodes.success;
   }
 
+  final activeInstaller = installer;
+  if (activeInstaller == null) {
+    stderr.writeln('Error: Installer is not available.');
+    return ExitCodes.registryNotFound;
+  }
+  final orchestrator = InstallerOrchestrator(activeInstaller);
   await orchestrator.removeComponents(normalized, force: force);
   await orchestrator.regenerateAliases();
   return ExitCodes.success;

@@ -22,9 +22,6 @@ extension MultiRegistryAssetsPart on MultiRegistryManager {
       return false;
     }
 
-    config = await _upsertConfigFromDirectory(config, entry);
-    await ShadcnConfig.save(projectRoot, config);
-
     final selectedActions = _selectInlineAssetActions(
       entry: entry,
       installIcons: installIcons,
@@ -35,17 +32,21 @@ extension MultiRegistryAssetsPart on MultiRegistryManager {
       return false;
     }
 
-    final configured = config.registryConfig(namespace);
-    final overrideBaseUrl = configured?.baseUrl ?? configured?.registryUrl;
-    final baseUrl = overrideBaseUrl != null && overrideBaseUrl.isNotEmpty
-        ? overrideBaseUrl
-        : entry.baseUrl;
+    final nextConfig = await _upsertConfigFromDirectory(config, entry);
+    final configured = nextConfig.registryConfig(namespace);
+    final overrideBaseUrl = _inlineActionBaseUrl(
+      entry: entry,
+      configEntry: configured,
+    );
+    final baseUrl =
+        overrideBaseUrl.isNotEmpty ? overrideBaseUrl : entry.baseUrl;
     final result = await initActionEngine.executeActions(
       projectRoot: projectRoot,
       baseUrl: baseUrl,
       actions: selectedActions,
       logger: logger,
     );
+    await ShadcnConfig.save(projectRoot, nextConfig);
     final category = _inlineAssetCategory(
       installIcons: installIcons,
       installTypography: installTypography,
@@ -125,7 +126,8 @@ extension MultiRegistryAssetsPart on MultiRegistryManager {
     }
     final actionList = (init['actions'] as List<dynamic>? ?? const [])
         .whereType<Map>()
-        .map((item) => item.map((key, value) => MapEntry(key.toString(), value)))
+        .map(
+            (item) => item.map((key, value) => MapEntry(key.toString(), value)))
         .toList();
     if (actionList.isEmpty) {
       return const [];
@@ -177,7 +179,9 @@ extension MultiRegistryAssetsPart on MultiRegistryManager {
           scopes.contains('typography_fonts');
     }
     final text = _actionTextBlob(action);
-    return text.contains('typography') || text.contains('font') || text.contains('geist');
+    return text.contains('typography') ||
+        text.contains('font') ||
+        text.contains('geist');
   }
 
   Set<String> _extractActionScopes(Map<String, dynamic> action) {

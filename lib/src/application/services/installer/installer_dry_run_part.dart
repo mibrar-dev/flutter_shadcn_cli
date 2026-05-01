@@ -100,7 +100,9 @@ extension InstallerDryRunPart on Installer {
           sections.add('notes');
         }
         if (sections.isNotEmpty) {
-          platformChanges.putIfAbsent(platform, () => <String>{}).addAll(sections);
+          platformChanges
+              .putIfAbsent(platform, () => <String>{})
+              .addAll(sections);
         }
       });
 
@@ -122,7 +124,8 @@ extension InstallerDryRunPart on Installer {
       };
     }
 
-    final components = resolved.values.toList()..sort((a, b) => a.id.compareTo(b.id));
+    final components = resolved.values.toList()
+      ..sort((a, b) => a.id.compareTo(b.id));
 
     return DryRunPlan(
       requested: requested,
@@ -132,7 +135,8 @@ extension InstallerDryRunPart on Installer {
       shared: shared.toList()..sort(),
       pubspecDependencies: pubspecDependencies,
       assets: assets.toList()..sort(),
-      fonts: fontsByFamily.values.toList()..sort((a, b) => a.family.compareTo(b.family)),
+      fonts: fontsByFamily.values.toList()
+        ..sort((a, b) => a.family.compareTo(b.family)),
       postInstall: postInstall.toList()..sort(),
       fileDependencies: fileDependencies.toList()..sort(),
       platformChanges: platformChanges,
@@ -166,7 +170,8 @@ extension InstallerDryRunPart on Installer {
         if (deps.isEmpty) {
           componentLines.add(component.id);
         } else {
-          componentLines.add('${component.id}  ↳ dependsOn: ${deps.join(', ')}');
+          componentLines
+              .add('${component.id}  ↳ dependsOn: ${deps.join(', ')}');
         }
       }
       section('Components to install', componentLines);
@@ -190,7 +195,8 @@ extension InstallerDryRunPart on Installer {
       for (final font in plan.fonts) {
         fontLines.add(font.family);
         for (final fontAsset in font.fonts) {
-          final weight = fontAsset.weight != null ? ' weight ${fontAsset.weight}' : '';
+          final weight =
+              fontAsset.weight != null ? ' weight ${fontAsset.weight}' : '';
           final style = fontAsset.style != null ? ' ${fontAsset.style}' : '';
           fontLines.add('  - ${fontAsset.asset}$weight$style');
         }

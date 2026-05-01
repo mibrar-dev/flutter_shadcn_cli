@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/arg_helpers.dart';
+import 'package:flutter_shadcn_cli/src/registry.dart';
 
 Future<int> runAddCommand({
   required ArgResults addCommand,
@@ -25,11 +26,15 @@ Future<int> runAddCommand({
   }
 
   if (addCommand['help'] == true) {
-    print('Usage: flutter_shadcn add <@namespace/component> [<@namespace/component> ...]');
-    print('       flutter_shadcn add <component> [<component> ...]  # resolves using default/enabled registries');
+    print(
+        'Usage: flutter_shadcn add <@namespace/component> [<@namespace/component> ...]');
+    print(
+        '       flutter_shadcn add <component> [<component> ...]  # resolves using default/enabled registries');
     print('Options:');
-    print('  --include-files   Optional kinds to include: readme, preview, meta');
-    print('  --exclude-files   Optional kinds to exclude: readme, preview, meta');
+    print(
+        '  --include-files   Optional kinds to include: readme, preview, meta');
+    print(
+        '  --exclude-files   Optional kinds to exclude: readme, preview, meta');
     print('  --help, -h         Show this message');
     return ExitCodes.success;
   }
@@ -49,6 +54,10 @@ Future<int> runAddCommand({
     return ExitCodes.success;
   } catch (e) {
     stderr.writeln('Error: $e');
+    if (e is RegistrySchemaValidationException ||
+        '$e'.contains('schema validation failed')) {
+      return ExitCodes.schemaInvalid;
+    }
     if ('$e'.contains('ambiguous')) {
       return ExitCodes.usage;
     }

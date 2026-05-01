@@ -44,7 +44,8 @@ Future<int> runListCommand({
     return ExitCodes.usage;
   }
 
-  final roots = ResolvedRoots(localRegistryRoot: localRegistryRoot, cliRoot: cliRoot);
+  final roots =
+      ResolvedRoots(localRegistryRoot: localRegistryRoot, cliRoot: cliRoot);
   final selection = resolveRegistrySelection(
     rootArgs,
     roots,

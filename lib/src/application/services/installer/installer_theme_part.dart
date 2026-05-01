@@ -628,13 +628,8 @@ extension InstallerThemePart on Installer {
               : sourceHint),
     );
     final file = File(
-      p.join(
-        targetDir,
-        '.shadcn',
-        'cache',
-        'themes',
-        namespace,
-        fileName,
+      _resolveProjectPath(
+        p.join('.shadcn', 'cache', 'themes', namespace, fileName),
       ),
     );
     return _writeCachedJsonFile(file, data);
@@ -647,14 +642,15 @@ extension InstallerThemePart on Installer {
     required String sourceHint,
   }) async {
     final file = File(
-      p.join(
-        targetDir,
-        '.shadcn',
-        'cache',
-        'widget_themes',
-        namespace,
-        componentId.trim().toLowerCase(),
-        _safeFileName(sourceHint.isEmpty ? 'widget-theme.json' : sourceHint),
+      _resolveProjectPath(
+        p.join(
+          '.shadcn',
+          'cache',
+          'widget_themes',
+          namespace,
+          componentId.trim().toLowerCase(),
+          _safeFileName(sourceHint.isEmpty ? 'widget-theme.json' : sourceHint),
+        ),
       ),
     );
     return _writeCachedJsonFile(file, data);
@@ -697,17 +693,18 @@ extension InstallerThemePart on Installer {
   }
 
   String _themeCacheRootPath(String registryId) {
-    return p.join(targetDir, '.shadcn', 'cache', 'registry', registryId);
+    return _resolveProjectPath(
+      p.join('.shadcn', 'cache', 'registry', registryId),
+    );
   }
 
   Future<void> _applyThemeInstallPlan(
     List<RegistryThemeInstallOperation> operations,
   ) async {
-    final projectRoot = p.normalize(targetDir);
     final sorted = [...operations]
       ..sort((left, right) => left.path.compareTo(right.path));
     for (final operation in sorted) {
-      final file = _resolvePlanFile(operation.path, projectRoot);
+      final file = _resolvePlanFile(operation.path);
       switch (operation.type) {
         case 'write_file':
           final content = operation.content;
@@ -767,7 +764,7 @@ extension InstallerThemePart on Installer {
     }
   }
 
-  File _resolvePlanFile(String relativePath, String projectRoot) {
+  File _resolvePlanFile(String relativePath) {
     final normalized = p.normalize(relativePath);
     if (p.isAbsolute(normalized)) {
       throw Exception('Install plan path must be relative: $relativePath');
@@ -777,20 +774,14 @@ extension InstallerThemePart on Installer {
         normalized.startsWith('..\\')) {
       throw Exception('Install plan path escapes project root: $relativePath');
     }
-    final resolved = File(p.join(projectRoot, normalized));
-    final normalizedResolved = p.normalize(resolved.path);
-    if (!(normalizedResolved == projectRoot ||
-        normalizedResolved.startsWith('$projectRoot${p.separator}'))) {
-      throw Exception('Install plan path escapes project root: $relativePath');
-    }
-    return resolved;
+    return File(_resolveProjectPath(normalized));
   }
 
   Future<void> _atomicWriteFile(File file, String content) async {
     if (!file.parent.existsSync()) {
       await file.parent.create(recursive: true);
     }
-    final tempFile = File('${file.path}.tmp');
+    final tempFile = File(_resolveProjectOrAbsolutePath('${file.path}.tmp'));
     await tempFile.writeAsString(content, flush: true);
     if (file.existsSync()) {
       await file.delete();
@@ -839,27 +830,6 @@ extension InstallerThemePart on Installer {
       if (entry.id.toLowerCase() == normalized ||
           entry.name.toLowerCase() == normalized) {
         return entry;
-      }
-    }
-    return null;
-  }
-
-  String? _resolveColorSchemeFilePath() {
-    final sharedPath = _sharedPath(_cachedConfig);
-    final candidates = <String>[
-      p.join(targetDir, sharedPath, 'theme', 'color_scheme.dart'),
-      p.join(
-        targetDir,
-        sharedPath,
-        'theme',
-        '_impl',
-        'core',
-        'color_schemes.dart',
-      ),
-    ];
-    for (final path in candidates) {
-      if (File(path).existsSync()) {
-        return path;
       }
     }
     return null;

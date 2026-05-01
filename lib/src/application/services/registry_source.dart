@@ -66,6 +66,7 @@ class RegistrySource {
         registryRoot: root,
         sourceRoot: root,
         schemaPath: directoryEntry!.componentsSchemaPath,
+        skipIntegrity: skipIntegrity,
         logger: logger,
       );
     }

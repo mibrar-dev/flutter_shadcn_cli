@@ -4,6 +4,8 @@ import 'dart:io';
 import 'package:path/path.dart' as p;
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/resolver_v1_exception.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_entry.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_loader.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_preset_loader.dart';
@@ -47,7 +49,6 @@ class Installer {
   final String? themeConverterDartPathOverride;
   final Set<String>? includeFileKindsOverride;
   final Set<String>? excludeFileKindsOverride;
-  final bool enableLegacyCoreBootstrap;
   final bool enableSharedGroups;
   final bool enableComposites;
   Set<String>? _installedComponentCache;
@@ -80,7 +81,6 @@ class Installer {
     this.themeConverterDartPathOverride,
     this.includeFileKindsOverride,
     this.excludeFileKindsOverride,
-    this.enableLegacyCoreBootstrap = false,
     this.enableSharedGroups = true,
     this.enableComposites = true,
   }) : logger = logger ?? CliLogger();
@@ -221,6 +221,7 @@ class Installer {
 
     final completer = Completer<void>();
     _componentInstallTasks[component.id] = completer.future;
+    completer.future.ignore();
 
     if (_installingComponentIds.contains(component.id)) {
       logger.detail('Skipping ${component.id} (already installing)');
@@ -269,6 +270,9 @@ class Installer {
       try {
         await _writeComponentManifest(component);
       } catch (e) {
+        if (e is ResolverV1Exception) {
+          rethrow;
+        }
         logger.warn('Failed to write component manifest: $e');
       }
       if (!_deferAliases) {
