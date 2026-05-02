@@ -74,3 +74,19 @@ class MultiRegistryManager {
     return AddResolutionService.parseQualifiedComponentRef(token);
   }
 }
+
+class DiscoveryRegistryTarget {
+  final String namespace;
+  final String registryBase;
+  final String registryId;
+  final String indexPath;
+  final String? indexSchemaPath;
+
+  const DiscoveryRegistryTarget({
+    required this.namespace,
+    required this.registryBase,
+    required this.registryId,
+    required this.indexPath,
+    required this.indexSchemaPath,
+  });
+}

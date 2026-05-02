@@ -1,20 +1,14 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/discovery_commands.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/registry_selection.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
+import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
 
 Future<int> runListCommand({
   required ArgResults listCommand,
-  required ArgResults rootArgs,
-  required String? localRegistryRoot,
-  required String? cliRoot,
-  required ShadcnConfig config,
-  required bool offline,
+  required MultiRegistryManager multiRegistry,
   required CliLogger logger,
 }) async {
   if (listCommand['help'] == true) {
@@ -44,25 +38,18 @@ Future<int> runListCommand({
     return ExitCodes.usage;
   }
 
-  final roots =
-      ResolvedRoots(localRegistryRoot: localRegistryRoot, cliRoot: cliRoot);
-  final selection = resolveRegistrySelection(
-    rootArgs,
-    roots,
-    config,
-    offline,
-    namespaceOverride: listNamespaceOverride,
+  final target = await multiRegistry.resolveDiscoveryTarget(
+    namespace: listNamespaceOverride,
   );
-  final registryUrl = selection.registryRoot.root;
   final listExit = await handleListCommand(
-    registryBaseUrl: registryUrl,
-    registryId: sanitizeCacheKey(registryUrl),
+    registryBaseUrl: target.registryBase,
+    registryId: target.registryId,
     refresh: listCommand['refresh'] == true,
-    offline: offline,
+    offline: multiRegistry.offline,
     jsonOutput: listCommand['json'] == true,
     logger: logger,
-    indexPath: selection.indexPath,
-    indexSchemaPath: selection.indexSchemaPath,
+    indexPath: target.indexPath,
+    indexSchemaPath: target.indexSchemaPath,
   );
   return listExit;
 }

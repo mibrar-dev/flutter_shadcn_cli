@@ -1,22 +1,15 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/core/utils/component_ref_normalizer.dart';
 import 'package:flutter_shadcn_cli/src/discovery_commands.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/registry_selection.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
 
 Future<int> runInfoCommand({
   required ArgResults infoCommand,
-  required ArgResults rootArgs,
-  required String? localRegistryRoot,
-  required String? cliRoot,
-  required ShadcnConfig config,
-  required bool offline,
+  required MultiRegistryManager multiRegistry,
   required CliLogger logger,
 }) async {
   if (infoCommand['help'] == true) {
@@ -48,26 +41,19 @@ Future<int> runInfoCommand({
     return ExitCodes.usage;
   }
 
-  final roots =
-      ResolvedRoots(localRegistryRoot: localRegistryRoot, cliRoot: cliRoot);
-  final selection = resolveRegistrySelection(
-    rootArgs,
-    roots,
-    config,
-    offline,
-    namespaceOverride: namespaceOverride,
+  final target = await multiRegistry.resolveDiscoveryTarget(
+    namespace: namespaceOverride,
   );
-  final registryUrl = selection.registryRoot.root;
   final infoExit = await handleInfoCommand(
     componentId: componentId,
-    registryBaseUrl: registryUrl,
-    registryId: sanitizeCacheKey(registryUrl),
+    registryBaseUrl: target.registryBase,
+    registryId: target.registryId,
     refresh: infoCommand['refresh'] == true,
-    offline: offline,
+    offline: multiRegistry.offline,
     jsonOutput: infoCommand['json'] == true,
     logger: logger,
-    indexPath: selection.indexPath,
-    indexSchemaPath: selection.indexSchemaPath,
+    indexPath: target.indexPath,
+    indexSchemaPath: target.indexSchemaPath,
   );
   return infoExit;
 }

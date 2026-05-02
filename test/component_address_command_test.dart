@@ -10,7 +10,6 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/commands/info_command.da
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/remove_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/registry_bootstrap_exception.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
-import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 void main() {
@@ -44,11 +43,7 @@ void main() {
 
       final exitCode = await runInfoCommand(
         infoCommand: rootArgs.command!,
-        rootArgs: rootArgs,
-        localRegistryRoot: p.join(tempRoot.path, 'missing-registry'),
-        cliRoot: null,
-        config: const ShadcnConfig(),
-        offline: true,
+        multiRegistry: multiRegistry,
         logger: CliLogger(),
       );
 

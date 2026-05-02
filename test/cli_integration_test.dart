@@ -204,6 +204,73 @@ void main() {
       expect(jsonDecode(registriesResult.stdout), isA<Map<String, dynamic>>());
     });
 
+    test('list uses registries directory manifest paths without persisted config',
+        () async {
+      final manifestRegistry =
+          Directory(p.join(tempRoot.path, 'manifest_registry', 'registry'))
+            ..createSync(recursive: true);
+      File(p.join(manifestRegistry.path, 'manifests', 'index.json'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync(
+          jsonEncode({
+            'components': [
+              {
+                'id': 'button',
+                'name': 'Button',
+                'category': 'control',
+                'description': 'Button component',
+                'tags': ['core'],
+                'install': 'flutter_shadcn add button',
+                'import': 'package:app/ui/shadcn/components/button/button.dart',
+                'importPath': 'ui/shadcn/components/button/button.dart',
+                'api': {},
+                'examples': {},
+                'dependencies': {},
+                'related': [],
+              }
+            ]
+          }),
+        );
+      File(p.join(manifestRegistry.path, 'manifests', 'components.json'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync(_emptyComponentsJson());
+
+      final registriesFile = _writeRegistriesFile(appRoot, [
+        {
+          'id': 'official',
+          'displayName': 'Official',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/registry-root/',
+          'paths': {
+            'componentsJson': 'registry/manifests/components.json',
+            'indexJson': 'registry/manifests/index.json',
+          },
+          'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
+        }
+      ]);
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--registries-path',
+          registriesFile,
+          '--registry-path',
+          manifestRegistry.path,
+          'list',
+          '--json',
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.success);
+      final payload = jsonDecode(result.stdout) as Map<String, dynamic>;
+      expect(payload['status'], 'ok');
+      expect((payload['data'] as Map<String, dynamic>)['count'], 1);
+    });
+
     test('theme help hides import flags unless advanced mode is enabled',
         () async {
       final normalHelp = await _runCli(

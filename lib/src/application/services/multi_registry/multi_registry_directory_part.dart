@@ -1,6 +1,34 @@
 part of 'multi_registry_manager.dart';
 
 extension MultiRegistryDirectoryPart on MultiRegistryManager {
+  Future<DiscoveryRegistryTarget> resolveDiscoveryTarget({
+    String? namespace,
+  }) async {
+    final projectRoot = findProjectRootFrom(targetDir);
+    final config = await ShadcnConfig.load(projectRoot);
+    final resolvedNamespace = namespace?.trim().isNotEmpty == true
+        ? namespace!.trim()
+        : config.effectiveDefaultNamespace;
+    final source = await _resolveSourceForNamespace(
+      resolvedNamespace,
+      config,
+      allowDirectoryFallback: true,
+    );
+    final registryBase = _discoveryRegistryBaseForSource(
+      projectRoot: projectRoot,
+      source: source,
+    );
+    final indexPath = _discoveryIndexPathForSource(source);
+    final indexSchemaPath = _discoveryIndexSchemaPathForSource(source);
+    return DiscoveryRegistryTarget(
+      namespace: resolvedNamespace,
+      registryBase: registryBase,
+      registryId: _discoveryRegistryId(registryBase),
+      indexPath: indexPath,
+      indexSchemaPath: indexSchemaPath,
+    );
+  }
+
   Future<void> _recordInlineExecution({
     required String projectRoot,
     required String namespace,
@@ -22,6 +50,73 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       ),
     );
     await updated.save(projectRoot);
+  }
+
+  String _discoveryRegistryBaseForSource({
+    required String projectRoot,
+    required RegistrySource source,
+  }) {
+    final configEntry = source.configEntry;
+    if (configEntry != null &&
+        ((configEntry.registryMode == 'local' &&
+                configEntry.registryPath != null) ||
+            configEntry.registryPath != null)) {
+      final localRoot = RegistrySource.resolveLocalPath(
+        projectRoot,
+        configEntry.registryPath,
+      );
+      if (localRoot == null || localRoot.isEmpty) {
+        throw MultiRegistryException(
+          'Local registry path is not configured for namespace "${source.namespace}".',
+        );
+      }
+      return localRoot;
+    }
+
+    final remoteRoot =
+        configEntry?.baseUrl ?? configEntry?.registryUrl ?? source.directoryEntry?.baseUrl;
+    if (remoteRoot == null || remoteRoot.isEmpty) {
+      throw MultiRegistryException(
+        'Remote registry URL is not configured for namespace "${source.namespace}".',
+      );
+    }
+    return remoteRoot;
+  }
+
+  String _discoveryRegistryId(String value) {
+    final safe = value.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    if (safe.length > 80) {
+      return safe.substring(0, 80);
+    }
+    return safe;
+  }
+
+  String _discoveryIndexPathForSource(RegistrySource source) {
+    final configEntry = source.configEntry;
+    final directoryEntry = source.directoryEntry;
+    final localPath = configEntry?.registryPath;
+    if (localPath != null && localPath.isNotEmpty) {
+      return _pathForLocalOverride(
+            localRegistryPath: localPath,
+            path: configEntry?.indexPath ?? directoryEntry?.indexPath,
+            fallback: 'index.json',
+          ) ??
+          'index.json';
+    }
+    return configEntry?.indexPath ?? directoryEntry?.indexPath ?? 'index.json';
+  }
+
+  String? _discoveryIndexSchemaPathForSource(RegistrySource source) {
+    final configEntry = source.configEntry;
+    final directoryEntry = source.directoryEntry;
+    final localPath = configEntry?.registryPath;
+    if (localPath != null && localPath.isNotEmpty) {
+      return _pathForLocalOverride(
+        localRegistryPath: localPath,
+        path: configEntry?.indexSchemaPath ?? directoryEntry?.indexSchemaPath,
+      );
+    }
+    return configEntry?.indexSchemaPath ?? directoryEntry?.indexSchemaPath;
   }
 
   String _inlineAssetCategory({
@@ -168,6 +263,40 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     }
 
     final configEntry = config.registryConfig(namespace);
+    if (configEntry != null &&
+        ((configEntry.registryMode == 'local' &&
+                configEntry.registryPath != null) ||
+            configEntry.registryPath != null)) {
+      final localPath = configEntry.registryPath;
+      final effectiveEntry = configEntry.copyWith(
+        componentsPath: _pathForLocalOverride(
+          localRegistryPath: localPath!,
+          path: configEntry.componentsPath,
+          fallback: 'components.json',
+          detectComponentsManifest: true,
+        ),
+        componentsSchemaPath: _pathForLocalOverride(
+          localRegistryPath: localPath,
+          path: configEntry.componentsSchemaPath,
+        ),
+        indexPath: _pathForLocalOverride(
+          localRegistryPath: localPath,
+          path: configEntry.indexPath,
+          fallback: 'index.json',
+        ),
+        indexSchemaPath: _pathForLocalOverride(
+          localRegistryPath: localPath,
+          path: configEntry.indexSchemaPath,
+        ),
+      );
+      final source = RegistrySource.fromConfig(
+        namespace: namespace,
+        configEntry: effectiveEntry,
+      );
+      _sources[namespace] = source;
+      return source;
+    }
+
     RegistryDirectoryEntry? directoryEntry;
     try {
       final directory = await _loadDirectory();
@@ -256,6 +385,15 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
         path: configEntry?.componentsSchemaPath ??
             directoryEntry?.componentsSchemaPath,
       );
+      final indexPath = _pathForLocalOverride(
+        localRegistryPath: path,
+        path: configEntry?.indexPath ?? directoryEntry?.indexPath,
+        fallback: 'index.json',
+      );
+      final indexSchemaPath = _pathForLocalOverride(
+        localRegistryPath: path,
+        path: configEntry?.indexSchemaPath ?? directoryEntry?.indexSchemaPath,
+      );
       final installRoot = configEntry?.installPath ??
           directoryEntry?.installRoot ??
           'lib/ui/$namespace';
@@ -267,6 +405,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
           registryPath: path,
           componentsPath: componentsPath,
           componentsSchemaPath: componentsSchemaPath,
+          indexPath: indexPath,
+          indexSchemaPath: indexSchemaPath,
           installPath: installRoot,
           sharedPath: sharedRoot,
           capabilitySharedGroups: configEntry?.capabilitySharedGroups ??
@@ -294,6 +434,9 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
               configEntry?.componentsPath ?? directoryEntry?.componentsPath,
           componentsSchemaPath: configEntry?.componentsSchemaPath ??
               directoryEntry?.componentsSchemaPath,
+          indexPath: configEntry?.indexPath ?? directoryEntry?.indexPath,
+          indexSchemaPath:
+              configEntry?.indexSchemaPath ?? directoryEntry?.indexSchemaPath,
           installPath: installRoot,
           sharedPath: sharedRoot,
           capabilitySharedGroups: configEntry?.capabilitySharedGroups ??

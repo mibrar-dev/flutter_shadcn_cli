@@ -78,7 +78,7 @@ class RegistrySource {
 
     final mode = (entry.registryMode ?? '').trim();
     if (mode == 'local' || entry.registryPath != null) {
-      final localRoot = _resolveLocalPath(projectRoot, entry.registryPath);
+      final localRoot = resolveLocalPath(projectRoot, entry.registryPath);
       if (localRoot == null) {
         throw Exception(
           'Local registry path is not configured for namespace "$namespace".',
@@ -121,7 +121,7 @@ class RegistrySource {
     );
   }
 
-  static String? _resolveLocalPath(String projectRoot, String? path) {
+  static String? resolveLocalPath(String projectRoot, String? path) {
     if (path == null || path.trim().isEmpty) {
       return null;
     }
