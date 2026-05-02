@@ -67,6 +67,37 @@ void main() {
       expect(results.command?['generate'], isTrue);
     });
 
+    test('json flag is accepted before json-enabled command', () {
+      final parser = buildCliParser();
+      final results = parser.parse(
+        normalizeCliArgs(['--json', 'list', '@shadcn']),
+      );
+
+      expect(results.command?.name, 'list');
+      expect(results.command?['json'], isTrue);
+      expect(results.command?.rest, ['@shadcn']);
+    });
+
+    test('json flag is accepted after json-enabled command arguments', () {
+      final parser = buildCliParser();
+      final results = parser.parse(
+        normalizeCliArgs(['search', '@shadcn', 'button', '--json']),
+      );
+
+      expect(results.command?.name, 'search');
+      expect(results.command?['json'], isTrue);
+      expect(results.command?.rest, ['@shadcn', 'button']);
+    });
+
+    test('json flag remains invalid for commands without json output', () {
+      final parser = buildCliParser();
+
+      expect(
+        () => parser.parse(normalizeCliArgs(['--json', 'add', 'button'])),
+        throwsA(isA<FormatException>()),
+      );
+    });
+
     test('hides developer registry flags from parser usage', () {
       final parser = buildCliParser();
       final usage = parser.usage;

@@ -273,6 +273,7 @@ List<String> normalizeCliArgs(List<String> args) {
     return args;
   }
   var normalized = _hoistGlobalAdvancedFlag(List<String>.from(args));
+  normalized = _hoistGlobalJsonFlag(normalized);
   normalized = _hoistHiddenDeveloperFlags(normalized);
   normalized = _normalizeThemeWidgetNamespace(normalized);
   normalized = _normalizeCommandAlias(normalized);
@@ -290,6 +291,39 @@ List<String> _hoistGlobalAdvancedFlag(List<String> args) {
     normalized.add(token);
   }
   return sawAdvanced ? ['--advanced', ...normalized] : normalized;
+}
+
+List<String> _hoistGlobalJsonFlag(List<String> args) {
+  final commandIndex = _findCommandIndex(args);
+  if (commandIndex == null || !_jsonEnabledCommands.contains(args[commandIndex])) {
+    return args;
+  }
+
+  final command = args[commandIndex];
+  final leading = <String>[];
+  final trailing = <String>[];
+  var sawJson = false;
+
+  for (var i = 0; i < args.length; i++) {
+    if (i == commandIndex) {
+      continue;
+    }
+    if (args[i] == '--json') {
+      sawJson = true;
+      continue;
+    }
+    if (i < commandIndex) {
+      leading.add(args[i]);
+    } else {
+      trailing.add(args[i]);
+    }
+  }
+
+  if (!sawJson) {
+    return args;
+  }
+
+  return [...leading, command, '--json', ...trailing];
 }
 
 List<String> _normalizeThemeWidgetNamespace(List<String> args) {
@@ -398,4 +432,16 @@ const _hiddenDeveloperFlagOptions = <String>{
 const _rootValueOptions = <String>{
   '--registry-name',
   ..._hiddenDeveloperValueOptions,
+};
+
+const _jsonEnabledCommands = <String>{
+  'dry-run',
+  'doctor',
+  'validate',
+  'audit',
+  'deps',
+  'registries',
+  'list',
+  'search',
+  'info',
 };

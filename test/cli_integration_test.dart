@@ -174,6 +174,36 @@ void main() {
       expect(result.exitCode, ExitCodes.success);
     });
 
+    test('json flag works in any position for json-enabled commands', () async {
+      final listResult = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          '--json',
+          'list',
+          '--registry-path',
+          registryRoot.path,
+        ],
+      );
+
+      expect(listResult.exitCode, ExitCodes.success);
+      expect(jsonDecode(listResult.stdout), isA<Map<String, dynamic>>());
+
+      final registriesResult = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          'registries',
+          '--json',
+        ],
+      );
+
+      expect(registriesResult.exitCode, ExitCodes.success);
+      expect(jsonDecode(registriesResult.stdout), isA<Map<String, dynamic>>());
+    });
+
     test('theme help hides import flags unless advanced mode is enabled',
         () async {
       final normalHelp = await _runCli(
