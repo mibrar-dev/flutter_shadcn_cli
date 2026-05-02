@@ -1,0 +1,36 @@
+{
+  "schemaVersion": 1,
+  "generatedAt": "2026-05-02",
+  "scope": "flutter-shadcn-cli-bundled-skills",
+  "description": "Bundled AI skills shipped with flutter_shadcn_cli for CLI maintenance and Flutter shadcn UI component usage.",
+  "skills": [
+    {
+      "id": "flutter-shadcn-cli",
+      "name": "Flutter shadcn CLI",
+      "version": "1.0.0",
+      "description": "Use when maintaining, testing, documenting, or automating the flutter_shadcn CLI, multi-registry resolution, inline init actions, diagnostics, skill installation, or pub.dev packaging behavior.",
+      "status": "stable",
+      "category": "cli-maintenance",
+      "path": "flutter-shadcn-cli",
+      "entry": "flutter-shadcn-cli/SKILL.md",
+      "manifest": "flutter-shadcn-cli/skill.json",
+      "installation": {
+        "supportedByCli": true
+      }
+    },
+    {
+      "id": "flutter-shadcn-ui",
+      "name": "Flutter shadcn UI",
+      "version": "2.0.0",
+      "description": "Use when installing, composing, styling, replacing Material/Cupertino widgets with, or troubleshooting Flutter shadcn registry components in an application.",
+      "status": "stable",
+      "category": "ui-development",
+      "path": "flutter-shadcn-ui",
+      "entry": "flutter-shadcn-ui/SKILL.md",
+      "manifest": "flutter-shadcn-ui/skill.json",
+      "installation": {
+        "supportedByCli": true
+      }
+    }
+  ]
+}

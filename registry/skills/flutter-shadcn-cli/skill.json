@@ -1,0 +1,29 @@
+{
+  "$schema": "https://schema.example.com/skill/1.0.0",
+  "schemaVersion": 1,
+  "id": "flutter-shadcn-cli",
+  "name": "Flutter shadcn CLI",
+  "version": "1.0.0",
+  "description": "AI skill for maintaining and using the flutter_shadcn CLI itself.",
+  "author": "Flutter Shadcn Contributors",
+  "license": "MIT",
+  "tags": [
+    "flutter",
+    "dart",
+    "shadcn",
+    "cli",
+    "multi-registry",
+    "pub-dev",
+    "ai-skills"
+  ],
+  "files": {
+    "main": "SKILL.md",
+    "installation": "INSTALLATION.md",
+    "references": {
+      "commands": "references/commands.md",
+      "architecture": "references/architecture.md",
+      "testing": "references/testing.md",
+      "skills": "references/skills-packaging.md"
+    }
+  }
+}

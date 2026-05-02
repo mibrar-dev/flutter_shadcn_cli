@@ -677,7 +677,9 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
         ],
         examples: [
           'flutter_shadcn --advanced install-skill --available',
-          'flutter_shadcn --advanced install-skill --skill design --model gpt-4',
+          'flutter_shadcn --advanced install-skill --skill flutter-shadcn-cli --model .codex',
+          'flutter_shadcn --advanced install-skill --skill flutter-shadcn-ui --model .codex',
+          'flutter_shadcn --advanced install-skill --skills-url https://raw.githubusercontent.com/ibrar-x/shadcn_flutter_kit/main/flutter_shadcn_kit/skills --skill flutter-shadcn-ui --model .codex',
         ],
         notes: 'This command requires --advanced.',
         seeAlso: ['docs'],

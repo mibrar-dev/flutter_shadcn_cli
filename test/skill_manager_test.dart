@@ -37,6 +37,124 @@ void main() {
     });
 
     group('Skill Discovery', () {
+      test('finds bundled skills under registry skills folder', () async {
+        final bundledSkillsRoot = Directory(
+            p.join(tempRoot.path, 'cli_package', 'registry', 'skills'))
+          ..createSync(recursive: true);
+        final skillDir =
+            Directory(p.join(bundledSkillsRoot.path, 'flutter-shadcn-cli'))
+              ..createSync(recursive: true);
+
+        _createSkillManifest(skillDir.path, {
+          'id': 'flutter-shadcn-cli',
+          'name': 'Flutter Shadcn CLI',
+          'version': '1.0.0',
+          'files': {
+            'main': 'SKILL.md',
+            'installation': 'INSTALLATION.md',
+          }
+        });
+        File(p.join(skillDir.path, 'SKILL.md')).writeAsStringSync('# CLI');
+        File(p.join(skillDir.path, 'INSTALLATION.md'))
+            .writeAsStringSync('# Install');
+
+        skillManager = SkillManager(
+          projectRoot: projectRoot.path,
+          skillsBasePath: p.join(projectRoot.path, 'skills'),
+          bundledSkillsPath: bundledSkillsRoot.path,
+          logger: logger,
+        );
+        Directory(p.join(projectRoot.path, '.codex')).createSync();
+
+        await skillManager.installSkill(
+          skillId: 'flutter-shadcn-cli',
+          model: '.codex',
+        );
+
+        final installedSkill = Directory(
+          p.join(projectRoot.path, '.codex', 'skills', 'flutter-shadcn-cli'),
+        );
+        expect(
+            File(p.join(installedSkill.path, 'SKILL.md')).existsSync(), isTrue);
+        expect(
+          File(p.join(installedSkill.path, 'INSTALLATION.md')).existsSync(),
+          isTrue,
+        );
+      });
+
+      test('downloads remote skill files from a skills URL', () async {
+        final remoteRoot = Directory(p.join(tempRoot.path, 'remote_skills'))
+          ..createSync(recursive: true);
+        final skillDir = Directory(p.join(remoteRoot.path, 'flutter-shadcn-ui'))
+          ..createSync(recursive: true);
+
+        _createSkillManifest(skillDir.path, {
+          'id': 'flutter-shadcn-ui',
+          'name': 'Flutter Shadcn UI',
+          'version': '1.0.0',
+          'files': {
+            'main': 'SKILL.md',
+            'references': {
+              'composition': 'references/composition.md',
+              'schemas': 'references/schema.md',
+            }
+          }
+        });
+        File(p.join(skillDir.path, 'SKILL.md')).writeAsStringSync('# UI');
+        Directory(p.join(skillDir.path, 'references')).createSync();
+        File(p.join(skillDir.path, 'references', 'composition.md'))
+            .writeAsStringSync('# Composition');
+        File(p.join(skillDir.path, 'references', 'schema.md'))
+            .writeAsStringSync('# Schema');
+
+        final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+        addTearDown(() async => server.close(force: true));
+        server.listen((request) async {
+          final requestedPath = Uri.decodeComponent(request.uri.path);
+          final relative = requestedPath.startsWith('/')
+              ? requestedPath.substring(1)
+              : requestedPath;
+          final file = File(p.join(remoteRoot.path, relative));
+          if (await file.exists()) {
+            request.response.statusCode = HttpStatus.ok;
+            request.response.headers.contentType = ContentType.text;
+            await request.response.addStream(file.openRead());
+          } else {
+            request.response.statusCode = HttpStatus.notFound;
+          }
+          await request.response.close();
+        });
+
+        skillManager = SkillManager(
+          projectRoot: projectRoot.path,
+          skillsBasePath: p.join(projectRoot.path, 'skills'),
+          skillsBaseUrl: 'http://${server.address.host}:${server.port}',
+          logger: logger,
+        );
+        Directory(p.join(projectRoot.path, '.codex')).createSync();
+
+        await skillManager.installSkill(
+          skillId: 'flutter-shadcn-ui',
+          model: '.codex',
+        );
+
+        final installedSkill = Directory(
+          p.join(projectRoot.path, '.codex', 'skills', 'flutter-shadcn-ui'),
+        );
+        expect(
+            File(p.join(installedSkill.path, 'SKILL.md')).existsSync(), isTrue);
+        expect(
+          File(p.join(installedSkill.path, 'references', 'composition.md'))
+              .existsSync(),
+          isTrue,
+        );
+        expect(
+          File(p.join(installedSkill.path, 'references', 'schema.md'))
+              .existsSync(),
+          isFalse,
+        );
+      });
+
       test('finds skill in local kit registry', () async {
         // Create skill in kit registry
         final skillDir = Directory(p.join(skillsRoot.path, 'flutter-shadcn-ui'))

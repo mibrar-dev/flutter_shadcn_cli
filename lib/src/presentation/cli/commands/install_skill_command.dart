@@ -10,6 +10,7 @@ Future<int> runInstallSkillCommand({
   required ArgResults command,
   required String targetDir,
   required String defaultSkillsUrl,
+  String? bundledSkillsPath,
   required CliLogger logger,
 }) async {
   if (command['help'] == true) {
@@ -46,6 +47,7 @@ Future<int> runInstallSkillCommand({
     projectRoot: targetDir,
     skillsBasePath: p.join(targetDir, 'skills'),
     skillsBaseUrl: resolvedSkillsUrl,
+    bundledSkillsPath: bundledSkillsPath,
     logger: logger,
   );
 

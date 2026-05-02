@@ -6,8 +6,12 @@ import 'package:path/path.dart' as p;
 /// Manages loading of skills.json index for skill discovery.
 class SkillsLoader {
   final String skillsBasePath;
+  final String? bundledSkillsPath;
 
-  SkillsLoader({required this.skillsBasePath});
+  SkillsLoader({
+    required this.skillsBasePath,
+    this.bundledSkillsPath,
+  });
 
   /// Loads skills.json from the local registry.
   ///
@@ -37,8 +41,10 @@ class SkillsLoader {
 
   List<String> _findSkillsJsonPaths() {
     final candidates = <String>[
+      if (bundledSkillsPath != null) p.join(bundledSkillsPath!, 'skills.json'),
       p.join(skillsBasePath, 'skills.json'),
       p.join(skillsBasePath, '..', 'skills.json'),
+      p.join(skillsBasePath, 'registry', 'skills', 'skills.json'),
     ];
 
     // Try to find shadcn_flutter_kit
@@ -52,6 +58,7 @@ class SkillsLoader {
         'skills.json',
       );
       candidates.add(kitCandidate);
+      candidates.add(p.join(current.path, 'registry', 'skills', 'skills.json'));
 
       final parent = current.parent;
       if (parent.path == current.path) break;

@@ -336,6 +336,9 @@ Future<void> runCliBootstrap(List<String> arguments) async {
           command: command,
           targetDir: targetDir,
           defaultSkillsUrl: defaultSkillsUrl,
+          bundledSkillsPath: roots.cliRoot == null
+              ? null
+              : p.join(roots.cliRoot!, 'registry', 'skills'),
           logger: logger,
         );
       },

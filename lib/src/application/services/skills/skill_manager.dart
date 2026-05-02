@@ -1,5 +1,6 @@
 import 'dart:io';
 import 'dart:convert';
+import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/skills_loader.dart';
@@ -50,16 +51,18 @@ class SkillManager {
   final String projectRoot;
   final String skillsBasePath;
   final String skillsBaseUrl;
+  final String? bundledSkillsPath;
   final CliLogger logger;
 
   SkillManager({
     required this.projectRoot,
     required this.skillsBasePath,
     String? skillsBaseUrl,
+    this.bundledSkillsPath,
     required this.logger,
   }) : skillsBaseUrl = skillsBaseUrl?.isNotEmpty == true
             ? skillsBaseUrl!
-            : 'https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/skill';
+            : 'https://raw.githubusercontent.com/ibrar-x/shadcn_flutter_kit/main/flutter_shadcn_kit/skills';
 
   /// Installs a skill from GitHub.
   ///
@@ -377,7 +380,10 @@ class SkillManager {
         .warn('⚠️  EXPERIMENTAL: This feature has not been fully tested yet.');
     logger.section('📚 Available Skills');
 
-    final loader = SkillsLoader(skillsBasePath: skillsBasePath);
+    final loader = SkillsLoader(
+      skillsBasePath: skillsBasePath,
+      bundledSkillsPath: bundledSkillsPath,
+    );
     final index = await loader.load();
 
     if (index == null || index.skills.isEmpty) {
@@ -407,7 +413,10 @@ class SkillManager {
   Future<void> installSkillsInteractive() async {
     logger
         .warn('⚠️  EXPERIMENTAL: This feature has not been fully tested yet.');
-    final loader = SkillsLoader(skillsBasePath: skillsBasePath);
+    final loader = SkillsLoader(
+      skillsBasePath: skillsBasePath,
+      bundledSkillsPath: bundledSkillsPath,
+    );
     final index = await loader.load();
 
     if (index == null || index.skills.isEmpty) {
@@ -886,29 +895,45 @@ class SkillManager {
       return;
     }
 
-    // Fallback: Try to download from GitHub (placeholder for now)
-    logger.detail('Local skill not found. Creating placeholder...');
+    final downloaded = await _downloadRemoteSkillFiles(skillId, targetPath);
+    if (downloaded) {
+      return;
+    }
+
+    logger.detail('Skill source not found. Creating placeholder...');
     await _createPlaceholderManifest(skillId, targetPath);
   }
 
   /// Finds local skill path by checking common locations.
   Future<String?> _findLocalSkillPath(String skillId) async {
-    // Check 1: shadcn_flutter_kit/flutter_shadcn_kit/skills/{skillId}
+    final explicitCandidates = <String>[
+      if (bundledSkillsPath != null) p.join(bundledSkillsPath!, skillId),
+      if (bundledSkillsPath != null)
+        p.join(p.dirname(bundledSkillsPath!), 'skills', skillId),
+      if (!_looksLikeRemoteUrl(skillsBaseUrl)) p.join(skillsBaseUrl, skillId),
+      if (!_looksLikeRemoteUrl(skillsBaseUrl))
+        p.join(skillsBaseUrl, 'skills', skillId),
+    ];
+    for (final candidate in explicitCandidates) {
+      final directory = Directory(candidate);
+      if (await directory.exists()) {
+        return directory.path;
+      }
+    }
+
     var current = Directory(projectRoot);
     while (true) {
-      final candidate = Directory(
+      final candidates = [
+        p.join(current.path, 'registry', 'skills', skillId),
         p.join(current.path, 'shadcn_flutter_kit', 'flutter_shadcn_kit',
             'skills', skillId),
-      );
-      if (await candidate.exists()) {
-        return candidate.path;
-      }
-
-      // Check 2: Look for skills/ in parent directories
-      final skillsCandidate =
-          Directory(p.join(current.path, 'skills', skillId));
-      if (await skillsCandidate.exists()) {
-        return skillsCandidate.path;
+        p.join(current.path, 'skills', skillId),
+      ];
+      for (final candidatePath in candidates) {
+        final candidate = Directory(candidatePath);
+        if (await candidate.exists()) {
+          return candidate.path;
+        }
       }
 
       final parent = current.parent;
@@ -925,6 +950,135 @@ class SkillManager {
     }
 
     return null;
+  }
+
+  Future<bool> _downloadRemoteSkillFiles(
+    String skillId,
+    String targetPath,
+  ) async {
+    if (!_looksLikeRemoteUrl(skillsBaseUrl)) {
+      return false;
+    }
+
+    for (final skillBaseUrl in _remoteSkillBaseCandidates(skillId)) {
+      final manifestUri = Uri.parse('$skillBaseUrl/skill.json');
+      http.Response manifestResponse;
+      try {
+        manifestResponse = await http.get(manifestUri);
+      } catch (e) {
+        logger.detail('Remote skill manifest request failed: $e');
+        continue;
+      }
+      if (manifestResponse.statusCode != HttpStatus.ok) {
+        continue;
+      }
+
+      final manifest =
+          jsonDecode(manifestResponse.body) as Map<String, dynamic>;
+      final relativeFiles = _filesFromManifest(manifest);
+      if (relativeFiles.isEmpty) {
+        throw Exception(
+          'Manifest must specify files to copy in the "files" key',
+        );
+      }
+
+      var copied = 0;
+      for (final relativePath in relativeFiles) {
+        final fileUri = Uri.parse('$skillBaseUrl/$relativePath');
+        final fileResponse = await http.get(fileUri);
+        if (fileResponse.statusCode != HttpStatus.ok) {
+          logger.detail('Skipping missing remote skill file: $relativePath');
+          continue;
+        }
+
+        final destFile = File(p.join(targetPath, relativePath));
+        await destFile.parent.create(recursive: true);
+        await destFile.writeAsString(fileResponse.body);
+        copied++;
+        logger.detail('✓ Downloaded: $relativePath');
+      }
+
+      logger.success('✓ Downloaded $copied skill files');
+      return true;
+    }
+
+    return false;
+  }
+
+  List<String> _remoteSkillBaseCandidates(String skillId) {
+    final normalizedBase = _normalizeRemoteBaseUrl(skillsBaseUrl);
+    final base = normalizedBase.replaceAll(RegExp(r'/+$'), '');
+    final candidates = <String>[
+      '$base/$skillId',
+      '$base/skills/$skillId',
+    ];
+
+    if (base.endsWith('/$skillId')) {
+      candidates.insert(0, base);
+    }
+
+    return candidates.toSet().toList();
+  }
+
+  String _normalizeRemoteBaseUrl(String url) {
+    final uri = Uri.tryParse(url);
+    if (uri == null || uri.host != 'github.com') {
+      return url;
+    }
+
+    final segments = uri.pathSegments;
+    final treeIndex = segments.indexOf('tree');
+    final blobIndex = segments.indexOf('blob');
+    final markerIndex = treeIndex >= 0 ? treeIndex : blobIndex;
+    if (segments.length < 4 ||
+        markerIndex < 2 ||
+        markerIndex + 1 >= segments.length) {
+      return url;
+    }
+
+    final owner = segments[0];
+    final repo = segments[1];
+    final ref = segments[markerIndex + 1];
+    final pathSegments = segments.skip(markerIndex + 2).join('/');
+    return 'https://raw.githubusercontent.com/$owner/$repo/$ref/$pathSegments';
+  }
+
+  bool _looksLikeRemoteUrl(String value) {
+    return value.startsWith('http://') || value.startsWith('https://');
+  }
+
+  List<String> _filesFromManifest(Map<String, dynamic> manifest) {
+    final filesConfig = manifest['files'] as Map<String, dynamic>?;
+    if (filesConfig == null) {
+      return const [];
+    }
+
+    final files = <String>[];
+    final main = filesConfig['main'];
+    if (main is String) {
+      files.add(main);
+    }
+
+    final installation = filesConfig['installation'];
+    if (installation is String) {
+      files.add(installation);
+    }
+
+    final readme = filesConfig['readme'];
+    if (readme is String) {
+      files.add(readme);
+    }
+
+    final references = filesConfig['references'];
+    if (references is Map<String, dynamic>) {
+      for (final entry in references.entries) {
+        if (entry.key != 'schemas' && entry.value is String) {
+          files.add(entry.value as String);
+        }
+      }
+    }
+
+    return files;
   }
 
   /// Copies skill files from local registry to target path.
