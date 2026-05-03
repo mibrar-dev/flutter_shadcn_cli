@@ -43,7 +43,7 @@ Recommended path fields:
 - `paths.indexSchemaJson`: schema for the index
 - `paths.themesJson`: theme catalog
 - `paths.themesSchemaJson`: schema for themes
-- `paths.themeConverterDart`: optional theme converter path
+- `paths.themeConverterDart`: deprecated legacy field. Current CLI builds do not use it.
 - `paths.folderStructureJson`: optional folder structure metadata
 - `paths.metaJson`: optional registry metadata
 
@@ -104,6 +104,12 @@ Registry paths are relative to `baseUrl`. The CLI rejects paths that are absolut
 `install.root` is project-relative. Published registries should install under `lib/` so generated code is part of the Flutter project source tree.
 
 For `copyFiles` init actions, files are treated as relative to the action `base` when `base` and `destBase` are present. The official registry uses paths relative to that base, so the CLI maps those paths without requiring the base prefix inside each file entry.
+
+## Theme Artifacts
+
+Each registry owns its theme format and generation pipeline. Conversion should happen at registry publish time. The CLI consumes only pre-generated, hash-verified theme artifacts.
+
+When a registry supports themes, its published theme data should resolve to artifacts and manifests that are already generated for CLI consumption. The CLI does not perform theme conversion at apply time.
 
 ## Inline Init
 

@@ -214,11 +214,13 @@ Options:
 - `--refresh`: refresh theme cache.
 - `--apply`, `-a <id>`: apply a preset by ID.
 
+Each registry owns its theme format and generation pipeline. Conversion should happen at registry publish time. The CLI consumes only pre-generated, hash-verified theme artifacts.
+
 If no theme action is provided, the CLI opens the interactive theme chooser.
 
 ## `theme widget`
 
-Lists or applies widget-level theme overrides.
+Lists or resets widget-level theme overrides when the selected registry publishes widget theme artifacts.
 
 ```bash
 flutter_shadcn theme widget --list
@@ -231,6 +233,8 @@ Options:
 - `--list`: list themeable widgets.
 - `--list-targets`: list theme targets for one widget.
 - `--reset`: remove widget theme overrides.
+
+Widget theme application from manifests is not part of the default public workflow. Advanced `--apply-file` and `--apply-url` inputs are experimental manifest flows, and they are only available when the registry publishes compatible widget artifacts.
 
 ## `registries`
 
