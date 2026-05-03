@@ -88,8 +88,9 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       return localRoot;
     }
 
-    final remoteRoot =
-        configEntry?.baseUrl ?? configEntry?.registryUrl ?? source.directoryEntry?.baseUrl;
+    final remoteRoot = configEntry?.baseUrl ??
+        configEntry?.registryUrl ??
+        source.directoryEntry?.baseUrl;
     if (remoteRoot == null || remoteRoot.isEmpty) {
       throw MultiRegistryException(
         'Remote registry URL is not configured for namespace "${source.namespace}".',
@@ -250,7 +251,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     RegistrySource source, {
     required String projectRoot,
   }) async {
-    final cacheKey = _registryCacheKeyForSource(source, projectRoot: projectRoot);
+    final cacheKey =
+        _registryCacheKeyForSource(source, projectRoot: projectRoot);
     if (_registryCache.containsKey(cacheKey)) {
       return _registryCache[cacheKey]!;
     }
@@ -272,12 +274,21 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
   }) {
     final entry = source.configEntry;
     final directoryEntry = source.directoryEntry;
-    final mode = entry?.registryMode ?? (entry?.registryPath != null ? 'local' : 'remote');
+    final mode = entry?.registryMode ??
+        (entry?.registryPath != null ? 'local' : 'remote');
     final root = entry?.registryPath != null
-        ? RegistrySource.resolveLocalPath(projectRoot, entry!.registryPath) ?? ''
-        : (entry?.baseUrl ?? entry?.registryUrl ?? directoryEntry?.baseUrl ?? '');
-    final manifestPath = entry?.componentsPath ?? directoryEntry?.componentsPath ?? 'components.json';
-    final schemaPath = entry?.componentsSchemaPath ?? directoryEntry?.componentsSchemaPath ?? '';
+        ? RegistrySource.resolveLocalPath(projectRoot, entry!.registryPath) ??
+            ''
+        : (entry?.baseUrl ??
+            entry?.registryUrl ??
+            directoryEntry?.baseUrl ??
+            '');
+    final manifestPath = entry?.componentsPath ??
+        directoryEntry?.componentsPath ??
+        'components.json';
+    final schemaPath = entry?.componentsSchemaPath ??
+        directoryEntry?.componentsSchemaPath ??
+        '';
     final rawKey = '${source.namespace}|$mode|$root|$manifestPath|$schemaPath';
     return rawKey.replaceAll(RegExp(r'[^A-Za-z0-9._|/-]'), '_');
   }
@@ -580,8 +591,6 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
             themesPath: existing.themesPath ?? entry.themesPath,
             themesSchemaPath:
                 existing.themesSchemaPath ?? entry.themesSchemaPath,
-            themeConverterDartPath:
-                existing.themeConverterDartPath ?? entry.themeConverterDartPath,
             installPath: existing.installPath ?? installRoot,
             sharedPath: existing.sharedPath ?? sharedRoot,
             enabled: true,
@@ -596,7 +605,6 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
             indexSchemaPath: entry.indexSchemaPath,
             themesPath: entry.themesPath,
             themesSchemaPath: entry.themesSchemaPath,
-            themeConverterDartPath: entry.themeConverterDartPath,
             installPath: installRoot,
             sharedPath: sharedRoot,
             enabled: true,
@@ -627,8 +635,6 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       folderStructurePath:
           configEntry.folderStructurePath ?? directoryEntry.folderStructurePath,
       metaPath: configEntry.metaPath ?? directoryEntry.metaPath,
-      themeConverterDartPath: configEntry.themeConverterDartPath ??
-          directoryEntry.themeConverterDartPath,
       capabilitySharedGroups: configEntry.capabilitySharedGroups ??
           directoryEntry.capabilities.sharedGroups,
       capabilityComposites: configEntry.capabilityComposites ??

@@ -430,10 +430,8 @@ void main() {
         entry.themesSchemaPath,
         'registry/manifests/themes.index.schema.json',
       );
-      expect(
-        entry.themeConverterDartPath,
-        'registry/manifests/theme_converter.dart',
-      );
+      expect(entry.themeConverterDartPath, isNull);
+      expect(entry.paths.containsKey('themeConverterDart'), isFalse);
       expect(
         entry.folderStructurePath,
         'registry/manifests/folder_structure.json',

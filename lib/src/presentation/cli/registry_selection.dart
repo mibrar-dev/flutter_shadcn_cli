@@ -19,7 +19,6 @@ class RegistrySelection {
   final String? indexSchemaPath;
   final String? themesPath;
   final String? themesSchemaPath;
-  final String? themeConverterDartPath;
   final bool? capabilitySharedGroups;
   final bool? capabilityComposites;
   final bool? capabilityTheme;
@@ -37,7 +36,6 @@ class RegistrySelection {
     this.indexSchemaPath,
     this.themesPath,
     this.themesSchemaPath,
-    this.themeConverterDartPath,
     this.capabilitySharedGroups,
     this.capabilityComposites,
     this.capabilityTheme,
@@ -81,7 +79,6 @@ RegistrySelection resolveRegistrySelection(
   final indexSchemaPath = selectedEntry?.indexSchemaPath;
   final themesPath = selectedEntry?.themesPath;
   final themesSchemaPath = selectedEntry?.themesSchemaPath;
-  final themeConverterDartPath = selectedEntry?.themeConverterDartPath;
   final capabilitySharedGroups = selectedEntry?.capabilitySharedGroups;
   final capabilityComposites = selectedEntry?.capabilityComposites;
   final capabilityTheme = selectedEntry?.capabilityTheme;
@@ -109,7 +106,6 @@ RegistrySelection resolveRegistrySelection(
         indexSchemaPath: indexSchemaPath,
         themesPath: themesPath,
         themesSchemaPath: themesSchemaPath,
-        themeConverterDartPath: themeConverterDartPath,
         capabilitySharedGroups: capabilitySharedGroups,
         capabilityComposites: capabilityComposites,
         capabilityTheme: capabilityTheme,
@@ -138,7 +134,6 @@ RegistrySelection resolveRegistrySelection(
       indexSchemaPath: indexSchemaPath,
       themesPath: themesPath,
       themesSchemaPath: themesSchemaPath,
-      themeConverterDartPath: themeConverterDartPath,
       capabilitySharedGroups: capabilitySharedGroups,
       capabilityComposites: capabilityComposites,
       capabilityTheme: capabilityTheme,
@@ -160,7 +155,6 @@ RegistrySelection resolveRegistrySelection(
     indexSchemaPath: indexSchemaPath,
     themesPath: themesPath,
     themesSchemaPath: themesSchemaPath,
-    themeConverterDartPath: themeConverterDartPath,
     capabilitySharedGroups: capabilitySharedGroups,
     capabilityComposites: capabilityComposites,
     capabilityTheme: capabilityTheme,

@@ -717,6 +717,49 @@ void main() {
       expect(alt.isDefault, isTrue);
     });
 
+    test(
+        'setDefaultRegistry keeps theme manifests but omits legacy converter wiring',
+        () async {
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        _inlineRegistryEntry(
+          baseUrl: 'https://example.com/registry/',
+          paths: {
+            'componentsJson': 'components.json',
+            'themesJson': 'registry/manifests/theme.index.json',
+            'themesSchemaJson': 'registry/manifests/themes.index.schema.json',
+          },
+          actions: const [
+            {
+              'type': 'ensureDirs',
+              'dirs': ['assets/official'],
+            },
+          ],
+        )..['install'] = {
+            'namespace': 'official',
+            'root': 'lib/ui/official',
+          },
+      ]);
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: true,
+        logger: CliLogger(),
+        directoryPath: registriesPath,
+      );
+
+      final updated = await manager.setDefaultRegistry('official');
+      final entry = updated.registryConfig('official');
+
+      expect(updated.effectiveDefaultNamespace, 'official');
+      expect(entry, isNotNull);
+      expect(entry!.themesPath, 'registry/manifests/theme.index.json');
+      expect(
+        entry.themesSchemaPath,
+        'registry/manifests/themes.index.schema.json',
+      );
+      expect(entry.themeConverterDartPath, isNull);
+      expect(entry.toJson().containsKey('themeConverterDartPath'), isFalse);
+    });
+
     test('inline assets install and rollback use registry actions', () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
       addTearDown(() async {

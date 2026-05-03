@@ -33,10 +33,17 @@ class RegistryDirectoryEntry {
           (key, value) => MapEntry(key.toString(), value),
         ) ??
         const <String, dynamic>{};
-    final paths = (json['paths'] as Map?)?.map(
-          (key, value) => MapEntry(key.toString(), value.toString()),
-        ) ??
-        const <String, String>{};
+    final paths = <String, String>{};
+    final rawPaths = json['paths'] as Map?;
+    if (rawPaths != null) {
+      for (final entry in rawPaths.entries) {
+        final key = entry.key.toString();
+        if (key == 'themeConverterDart') {
+          continue;
+        }
+        paths[key] = entry.value.toString();
+      }
+    }
     return RegistryDirectoryEntry(
       id: json['id']?.toString() ?? '',
       displayName: json['displayName']?.toString() ?? '',
@@ -68,7 +75,6 @@ class RegistryDirectoryEntry {
   String? get indexSchemaPath => paths['indexSchemaJson'];
   String? get themesPath => paths['themesJson'];
   String? get themesSchemaPath => paths['themesSchemaJson'];
-  String? get themeConverterDartPath => paths['themeConverterDart'];
   String? get folderStructurePath => paths['folderStructureJson'];
   String? get metaPath => paths['metaJson'];
 
@@ -79,4 +85,9 @@ class RegistryDirectoryEntry {
     }
     return initMap['version'] == 1 && initMap['actions'] is List;
   }
+}
+
+extension RegistryDirectoryEntryThemeConverterCompat on RegistryDirectoryEntry {
+  @Deprecated('themeConverterDartPath is no longer supported.')
+  String? get themeConverterDartPath => null;
 }

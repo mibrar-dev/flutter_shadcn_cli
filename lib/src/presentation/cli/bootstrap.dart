@@ -221,8 +221,6 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             registryBaseUrlOverride: preloadedSelection?.sourceRoot.root,
             themesPathOverride: preloadedSelection?.themesPath,
             themesSchemaPathOverride: preloadedSelection?.themesSchemaPath,
-            themeConverterDartPathOverride:
-                preloadedSelection?.themeConverterDartPath,
             enableSharedGroups:
                 preloadedSelection?.capabilitySharedGroups ?? true,
             enableComposites: preloadedSelection?.capabilityComposites ?? true,
@@ -530,7 +528,8 @@ Future<List<Map<String, dynamic>>> _selectProjectRefreshGroups(
   if (description != null && description.isNotEmpty) {
     stdout.writeln(description);
   }
-  stdout.writeln('Select groups (comma-separated numbers, Enter for defaults):');
+  stdout
+      .writeln('Select groups (comma-separated numbers, Enter for defaults):');
   for (var i = 0; i < groups.length; i++) {
     final group = groups[i];
     final suffix = group['default'] == false ? '' : ' [default]';
