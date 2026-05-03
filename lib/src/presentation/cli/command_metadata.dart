@@ -331,6 +331,27 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
         seeAlso: ['init', 'audit'],
       ),
       CliCommandMeta(
+        id: 'project',
+        description: 'Project repair and cleanup commands.',
+        sortOrder: 45,
+        usage: 'flutter_shadcn project <reset|refresh> [flags]',
+        arguments: [
+          CliArgumentMeta(
+            '<reset|refresh>',
+            true,
+            'Project-scoped maintenance command to run.',
+          ),
+        ],
+        examples: [
+          'flutter_shadcn project reset',
+          'flutter_shadcn project reset --undo',
+          'flutter_shadcn project refresh',
+        ],
+        notes:
+            'Use `project reset` to remove CLI-managed project files with a 24-hour undo window. Use `project refresh` to regenerate missing scaffolding only.',
+        seeAlso: ['sync', 'init', 'reset'],
+      ),
+      CliCommandMeta(
         id: 'assets',
         description: 'Install font and icon assets.',
         sortOrder: 50,
@@ -450,6 +471,16 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
     slug: 'diagnostics',
     sortOrder: 30,
     commands: [
+      CliCommandMeta(
+        id: 'reset',
+        description: 'Clear global CLI-managed cache and home-directory state.',
+        sortOrder: 5,
+        usage: 'flutter_shadcn reset',
+        examples: ['flutter_shadcn reset'],
+        notes:
+            'This command affects only global CLI state under the user home directory. It does not remove project files or uninstall the executable.',
+        seeAlso: ['project', 'doctor'],
+      ),
       CliCommandMeta(
         id: 'doctor',
         description: 'Diagnose registry resolution and project state.',

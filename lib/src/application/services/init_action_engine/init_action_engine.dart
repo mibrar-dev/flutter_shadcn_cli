@@ -15,6 +15,14 @@ part 'init_rollback_result_part.dart';
 part 'init_font_family_spec_part.dart';
 part 'init_font_asset_spec_part.dart';
 
+typedef InitOptionalActionDecider = Future<bool> Function(
+  Map<String, dynamic> action,
+);
+typedef InitActionGroupSelector = Future<List<Map<String, dynamic>>> Function(
+  Map<String, dynamic> action,
+  List<Map<String, dynamic>> groups,
+);
+
 class InitActionEngine {
   final http.Client _client;
   final bool _ownsClient;
@@ -33,6 +41,8 @@ class InitActionEngine {
     required String projectRoot,
     required RegistryDirectoryEntry registry,
     CliLogger? logger,
+    InitOptionalActionDecider? optionalActionDecider,
+    InitActionGroupSelector? groupSelector,
   }) async {
     final init = registry.init;
     if (init == null || !registry.hasInlineInit) {
@@ -62,6 +72,8 @@ class InitActionEngine {
           )
           .toList(),
       logger: logger,
+      optionalActionDecider: optionalActionDecider,
+      groupSelector: groupSelector,
     );
   }
 
@@ -70,6 +82,8 @@ class InitActionEngine {
     required String baseUrl,
     required List<Map<String, dynamic>> actions,
     CliLogger? logger,
+    InitOptionalActionDecider? optionalActionDecider,
+    InitActionGroupSelector? groupSelector,
   }) async {
     if (actions.isEmpty) {
       return const InitExecutionResult(
@@ -85,12 +99,22 @@ class InitActionEngine {
     final messages = <String>[];
     final createdDirs = <String>{};
     final writtenFiles = <String>{};
+    final writtenAssetCandidates = <String>{};
     var pubspecDelta = InitPubspecDelta.empty;
 
     for (final action in actions) {
       final type = action['type']?.toString();
       if (type == null || type.isEmpty) {
         throw InitActionEngineException('init action missing "type"');
+      }
+
+      if (_isOptionalAction(action) && !_hasActionGroups(action)) {
+        final approved = optionalActionDecider == null
+            ? false
+            : await optionalActionDecider(action);
+        if (!approved) {
+          continue;
+        }
       }
 
       switch (type) {
@@ -100,22 +124,43 @@ class InitActionEngine {
           createdDirs.addAll(created);
           break;
         case 'copyFiles':
-          final written = await _runCopyFiles(projectRoot,
-              baseUrl: baseUrl, action: action);
+          final written = await _runCopyFiles(
+            projectRoot,
+            baseUrl: baseUrl,
+            action: action,
+            groupSelector: groupSelector,
+          );
+          if (written.isEmpty && _hasActionGroups(action)) {
+            continue;
+          }
           filesWritten += written.length;
           writtenFiles.addAll(written);
+          writtenAssetCandidates.addAll(
+            written.where(_isDerivableFlutterAssetPath),
+          );
           break;
         case 'copyDir':
           final written = await _runCopyFiles(
             projectRoot,
             baseUrl: baseUrl,
             action: action,
+            groupSelector: groupSelector,
           );
+          if (written.isEmpty && _hasActionGroups(action)) {
+            continue;
+          }
           filesWritten += written.length;
           writtenFiles.addAll(written);
+          writtenAssetCandidates.addAll(
+            written.where(_isDerivableFlutterAssetPath),
+          );
           break;
         case 'mergePubspec':
-          final delta = await _runMergePubspec(projectRoot, action);
+          final delta = await _runMergePubspec(
+            projectRoot,
+            action,
+            derivedFlutterAssets: writtenAssetCandidates,
+          );
           pubspecDelta = pubspecDelta.merge(delta);
           break;
         case 'message':
@@ -219,6 +264,7 @@ class InitActionEngine {
     String projectRoot, {
     required String baseUrl,
     required Map<String, dynamic> action,
+    InitActionGroupSelector? groupSelector,
   }) async {
     final base = action['base']?.toString();
     final destBase = action['destBase']?.toString();
@@ -244,26 +290,26 @@ class InitActionEngine {
 
     final hasFiles = action['files'] is List;
     final hasIndex = action['index'] != null;
+    final hasGroups = action['groups'] is List;
     if (usesDirMapping) {
-      if (hasFiles == hasIndex) {
+      if ((hasFiles ? 1 : 0) + (hasIndex ? 1 : 0) + (hasGroups ? 1 : 0) != 1) {
         throw InitActionEngineException(
-          'copyFiles with from/to requires exactly one of files[] or index',
+          'copyFiles with from/to requires exactly one of files[], index, or groups',
         );
       }
-    } else if (!hasFiles) {
-      throw InitActionEngineException('copyFiles requires files[]');
+    } else if (!hasFiles && !hasGroups) {
+      throw InitActionEngineException('copyFiles requires files[] or groups[]');
     }
 
-    final files = usesDirMapping
-        ? (hasFiles
-            ? (action['files'] as List<dynamic>)
-                .map((e) => e.toString())
-                .toList()
-            : await _loadCopyDirIndexFiles(
-                baseUrl: baseUrl,
-                indexPath: action['index']!.toString(),
-              ))
-        : (action['files'] as List<dynamic>).map((e) => e.toString()).toList();
+    final files = await _resolveCopyFilesEntries(
+      action,
+      usesDirMapping: usesDirMapping,
+      hasFiles: hasFiles,
+      hasIndex: hasIndex,
+      hasGroups: hasGroups,
+      baseUrl: baseUrl,
+      groupSelector: groupSelector,
+    );
 
     final written = <String>[];
     for (final fileEntry in files) {
@@ -310,7 +356,9 @@ class InitActionEngine {
   Future<InitPubspecDelta> _runMergePubspec(
     String projectRoot,
     Map<String, dynamic> action,
-  ) async {
+    {
+    Set<String> derivedFlutterAssets = const <String>{},
+  }) async {
     final file = File(
       ProjectPathGuard.resolveSafeWritePath(
         projectRoot: projectRoot,
@@ -323,7 +371,11 @@ class InitActionEngine {
 
     final dependencies = _stringMap(action['dependencies']);
     final devDependencies = _stringMap(action['devDependencies']);
-    final flutterAssets = _stringList(action['flutterAssets']);
+    final flutterAssets = <String>{
+      ..._stringList(action['flutterAssets']),
+      if (action['deriveFlutterAssets'] == true) ...derivedFlutterAssets,
+    }.toList()
+      ..sort();
     final flutterFonts = _fontFamilies(action['flutterFonts']);
 
     var lines = file.readAsLinesSync();
@@ -390,6 +442,82 @@ class InitActionEngine {
       throw InitActionEngineException('copyDir index must contain files[]');
     }
     return files.map((e) => e.toString()).toList();
+  }
+
+  Future<List<String>> _resolveCopyFilesEntries(
+    Map<String, dynamic> action, {
+    required bool usesDirMapping,
+    required bool hasFiles,
+    required bool hasIndex,
+    required bool hasGroups,
+    required String baseUrl,
+    InitActionGroupSelector? groupSelector,
+  }) async {
+    if (hasGroups) {
+      final groups = (action['groups'] as List<dynamic>)
+          .whereType<Map>()
+          .map(
+            (entry) => entry.map(
+              (key, value) => MapEntry(key.toString(), value),
+            ),
+          )
+          .toList();
+      final selectedGroups = groupSelector == null
+          ? groups.where((group) => group['default'] != false).toList()
+          : await groupSelector(action, groups);
+      final files = <String>{};
+      for (final group in selectedGroups) {
+        final groupFiles = group['files'];
+        if (groupFiles is! List) {
+          continue;
+        }
+        for (final file in groupFiles) {
+          final raw = file.toString();
+          files.add(
+            usesDirMapping ? p.posix.join(action['from'].toString(), raw) : raw,
+          );
+        }
+      }
+      return files.toList()..sort();
+    }
+    if (usesDirMapping) {
+      if (hasFiles) {
+        return (action['files'] as List<dynamic>)
+            .map((e) => e.toString())
+            .toList();
+      }
+      if (hasIndex) {
+        return _loadCopyDirIndexFiles(
+          baseUrl: baseUrl,
+          indexPath: action['index']!.toString(),
+        );
+      }
+    }
+    return (action['files'] as List<dynamic>).map((e) => e.toString()).toList();
+  }
+
+  bool _isOptionalAction(Map<String, dynamic> action) =>
+      action['optional'] == true;
+
+  bool _hasActionGroups(Map<String, dynamic> action) => action['groups'] is List;
+
+  bool _isDerivableFlutterAssetPath(String relativePath) {
+    final normalized = ResolverV1.normalizeRelativePath(relativePath);
+    if (normalized.startsWith('lib/')) {
+      return false;
+    }
+    final extension = p.extension(normalized).toLowerCase();
+    const assetExtensions = {
+      '.jpg',
+      '.json',
+      '.otf',
+      '.png',
+      '.svg',
+      '.ttf',
+      '.woff',
+      '.woff2',
+    };
+    return assetExtensions.contains(extension);
   }
 
   Future<List<int>> _readRemoteBytes({

@@ -729,6 +729,194 @@ void main() {
       );
     });
 
+    test(
+        'init consumes optional grouped actions from registries schema and derives assets from written files only',
+        () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async {
+        await server.close(force: true);
+      });
+
+      server.listen((request) async {
+        final path = request.uri.path;
+        if (path == '/registries.json') {
+          request.response.write(
+            jsonEncode({
+              'schemaVersion': 1,
+              'registries': [
+                {
+                  'id': 'shadcn_entry',
+                  'displayName': 'Shadcn',
+                  'maintainers': ['team'],
+                  'repo': 'https://example.com/repo',
+                  'license': 'MIT',
+                  'minCliVersion': '0.1.0',
+                  'baseUrl': 'https://example.com/registry/',
+                  'paths': {
+                    'componentsJson': 'components.json',
+                    'componentsSchemaJson': 'components.schema.json'
+                  },
+                  'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
+                  'init': {
+                    'version': 1,
+                    'actions': [
+                      {
+                        'type': 'copyFiles',
+                        'optional': true,
+                        'promptLabel': 'Install shared assets?',
+                        'promptDescription':
+                            'Adds default shared assets for the registry.',
+                        'base': 'registry',
+                        'destBase': '.',
+                        'from': 'shared',
+                        'to': 'assets',
+                        'groups': [
+                          {
+                            'label': 'Fonts',
+                            'description': 'Font assets',
+                            'default': true,
+                            'files': ['fonts/typography_fonts.otf']
+                          },
+                          {
+                            'label': 'Helpers',
+                            'description': 'Dart helpers',
+                            'default': false,
+                            'files': ['theme/typography_fonts.dart']
+                          }
+                        ]
+                      },
+                      {
+                        'type': 'mergePubspec',
+                        'deriveFlutterAssets': true,
+                      }
+                    ]
+                  }
+                }
+              ],
+            }),
+          );
+          await request.response.close();
+          return;
+        }
+        if (path == '/registry/shared/fonts/typography_fonts.otf') {
+          request.response.write('font-bytes');
+          await request.response.close();
+          return;
+        }
+        if (path == '/registry/shared/theme/typography_fonts.dart') {
+          request.response.write('class TypographyFonts {}');
+          await request.response.close();
+          return;
+        }
+        if (path == '/components.json') {
+          request.response.write(_emptyComponentsJson());
+          await request.response.close();
+          return;
+        }
+        if (path == '/components.schema.json') {
+          request.response.write(jsonEncode({}));
+          await request.response.close();
+          return;
+        }
+        request.response.statusCode = 404;
+        await request.response.close();
+      });
+
+      File(p.join(appRoot.path, '.shadcn', 'config.json')).writeAsStringSync(
+        jsonEncode({
+          'defaultNamespace': 'shadcn',
+          'registries': {
+            'shadcn': {
+              'registryMode': 'remote',
+              'registryUrl': 'http://${server.address.host}:${server.port}/',
+              'baseUrl': 'http://${server.address.host}:${server.port}/',
+              'installPath': 'lib/ui/shadcn',
+              'sharedPath': 'lib/ui/shadcn/shared',
+              'enabled': true
+            }
+          }
+        }),
+      );
+
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        {
+          'id': 'shadcn_entry',
+          'displayName': 'Shadcn',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/registry/',
+          'paths': {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json'
+          },
+          'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
+          'init': {
+            'version': 1,
+            'actions': [
+              {
+                'type': 'copyFiles',
+                'optional': true,
+                'promptLabel': 'Install shared assets?',
+                'promptDescription':
+                    'Adds default shared assets for the registry.',
+                'base': 'registry',
+                'destBase': '.',
+                'from': 'shared',
+                'to': 'assets',
+                'groups': [
+                  {
+                    'label': 'Fonts',
+                    'description': 'Font assets',
+                    'default': true,
+                    'files': ['fonts/typography_fonts.otf']
+                  },
+                  {
+                    'label': 'Helpers',
+                    'description': 'Dart helpers',
+                    'default': false,
+                    'files': ['theme/typography_fonts.dart']
+                  }
+                ]
+              },
+              {
+                'type': 'mergePubspec',
+                'deriveFlutterAssets': true,
+              }
+            ]
+          }
+        }
+      ]);
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          'init',
+          'shadcn',
+          '--yes',
+          '--registries-path',
+          registriesPath,
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.success);
+      expect(
+        File(p.join(appRoot.path, 'assets', 'fonts', 'typography_fonts.otf'))
+            .existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(appRoot.path, 'assets', 'theme', 'typography_fonts.dart'))
+            .existsSync(),
+        isFalse,
+      );
+      final pubspec = File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, contains('assets/fonts/typography_fonts.otf'));
+      expect(pubspec, isNot(contains('assets/theme/typography_fonts.dart')));
+    });
+
     test('assets and remove use inline registry actions when available',
         () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);

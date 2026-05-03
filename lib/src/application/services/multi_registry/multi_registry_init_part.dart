@@ -95,6 +95,15 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       projectRoot: projectRoot,
       registry: initEntry,
       logger: logger,
+      optionalActionDecider: (action) async => _shouldRunOptionalInitAction(
+        action: action,
+        assumeYes: assumeYes,
+      ),
+      groupSelector: (action, groups) async => _selectInitActionGroups(
+        action: action,
+        groups: groups,
+        assumeYes: assumeYes,
+      ),
     );
     await _recordInlineExecution(
       projectRoot: projectRoot,
@@ -299,6 +308,75 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       'light': preset.light,
       'dark': preset.dark,
     });
+  }
+
+  Future<bool> _shouldRunOptionalInitAction({
+    required Map<String, dynamic> action,
+    required bool assumeYes,
+  }) async {
+    if (assumeYes) {
+      return true;
+    }
+    final label = action['promptLabel']?.toString().trim();
+    if (label == null || label.isEmpty) {
+      return false;
+    }
+    final description = action['promptDescription']?.toString().trim();
+    stdout.writeln(label);
+    if (description != null && description.isNotEmpty) {
+      stdout.writeln(description);
+    }
+    stdout.write('Install? [Y/n]: ');
+    final input = stdin.readLineSync()?.trim().toLowerCase();
+    if (input == null || input.isEmpty) {
+      return true;
+    }
+    return input == 'y' || input == 'yes';
+  }
+
+  Future<List<Map<String, dynamic>>> _selectInitActionGroups({
+    required Map<String, dynamic> action,
+    required List<Map<String, dynamic>> groups,
+    required bool assumeYes,
+  }) async {
+    if (groups.isEmpty) {
+      return const [];
+    }
+    if (assumeYes) {
+      return groups.where((group) => group['default'] != false).toList();
+    }
+    final label = action['promptLabel']?.toString().trim();
+    final description = action['promptDescription']?.toString().trim();
+    if (label != null && label.isNotEmpty) {
+      stdout.writeln(label);
+    }
+    if (description != null && description.isNotEmpty) {
+      stdout.writeln(description);
+    }
+    stdout.writeln('Select groups (comma-separated numbers, Enter for defaults):');
+    for (var i = 0; i < groups.length; i++) {
+      final group = groups[i];
+      final suffix = group['default'] == false ? '' : ' [default]';
+      stdout.writeln('  ${i + 1}) ${group['label']}$suffix');
+      final groupDescription = group['description']?.toString().trim();
+      if (groupDescription != null && groupDescription.isNotEmpty) {
+        stdout.writeln('     $groupDescription');
+      }
+    }
+    stdout.write('Groups: ');
+    final input = stdin.readLineSync()?.trim() ?? '';
+    if (input.isEmpty) {
+      return groups.where((group) => group['default'] != false).toList();
+    }
+    final selected = <Map<String, dynamic>>[];
+    for (final token in input.split(',')) {
+      final index = int.tryParse(token.trim());
+      if (index == null || index < 1 || index > groups.length) {
+        continue;
+      }
+      selected.add(groups[index - 1]);
+    }
+    return selected;
   }
 
   ThemeIndexEntry _defaultThemeEntry(

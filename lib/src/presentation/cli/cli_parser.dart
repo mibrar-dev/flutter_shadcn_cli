@@ -110,6 +110,25 @@ ArgParser buildCliParser() {
       ArgParser()..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
+      'reset',
+      ArgParser()..addFlag('help', abbr: 'h', negatable: false),
+    )
+    ..addCommand(
+      'project',
+      ArgParser()
+        ..addCommand(
+          'reset',
+          ArgParser()
+            ..addFlag('undo', negatable: false)
+            ..addFlag('help', abbr: 'h', negatable: false),
+        )
+        ..addCommand(
+          'refresh',
+          ArgParser()..addFlag('help', abbr: 'h', negatable: false),
+        )
+        ..addFlag('help', abbr: 'h', negatable: false),
+    )
+    ..addCommand(
       'doctor',
       ArgParser()
         ..addFlag('json',

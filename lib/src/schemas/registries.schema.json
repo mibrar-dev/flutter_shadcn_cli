@@ -270,9 +270,42 @@
             "mergePubspec",
             "message"
           ]
+        },
+        "optional": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the CLI prompts the user before running this action. If the user declines, the action is skipped in its entirety."
+        },
+        "promptLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120,
+          "description": "Short label shown as the prompt question, e.g. 'Install font assets?'. Required when optional is true."
+        },
+        "promptDescription": {
+          "type": "string",
+          "maxLength": 300,
+          "description": "Optional longer description shown below promptLabel to help the user decide, e.g. 'Includes Geist Sans, Geist Mono, and icon fonts (~5 MB).'"
         }
       },
       "allOf": [
+        {
+          "if": {
+            "properties": {
+              "optional": {
+                "const": true
+              }
+            },
+            "required": [
+              "optional"
+            ]
+          },
+          "then": {
+            "required": [
+              "promptLabel"
+            ]
+          }
+        },
         {
           "if": {
             "properties": {
@@ -361,6 +394,19 @@
         "type": {
           "const": "ensureDirs"
         },
+        "optional": {
+          "type": "boolean",
+          "default": false
+        },
+        "promptLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "promptDescription": {
+          "type": "string",
+          "maxLength": 300
+        },
         "dirs": {
           "type": "array",
           "minItems": 1,
@@ -379,6 +425,19 @@
       "properties": {
         "type": {
           "const": "copyFiles"
+        },
+        "optional": {
+          "type": "boolean",
+          "default": false
+        },
+        "promptLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "promptDescription": {
+          "type": "string",
+          "maxLength": 300
         },
         "base": {
           "$ref": "#/$defs/relativePath",
@@ -410,6 +469,45 @@
         "overwrite": {
           "type": "boolean",
           "default": false
+        },
+        "groups": {
+          "type": "array",
+          "minItems": 1,
+          "description": "Named groups of files for multi-select prompting. Mutually exclusive with files[] and index.",
+          "items": {
+            "type": "object",
+            "additionalProperties": false,
+            "required": [
+              "label",
+              "files"
+            ],
+            "properties": {
+              "label": {
+                "type": "string",
+                "minLength": 1,
+                "maxLength": 80,
+                "description": "Display name shown in the CLI checkbox list, e.g. 'Geist Sans'."
+              },
+              "description": {
+                "type": "string",
+                "maxLength": 200,
+                "description": "Optional detail line shown under the label, e.g. '18 weights · ~3 MB'."
+              },
+              "default": {
+                "type": "boolean",
+                "default": true,
+                "description": "Whether this group is pre-checked in the multi-select. Defaults to true."
+              },
+              "files": {
+                "type": "array",
+                "minItems": 1,
+                "items": {
+                  "$ref": "#/$defs/relativePath"
+                },
+                "description": "Paths relative to 'from' (if set) or to baseUrl root."
+              }
+            }
+          }
         }
       },
       "allOf": [
@@ -476,7 +574,8 @@
                 ],
                 "not": {
                   "required": [
-                    "index"
+                    "index",
+                    "groups"
                   ]
                 }
               },
@@ -486,7 +585,19 @@
                 ],
                 "not": {
                   "required": [
-                    "files"
+                    "files",
+                    "groups"
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "groups"
+                ],
+                "not": {
+                  "required": [
+                    "files",
+                    "index"
                   ]
                 }
               }
@@ -503,14 +614,47 @@
             }
           },
           "then": {
+            "oneOf": [
+              {
+                "required": [
+                  "files"
+                ],
+                "not": {
+                  "required": [
+                    "index",
+                    "groups"
+                  ]
+                }
+              },
+              {
+                "required": [
+                  "groups"
+                ],
+                "not": {
+                  "required": [
+                    "files",
+                    "index"
+                  ]
+                }
+              }
+            ]
+          }
+        },
+        {
+          "description": "groups and files/index are mutually exclusive.",
+          "not": {
             "required": [
+              "groups",
               "files"
-            ],
-            "not": {
-              "required": [
-                "index"
-              ]
-            }
+            ]
+          }
+        },
+        {
+          "not": {
+            "required": [
+              "groups",
+              "index"
+            ]
           }
         }
       ]
@@ -526,6 +670,19 @@
       "properties": {
         "type": {
           "const": "copyDir"
+        },
+        "optional": {
+          "type": "boolean",
+          "default": false
+        },
+        "promptLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "promptDescription": {
+          "type": "string",
+          "maxLength": 300
         },
         "base": {
           "$ref": "#/$defs/relativePath",
@@ -618,6 +775,19 @@
         "type": {
           "const": "mergePubspec"
         },
+        "optional": {
+          "type": "boolean",
+          "default": false
+        },
+        "promptLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "promptDescription": {
+          "type": "string",
+          "maxLength": 300
+        },
         "dependencies": {
           "type": "object",
           "additionalProperties": {
@@ -683,6 +853,11 @@
             }
           },
           "default": []
+        },
+        "deriveFlutterAssets": {
+          "type": "boolean",
+          "default": false,
+          "description": "When true, the CLI derives flutter.assets entries from all copyFiles and copyDir actions that ran during this init, using their resolved destination paths. Explicit flutterAssets entries are merged in addition if both are present, but using both is discouraged."
         }
       }
     },
@@ -696,6 +871,19 @@
       "properties": {
         "type": {
           "const": "message"
+        },
+        "optional": {
+          "type": "boolean",
+          "default": false
+        },
+        "promptLabel": {
+          "type": "string",
+          "minLength": 1,
+          "maxLength": 120
+        },
+        "promptDescription": {
+          "type": "string",
+          "maxLength": 300
         },
         "lines": {
           "type": "array",

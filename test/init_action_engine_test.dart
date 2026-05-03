@@ -246,6 +246,102 @@ void main() {
         isFalse,
       );
     });
+
+    test(
+        'supports optional actions, grouped copyFiles, and derived flutter assets from written files',
+        () async {
+      final engine = InitActionEngine();
+      final prompts = <String>[];
+      var groupPrompted = false;
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'ensureDirs',
+            'dirs': ['lib/ui/shadcn'],
+          },
+          {
+            'type': 'ensureDirs',
+            'optional': true,
+            'promptLabel': 'Create optional assets dir?',
+            'promptDescription': 'Only needed for add-on assets.',
+            'dirs': ['assets/optional'],
+          },
+          {
+            'type': 'copyFiles',
+            'optional': true,
+            'promptLabel': 'Install shared assets?',
+            'promptDescription': 'Pick the shared groups to install.',
+            'base': 'registry',
+            'destBase': '.',
+            'from': 'shared',
+            'to': 'assets',
+            'groups': [
+              {
+                'label': 'Fonts',
+                'description': 'Font assets',
+                'default': true,
+                'files': ['fonts/bootstrap.otf'],
+              },
+              {
+                'label': 'Helpers',
+                'description': 'Source helpers',
+                'default': false,
+                'files': ['theme/color_scheme.dart'],
+              },
+            ],
+          },
+          {
+            'type': 'mergePubspec',
+            'deriveFlutterAssets': true,
+          },
+        ],
+        optionalActionDecider: (action) async {
+          prompts.add(
+            '${action['promptLabel']}|${action['promptDescription'] ?? ''}',
+          );
+          return false;
+        },
+        groupSelector: (action, groups) async {
+          groupPrompted = true;
+          expect(action['promptLabel'], 'Install shared assets?');
+          return groups
+              .where((group) => group['label'] == 'Fonts')
+              .toList(growable: false);
+        },
+      );
+
+      expect(
+        prompts,
+        ['Create optional assets dir?|Only needed for add-on assets.'],
+      );
+      expect(groupPrompted, isTrue);
+      expect(
+        Directory(p.join(projectRoot.path, 'assets', 'optional')).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'fonts', 'bootstrap.otf'))
+            .existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'theme', 'color_scheme.dart'))
+            .existsSync(),
+        isFalse,
+      );
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec.contains('assets/fonts/bootstrap.otf'), isTrue);
+      expect(pubspec.contains('assets/theme/color_scheme.dart'), isFalse);
+      expect(result.filesWritten, 1);
+      expect(result.record.filesWritten, ['assets/fonts/bootstrap.otf']);
+      expect(result.record.pubspecDelta.flutterAssets, [
+        'assets/fonts/bootstrap.otf'
+      ]);
+    });
   });
 }
 

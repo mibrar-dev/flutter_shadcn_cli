@@ -7,6 +7,7 @@ import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/core/utils/path_utils.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
 import 'package:flutter_shadcn_cli/src/version_manager.dart';
@@ -23,7 +24,9 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/commands/info_command.da
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/init_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/install_skill_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/list_command.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/commands/project_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/remove_command.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/commands/reset_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/search_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/sync_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands_registry.dart';
@@ -38,9 +41,20 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/bootstrap_support.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/registry_bootstrap_exception.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/usage.dart';
+import 'package:flutter_shadcn_cli/src/application/services/reset/global_reset_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/reset/project_refresh_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/reset/project_reset_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/reset/reset_snapshot_store.dart';
 
 Future<void> runCliBootstrap(List<String> arguments) async {
   _ensureExecutablePath();
+  final homeDirectory = _userHomeDirectory();
+  if (homeDirectory != null && homeDirectory.isNotEmpty) {
+    try {
+      await ResetSnapshotStore(homeDirectory: homeDirectory)
+          .pruneExpiredSnapshots();
+    } catch (_) {}
+  }
   final parser = buildCliParser();
 
   final normalizedArgs = normalizeCliArgs(arguments);
@@ -258,6 +272,66 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             preloadedNamespace: preloadedSelection?.namespace,
             logger: logger,
           ),
+      'reset': () => runResetCommand(
+            command: command,
+            service: GlobalResetService(
+              homeDirectory: homeDirectory ?? Directory.systemTemp.path,
+            ),
+          ),
+      'project': () async {
+        final projectRoot = findProjectRootFrom(targetDir);
+        final snapshotStore = ResetSnapshotStore(
+          homeDirectory: homeDirectory ?? Directory.systemTemp.path,
+        );
+        final projectResetService = ProjectResetService(
+          projectRoot: projectRoot,
+          snapshotStore: snapshotStore,
+        );
+        final namespace = selectedNamespaceForCommand(argResults, config);
+        final registryEntry = await multiRegistry.findRegistryEntry(namespace);
+        if (registryEntry == null) {
+          stderr.writeln(
+            'Error: Registry namespace "$namespace" was not found for project refresh.',
+          );
+          return ExitCodes.registryNotFound;
+        }
+        final projectRefreshService = ProjectRefreshService(
+          projectRoot: projectRoot,
+          executeActions: ({
+            required projectRoot,
+            required baseUrl,
+            required actions,
+            optionalActionDecider,
+            groupSelector,
+          }) {
+            return multiRegistry.initActionEngine.executeActions(
+              projectRoot: projectRoot,
+              baseUrl: baseUrl,
+              actions: actions,
+              logger: logger,
+              optionalActionDecider: optionalActionDecider,
+              groupSelector: groupSelector,
+            );
+          },
+        );
+        return runProjectCommand(
+          command: command,
+          resetProject: projectResetService.reset,
+          undoProject: projectResetService.undo,
+          refreshProject: () async {
+            final result = await projectRefreshService.refresh(
+              registry: registryEntry,
+              namespace: namespace,
+              optionalActionDecider: _shouldRunOptionalProjectRefreshAction,
+              groupSelector: _selectProjectRefreshGroups,
+            );
+            return ProjectRefreshOutput(
+              regeneratedFiles: result.executionResult.filesWritten,
+              repairedPaths: result.executionResult.record.filesWritten,
+            );
+          },
+        );
+      },
       'validate': () => runValidateCommandCli(
             command: command,
             registry: registry,
@@ -392,6 +466,14 @@ void _ensureExecutablePath() {
   }
 }
 
+String? _userHomeDirectory() {
+  final env = Platform.environment;
+  if (Platform.isWindows) {
+    return env['USERPROFILE'] ?? env['HOME'];
+  }
+  return env['HOME'];
+}
+
 String? _advancedGateError(ArgResults argResults, bool advanced) {
   if (advanced) {
     return null;
@@ -411,6 +493,67 @@ String? _advancedGateError(ArgResults argResults, bool advanced) {
     }
   }
   return null;
+}
+
+Future<bool> _shouldRunOptionalProjectRefreshAction(
+  Map<String, dynamic> action,
+) async {
+  final label = action['promptLabel']?.toString().trim();
+  if (label == null || label.isEmpty) {
+    return false;
+  }
+  final description = action['promptDescription']?.toString().trim();
+  stdout.writeln(label);
+  if (description != null && description.isNotEmpty) {
+    stdout.writeln(description);
+  }
+  stdout.write('Install? [Y/n]: ');
+  final input = stdin.readLineSync()?.trim().toLowerCase();
+  if (input == null || input.isEmpty) {
+    return true;
+  }
+  return input == 'y' || input == 'yes';
+}
+
+Future<List<Map<String, dynamic>>> _selectProjectRefreshGroups(
+  Map<String, dynamic> action,
+  List<Map<String, dynamic>> groups,
+) async {
+  if (groups.isEmpty) {
+    return const [];
+  }
+  final label = action['promptLabel']?.toString().trim();
+  final description = action['promptDescription']?.toString().trim();
+  if (label != null && label.isNotEmpty) {
+    stdout.writeln(label);
+  }
+  if (description != null && description.isNotEmpty) {
+    stdout.writeln(description);
+  }
+  stdout.writeln('Select groups (comma-separated numbers, Enter for defaults):');
+  for (var i = 0; i < groups.length; i++) {
+    final group = groups[i];
+    final suffix = group['default'] == false ? '' : ' [default]';
+    stdout.writeln('  ${i + 1}) ${group['label']}$suffix');
+    final groupDescription = group['description']?.toString().trim();
+    if (groupDescription != null && groupDescription.isNotEmpty) {
+      stdout.writeln('     $groupDescription');
+    }
+  }
+  stdout.write('Groups: ');
+  final input = stdin.readLineSync()?.trim() ?? '';
+  if (input.isEmpty) {
+    return groups.where((group) => group['default'] != false).toList();
+  }
+  final selected = <Map<String, dynamic>>[];
+  for (final token in input.split(',')) {
+    final index = int.tryParse(token.trim());
+    if (index == null || index < 1 || index > groups.length) {
+      continue;
+    }
+    selected.add(groups[index - 1]);
+  }
+  return selected;
 }
 
 bool _isThemeHelpRequest(ArgResults argResults) {

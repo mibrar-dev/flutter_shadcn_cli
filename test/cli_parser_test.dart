@@ -208,6 +208,37 @@ void main() {
       expect(results.command?.command?.rest, ['@shadcn', 'button']);
       expect(results.command?.command?['list-targets'], isTrue);
     });
+
+    test('parses top-level reset command', () {
+      final parser = buildCliParser();
+      final results = parser.parse(['reset']);
+
+      expect(results.command?.name, 'reset');
+    });
+
+    test('parses project reset subcommand and undo flag', () {
+      final parser = buildCliParser();
+      final results = parser.parse(['project', 'reset', '--undo']);
+
+      expect(results.command?.name, 'project');
+      expect(results.command?.command?.name, 'reset');
+      expect(results.command?.command?['undo'], isTrue);
+    });
+
+    test('parses project refresh subcommand', () {
+      final parser = buildCliParser();
+      final results = parser.parse(['project', 'refresh']);
+
+      expect(results.command?.name, 'project');
+      expect(results.command?.command?.name, 'refresh');
+    });
+
+    test('shows reset and project commands in normal usage', () {
+      final output = _capturePrint(printCliUsage);
+
+      expect(output, contains('reset'));
+      expect(output, contains('project'));
+    });
   });
 }
 

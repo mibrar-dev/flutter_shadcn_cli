@@ -1,6 +1,21 @@
 part of 'multi_registry_manager.dart';
 
 extension MultiRegistryDirectoryPart on MultiRegistryManager {
+  Future<RegistryDirectoryEntry?> findRegistryEntry(String namespace) async {
+    final trimmed = namespace.trim();
+    if (trimmed.isEmpty) {
+      return null;
+    }
+    try {
+      final directory = await _loadDirectory();
+      return directory.registries.firstWhere(
+        (item) => item.namespace == trimmed,
+      );
+    } catch (_) {
+      return null;
+    }
+  }
+
   Future<DiscoveryRegistryTarget> resolveDiscoveryTarget({
     String? namespace,
   }) async {
@@ -235,8 +250,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     RegistrySource source, {
     required String projectRoot,
   }) async {
-    final cacheKey =
-        source.namespace.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final cacheKey = _registryCacheKeyForSource(source, projectRoot: projectRoot);
     if (_registryCache.containsKey(cacheKey)) {
       return _registryCache[cacheKey]!;
     }
@@ -252,6 +266,22 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     return registry;
   }
 
+  String _registryCacheKeyForSource(
+    RegistrySource source, {
+    required String projectRoot,
+  }) {
+    final entry = source.configEntry;
+    final directoryEntry = source.directoryEntry;
+    final mode = entry?.registryMode ?? (entry?.registryPath != null ? 'local' : 'remote');
+    final root = entry?.registryPath != null
+        ? RegistrySource.resolveLocalPath(projectRoot, entry!.registryPath) ?? ''
+        : (entry?.baseUrl ?? entry?.registryUrl ?? directoryEntry?.baseUrl ?? '');
+    final manifestPath = entry?.componentsPath ?? directoryEntry?.componentsPath ?? 'components.json';
+    final schemaPath = entry?.componentsSchemaPath ?? directoryEntry?.componentsSchemaPath ?? '';
+    final rawKey = '${source.namespace}|$mode|$root|$manifestPath|$schemaPath';
+    return rawKey.replaceAll(RegExp(r'[^A-Za-z0-9._|/-]'), '_');
+  }
+
   Future<RegistrySource> _resolveSourceForNamespace(
     String namespace,
     ShadcnConfig config, {
@@ -263,6 +293,26 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     }
 
     final configEntry = config.registryConfig(namespace);
+    RegistryDirectoryEntry? directoryEntry;
+    try {
+      final directory = await _loadDirectory();
+      directoryEntry = directory.registries.firstWhere(
+        (item) => item.namespace == namespace,
+      );
+    } catch (_) {
+      directoryEntry = null;
+    }
+
+    final overrideSource = _sourceOverrideForNamespace(
+      namespace: namespace,
+      configEntry: configEntry,
+      directoryEntry: directoryEntry,
+    );
+    if (overrideSource != null) {
+      _sources[namespace] = overrideSource;
+      return overrideSource;
+    }
+
     if (configEntry != null &&
         ((configEntry.registryMode == 'local' &&
                 configEntry.registryPath != null) ||
@@ -295,26 +345,6 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       );
       _sources[namespace] = source;
       return source;
-    }
-
-    RegistryDirectoryEntry? directoryEntry;
-    try {
-      final directory = await _loadDirectory();
-      directoryEntry = directory.registries.firstWhere(
-        (item) => item.namespace == namespace,
-      );
-    } catch (_) {
-      directoryEntry = null;
-    }
-
-    final overrideSource = _sourceOverrideForNamespace(
-      namespace: namespace,
-      configEntry: configEntry,
-      directoryEntry: directoryEntry,
-    );
-    if (overrideSource != null) {
-      _sources[namespace] = overrideSource;
-      return overrideSource;
     }
 
     if (configEntry != null &&
