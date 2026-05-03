@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -53,8 +54,6 @@ void main() {
         logger: CliLogger(),
         registryBaseUrlOverride: p.dirname(registryRoot.path),
         themesPathOverride: 'registry/manifests/theme.index.json',
-        themeConverterDartPathOverride:
-            'registry/manifests/theme_converter.dart',
       );
 
       await installer.addComponent('button');
@@ -203,8 +202,6 @@ void main() {
         logger: CliLogger(),
         registryBaseUrlOverride: p.dirname(registryRoot.path),
         themesPathOverride: 'registry/manifests/theme.index.json',
-        themeConverterDartPathOverride:
-            'registry/manifests/theme_converter.dart',
       );
 
       await installer.addComponent('button');
@@ -244,8 +241,6 @@ void main() {
         logger: CliLogger(),
         registryBaseUrlOverride: p.dirname(registryRoot.path),
         themesPathOverride: 'registry/manifests/theme.index.json',
-        themeConverterDartPathOverride:
-            'registry/manifests/theme_converter.dart',
       );
 
       await installer.addComponent('button');
@@ -284,8 +279,6 @@ void main() {
         logger: CliLogger(),
         registryBaseUrlOverride: p.dirname(registryRoot.path),
         themesPathOverride: 'registry/manifests/theme.index.json',
-        themeConverterDartPathOverride:
-            'registry/manifests/theme_converter.dart',
       );
 
       await installer.addComponent('button');
@@ -607,7 +600,7 @@ void main() {
       );
     });
 
-    test('applies theme against v1 color_schemes.dart layout', () async {
+    test('applies theme artifact manifest and updates config theme id', () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -630,14 +623,12 @@ void main() {
         logger: CliLogger(),
         registryBaseUrlOverride: p.dirname(registryRoot.path),
         themesPathOverride: 'registry/manifests/theme.index.json',
-        themeConverterDartPathOverride:
-            'registry/manifests/theme_converter.dart',
       );
 
       await installer.init(skipPrompts: true);
       await installer.applyThemeById('modern-minimal');
 
-      final colorSchemesFile = File(
+      final generatedThemeFile = File(
         p.join(
           targetRoot.path,
           'lib',
@@ -647,12 +638,145 @@ void main() {
           'theme',
           '_impl',
           'core',
+          'generated_modern_minimal_theme.dart',
+        ),
+      );
+      expect(generatedThemeFile.existsSync(), isTrue);
+      final config = await ShadcnConfig.load(targetRoot.path);
+      expect(config.themeId, 'modern-minimal');
+    });
+
+    test('aborts theme install before writes when artifact hash mismatches',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final manifestFile = File(
+        p.join(
+          registryRoot.path,
+          'manifests',
+          'themes_preset',
+          'modern-minimal.json',
+        ),
+      );
+      final manifestData =
+          jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
+      final files = (manifestData['files'] as List).cast<Map<String, dynamic>>();
+      files[0] = {
+        ...files[0],
+        'sha256': '0' * 64,
+      };
+      manifestFile.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(manifestData),
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryBaseUrlOverride: p.dirname(registryRoot.path),
+        themesPathOverride: 'registry/manifests/theme.index.json',
+      );
+
+      await installer.init(skipPrompts: true);
+
+      final generatedThemeFile = File(
+        p.join(
+          targetRoot.path,
+          'lib',
+          'ui',
+          'shadcn',
+          'shared',
+          'theme',
+          '_impl',
+          'core',
+          'generated_modern_minimal_theme.dart',
+        ),
+      );
+      expect(generatedThemeFile.existsSync(), isFalse);
+
+      await expectLater(
+        installer.applyThemeById('modern-minimal'),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('SHA-256'),
+          ),
+        ),
+      );
+      expect(generatedThemeFile.existsSync(), isFalse);
+    });
+
+    test('rejects dangerous theme manifest targets before writes', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      final artifactFile = File(
+        p.join(
+          registryRoot.path,
+          'shared',
+          'theme',
+          '_impl',
+          'core',
           'color_schemes.dart',
         ),
       );
-      expect(colorSchemesFile.existsSync(), isTrue);
-      final config = await ShadcnConfig.load(targetRoot.path);
-      expect(config.themeId, 'modern-minimal');
+      final digest = sha256.convert(artifactFile.readAsBytesSync()).toString();
+
+      await expectLater(
+        installer.applyThemeFromJson({
+          'id': 'escape-theme',
+          'name': 'Escape Theme',
+          'files': [
+            {
+              'source': 'registry/shared/theme/_impl/core/color_schemes.dart',
+              'target': '../escape.dart',
+              'sha256': digest,
+            }
+          ],
+        }),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('escapes project root'),
+          ),
+        ),
+      );
+      expect(File(p.join(tempRoot.path, 'escape.dart')).existsSync(), isFalse);
     });
   });
 }
@@ -868,6 +992,21 @@ class ColorSchemes {
       }),
     );
 
+  final generatedThemeFile = File(
+    p.join(
+      registryRoot.path,
+      'shared',
+      'theme',
+      '_impl',
+      'core',
+      'generated_modern_minimal_theme.dart',
+    ),
+  )..writeAsStringSync(
+      "const generatedModernMinimalTheme = 'modern-minimal';\n",
+    );
+  final generatedThemeDigest =
+      sha256.convert(generatedThemeFile.readAsBytesSync()).toString();
+
   File(p.join(
       registryRoot.path, 'manifests', 'themes_preset', 'modern-minimal.json'))
     ..createSync(recursive: true)
@@ -875,92 +1014,17 @@ class ColorSchemes {
       const JsonEncoder.withIndent('  ').convert({
         'id': 'modern-minimal',
         'name': 'Modern Minimal',
-        'light': {
-          'background': '0xFFFFFFFF',
-          'foreground': '0xFF111111',
-          'card': '0xFFFFFFFF',
-          'cardForeground': '0xFF111111',
-          'popover': '0xFFFFFFFF',
-          'popoverForeground': '0xFF111111',
-          'primary': '0xFF111111',
-          'primaryForeground': '0xFFFFFFFF',
-          'secondary': '0xFF222222',
-          'secondaryForeground': '0xFFFFFFFF',
-          'muted': '0xFFF5F5F5',
-          'mutedForeground': '0xFF555555',
-          'accent': '0xFFF0F0F0',
-          'accentForeground': '0xFF111111',
-          'destructive': '0xFFCC0000',
-          'destructiveForeground': '0xFFFFFFFF',
-          'border': '0xFFE0E0E0',
-          'input': '0xFFE0E0E0',
-          'ring': '0xFF111111',
-          'chart1': '0xFF111111',
-          'chart2': '0xFF222222',
-          'chart3': '0xFF333333',
-          'chart4': '0xFF444444',
-          'chart5': '0xFF555555',
-          'sidebar': '0xFFFFFFFF',
-          'sidebarForeground': '0xFF111111',
-          'sidebarPrimary': '0xFF111111',
-          'sidebarPrimaryForeground': '0xFFFFFFFF',
-          'sidebarAccent': '0xFFF0F0F0',
-          'sidebarAccentForeground': '0xFF111111',
-          'sidebarBorder': '0xFFE0E0E0',
-          'sidebarRing': '0xFF111111'
-        },
-        'dark': {
-          'background': '0xFF111111',
-          'foreground': '0xFFFFFFFF',
-          'card': '0xFF111111',
-          'cardForeground': '0xFFFFFFFF',
-          'popover': '0xFF111111',
-          'popoverForeground': '0xFFFFFFFF',
-          'primary': '0xFFFFFFFF',
-          'primaryForeground': '0xFF111111',
-          'secondary': '0xFF222222',
-          'secondaryForeground': '0xFFFFFFFF',
-          'muted': '0xFF1A1A1A',
-          'mutedForeground': '0xFFBBBBBB',
-          'accent': '0xFF2A2A2A',
-          'accentForeground': '0xFFFFFFFF',
-          'destructive': '0xFFFF5555',
-          'destructiveForeground': '0xFF111111',
-          'border': '0xFF333333',
-          'input': '0xFF333333',
-          'ring': '0xFFFFFFFF',
-          'chart1': '0xFFFFFFFF',
-          'chart2': '0xFFDDDDDD',
-          'chart3': '0xFFBBBBBB',
-          'chart4': '0xFF999999',
-          'chart5': '0xFF777777',
-          'sidebar': '0xFF111111',
-          'sidebarForeground': '0xFFFFFFFF',
-          'sidebarPrimary': '0xFFFFFFFF',
-          'sidebarPrimaryForeground': '0xFF111111',
-          'sidebarAccent': '0xFF2A2A2A',
-          'sidebarAccentForeground': '0xFFFFFFFF',
-          'sidebarBorder': '0xFF333333',
-          'sidebarRing': '0xFFFFFFFF'
-        }
+        'files': [
+          {
+            'source':
+                'registry/shared/theme/_impl/core/generated_modern_minimal_theme.dart',
+            'target':
+                '{sharedPath}/theme/_impl/core/generated_modern_minimal_theme.dart',
+            'sha256': generatedThemeDigest,
+          }
+        ],
       }),
     );
-
-  File(p.join(registryRoot.path, 'manifests', 'theme_converter.dart'))
-    ..createSync(recursive: true)
-    ..writeAsStringSync(r'''
-import 'dart:convert';
-import 'dart:io';
-
-Future<void> main(List<String> args) async {
-  final request =
-      jsonDecode(await File(args.first).readAsString()) as Map<String, dynamic>;
-  stdout.write(jsonEncode({
-    'scope': request['scope'],
-    'installPlan': {'operations': []},
-  }));
-}
-''');
 }
 
 void _writePubspec(Directory targetRoot, {Map<String, String>? dependencies}) {

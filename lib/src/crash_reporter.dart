@@ -38,7 +38,7 @@ class CrashReporter {
   factory CrashReporter.defaults() {
     return CrashReporter(
       crashDirectory: Directory(
-        p.join(_homeDir(), '.flutter_shadcn', 'crashes'),
+        _joinPath(_homeDir(), '.flutter_shadcn', 'crashes'),
       ),
     );
   }
@@ -256,8 +256,16 @@ $crashLog
 
   static String _displayPath(File file) {
     final home = _homeDir();
-    if (home.isNotEmpty && p.isWithin(home, file.path)) {
-      return p.join('~', p.relative(file.path, from: home));
+    if (home.isNotEmpty) {
+      final normalizedHome = _normalizePath(home);
+      final normalizedFile = _normalizePath(file.path);
+      if (normalizedFile == normalizedHome) {
+        return '~';
+      }
+      final prefix = '$normalizedHome/';
+      if (normalizedFile.startsWith(prefix)) {
+        return '~/${normalizedFile.substring(prefix.length)}';
+      }
     }
     return file.path;
   }
@@ -268,6 +276,19 @@ $crashLog
       return env['USERPROFILE'] ?? env['HOME'] ?? '.';
     }
     return env['HOME'] ?? '.';
+  }
+
+  static String _joinPath(String left, String middle, String right) {
+    final separator = Platform.pathSeparator;
+    final parts = [left, middle, right]
+        .where((part) => part.trim().isNotEmpty)
+        .map((part) => part.replaceAll(RegExp(r'[\\/]+$'), ''))
+        .toList();
+    return parts.join(separator);
+  }
+
+  static String _normalizePath(String value) {
+    return value.replaceAll('\\', '/').replaceAll(RegExp(r'/+$'), '');
   }
 
   static Future<void> _openInBrowser(String url) async {

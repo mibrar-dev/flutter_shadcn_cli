@@ -13,47 +13,36 @@ extension InstallerThemePart on Installer {
   }
 
   Future<void> listThemes({bool refresh = false}) async {
-    final presets = await _loadResolvedThemePresets(refresh: refresh);
-    if (presets.isEmpty) {
+    final entries = await _loadResolvedThemeEntries(refresh: refresh);
+    if (entries.isEmpty) {
       logger.info('No theme presets available.');
       return;
     }
     final config = await ShadcnConfig.load(targetDir);
     final currentTheme = config.themeId;
     logger.info('Installed theme presets:');
-    for (var i = 0; i < presets.length; i++) {
-      final preset = presets[i];
-      final marker = preset.id == currentTheme ? ' (current)' : '';
-      logger.info('  ${i + 1}) ${preset.name} (${preset.id})$marker');
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      final marker = entry.id == currentTheme ? ' (current)' : '';
+      logger.info('  ${i + 1}) ${entry.name} (${entry.id})$marker');
     }
   }
 
   Future<void> listWidgetThemes({bool refresh = false}) async {
-    final response = await _runWidgetThemeConverter(
-      action: 'list',
-      refresh: refresh,
+    throw _unsupportedWidgetThemeFlow(
+      action:
+          'Widget theme listing is not supported in the declarative manifest flow yet.',
     );
-    if (response == null) {
-      return;
-    }
-    _printConverterPreview(response.preview);
-    _logConverterMessages(response.messages);
   }
 
   Future<void> listWidgetThemeTargets(
     String componentId, {
     bool refresh = false,
   }) async {
-    final response = await _runWidgetThemeConverter(
-      action: 'list-targets',
-      componentId: componentId,
-      refresh: refresh,
+    throw _unsupportedWidgetThemeFlow(
+      action:
+          'Widget theme target inspection is not supported in the declarative manifest flow yet.',
     );
-    if (response == null) {
-      return;
-    }
-    _printConverterPreview(response.preview);
-    _logConverterMessages(response.messages);
   }
 
   Future<void> applyThemeById(String identifier, {bool refresh = false}) async {
@@ -69,34 +58,20 @@ extension InstallerThemePart on Installer {
       );
       return;
     }
-    final presetLoader = _buildThemePresetLoader(resolved, refresh: refresh);
-    final payloadFile = await presetLoader.cachePresetJson(entry);
-    final response = await _runThemeConverter(
+    final manifest = await _loadThemeArtifactManifestById(
+      resolved: resolved,
+      entry: entry,
+    );
+    await _applyThemeArtifactManifest(
+      manifest,
       registryId: resolved.registryId,
       registryBaseUrl: resolved.registryBaseUrl,
-      themeConverterDartPath: resolved.themeConverterDartPath ?? '',
-      cacheRootPath: resolved.cacheRootPath,
-      request: <String, dynamic>{
-        'scope': 'global',
-        'action': 'apply',
-        'namespace': resolved.namespace,
-        'themeId': entry.id,
-        'payloadFile': p.normalize(payloadFile.path),
-        'context': _converterContext(),
-      },
-    );
-    await _applyThemeConverterResult(
-      response,
       successMessage: 'Applied theme: ${entry.name}',
       themeId: entry.id,
     );
   }
 
   Future<void> applyThemeFromFile(String filePath) async {
-    if (await _resolveThemeConverterRegistry() == null) {
-      logger.info('This registry does not provide theme installation support.');
-      return;
-    }
     final data = await _readJsonObjectFile(filePath, label: 'Theme file');
     if (data == null) {
       return;
@@ -108,10 +83,6 @@ extension InstallerThemePart on Installer {
   }
 
   Future<void> applyThemeFromUrl(String url) async {
-    if (await _resolveThemeConverterRegistry() == null) {
-      logger.info('This registry does not provide theme installation support.');
-      return;
-    }
     final data = await _fetchJsonObjectFromUrl(url, label: 'Theme URL');
     if (data == null) {
       return;
@@ -127,43 +98,9 @@ extension InstallerThemePart on Installer {
     String filePath, {
     bool refresh = false,
   }) async {
-    final converterRegistry = await _resolveThemeConverterRegistry();
-    if (converterRegistry == null) {
-      logger.info('This registry does not provide widget theming support.');
-      return;
-    }
-    final data =
-        await _readJsonObjectFile(filePath, label: 'Widget theme file');
-    if (data == null) {
-      return;
-    }
-    final payloadFile = await _writeWidgetPayloadCache(
-      namespace: converterRegistry.namespace,
-      componentId: componentId,
-      data: data,
-      sourceHint: p.basename(filePath),
-    );
-    final response = await _runThemeConverter(
-      registryId: converterRegistry.registryId,
-      registryBaseUrl: converterRegistry.registryBaseUrl,
-      themeConverterDartPath: converterRegistry.themeConverterDartPath,
-      cacheRootPath: converterRegistry.cacheRootPath,
-      request: <String, dynamic>{
-        'scope': 'widget',
-        'action': 'apply',
-        'namespace': converterRegistry.namespace,
-        'componentId': componentId.trim(),
-        'payloadFile': p.normalize(payloadFile.path),
-        'context': _converterContext(),
-      },
-    );
-    await _applyThemeConverterResult(
-      response,
-      successMessage: _widgetSuccessMessage(
-        action: 'apply',
-        componentId: componentId,
-        response: response,
-      ),
+    throw _unsupportedWidgetThemeFlow(
+      action:
+          'Widget theme installation is not supported in the declarative manifest flow yet.',
     );
   }
 
@@ -172,42 +109,9 @@ extension InstallerThemePart on Installer {
     String url, {
     bool refresh = false,
   }) async {
-    final converterRegistry = await _resolveThemeConverterRegistry();
-    if (converterRegistry == null) {
-      logger.info('This registry does not provide widget theming support.');
-      return;
-    }
-    final data = await _fetchJsonObjectFromUrl(url, label: 'Widget theme URL');
-    if (data == null) {
-      return;
-    }
-    final payloadFile = await _writeWidgetPayloadCache(
-      namespace: converterRegistry.namespace,
-      componentId: componentId,
-      data: data,
-      sourceHint: _urlFileHint(url, fallback: 'widget-theme.json'),
-    );
-    final response = await _runThemeConverter(
-      registryId: converterRegistry.registryId,
-      registryBaseUrl: converterRegistry.registryBaseUrl,
-      themeConverterDartPath: converterRegistry.themeConverterDartPath,
-      cacheRootPath: converterRegistry.cacheRootPath,
-      request: <String, dynamic>{
-        'scope': 'widget',
-        'action': 'apply',
-        'namespace': converterRegistry.namespace,
-        'componentId': componentId.trim(),
-        'payloadFile': p.normalize(payloadFile.path),
-        'context': _converterContext(),
-      },
-    );
-    await _applyThemeConverterResult(
-      response,
-      successMessage: _widgetSuccessMessage(
-        action: 'apply',
-        componentId: componentId,
-        response: response,
-      ),
+    throw _unsupportedWidgetThemeFlow(
+      action:
+          'Widget theme installation is not supported in the declarative manifest flow yet.',
     );
   }
 
@@ -215,22 +119,9 @@ extension InstallerThemePart on Installer {
     String componentId, {
     bool refresh = false,
   }) async {
-    final response = await _runWidgetThemeConverter(
-      action: 'reset',
-      componentId: componentId,
-      refresh: refresh,
-    );
-    if (response == null) {
-      return;
-    }
-    await _applyThemeConverterResult(
-      response,
-      successMessage: _widgetSuccessMessage(
-        action: 'reset',
-        componentId: componentId,
-        response: response,
-      ),
-      emptyMessage: 'No widget theme overrides to reset for $componentId.',
+    throw _unsupportedWidgetThemeFlow(
+      action:
+          'Widget theme reset is not supported in the declarative manifest flow yet.',
     );
   }
 
@@ -238,32 +129,15 @@ extension InstallerThemePart on Installer {
     Map<String, dynamic> data, {
     String? sourceLabel,
   }) async {
-    final resolvedConverter = await _resolveThemeConverterRegistry();
-    if (resolvedConverter == null) {
-      logger.info('This registry does not provide theme installation support.');
-      return;
-    }
-    final payloadFile = await _writeThemePayloadCache(
-      namespace: resolvedConverter.namespace,
-      data: data,
-      sourceHint: sourceLabel,
-    );
-    final response = await _runThemeConverter(
-      registryId: resolvedConverter.registryId,
-      registryBaseUrl: resolvedConverter.registryBaseUrl,
-      themeConverterDartPath: resolvedConverter.themeConverterDartPath,
-      cacheRootPath: resolvedConverter.cacheRootPath,
-      request: <String, dynamic>{
-        'scope': 'global',
-        'action': 'apply',
-        'namespace': resolvedConverter.namespace,
-        'themeId': _themeIdFromPayload(data),
-        'payloadFile': p.normalize(payloadFile.path),
-        'context': _converterContext(),
-      },
-    );
-    await _applyThemeConverterResult(
-      response,
+    final resolved = await _resolveThemeRegistry(refresh: false);
+    final manifest = _parseThemeArtifactManifest(data);
+    await _applyThemeArtifactManifest(
+      manifest,
+      registryId:
+          resolved?.registryId ?? _themeRegistryId(registry.sourceRoot.root),
+      registryBaseUrl: resolved?.registryBaseUrl ??
+          registryBaseUrlOverride ??
+          registry.sourceRoot.root,
       successMessage: 'Applied theme: ${_themeNameFromPayload(data)}',
       themeId: _themeIdFromPayload(data),
     );
@@ -276,8 +150,8 @@ extension InstallerThemePart on Installer {
     required bool skipIfConfigured,
     bool refresh = false,
   }) async {
-    final presets = await _loadResolvedThemePresets(refresh: refresh);
-    if (presets.isEmpty) {
+    final entries = await _loadResolvedThemeEntries(refresh: refresh);
+    if (entries.isEmpty) {
       return;
     }
     if (skipIfConfigured) {
@@ -288,11 +162,11 @@ extension InstallerThemePart on Installer {
     }
     final config = await ShadcnConfig.load(targetDir);
     logger.info('Select a starter theme (press Enter to skip):');
-    for (var i = 0; i < presets.length; i++) {
-      final preset = presets[i];
-      final isCurrent = preset.id == config.themeId;
+    for (var i = 0; i < entries.length; i++) {
+      final entry = entries[i];
+      final isCurrent = entry.id == config.themeId;
       final suffix = isCurrent ? ' (current)' : '';
-      logger.info('  ${i + 1}) ${preset.name} (${preset.id})$suffix');
+      logger.info('  ${i + 1}) ${entry.name} (${entry.id})$suffix');
     }
     stdout.write('Theme number: ');
     final input = stdin.readLineSync();
@@ -301,12 +175,12 @@ extension InstallerThemePart on Installer {
       return;
     }
     final trimmed = input.trim();
-    RegistryThemePresetData? chosen;
+    ThemeIndexEntry? chosen;
     final index = int.tryParse(trimmed);
-    if (index != null && index >= 1 && index <= presets.length) {
-      chosen = presets[index - 1];
+    if (index != null && index >= 1 && index <= entries.length) {
+      chosen = entries[index - 1];
     } else {
-      chosen = _findPreset(trimmed, presets);
+      chosen = _findThemeIndexEntry(trimmed, entries);
     }
     if (chosen == null) {
       logger.warn('Invalid selection. Skipping theme selection.');
@@ -315,19 +189,14 @@ extension InstallerThemePart on Installer {
     await applyThemeById(chosen.id, refresh: refresh);
   }
 
-  Future<List<RegistryThemePresetData>> _loadResolvedThemePresets({
+  Future<List<ThemeIndexEntry>> _loadResolvedThemeEntries({
     bool refresh = false,
   }) async {
     final resolved = await _resolveThemeRegistry(refresh: refresh);
     if (resolved == null) {
-      return const <RegistryThemePresetData>[];
+      return const <ThemeIndexEntry>[];
     }
-    final presetLoader = _buildThemePresetLoader(resolved, refresh: refresh);
-    return loadThemePresets(
-      themeIndexLoader: resolved.indexLoader,
-      themePresetLoader: presetLoader,
-      logger: logger,
-    );
+    return resolved.indexEntries;
   }
 
   Future<_ResolvedThemeRegistry?> _resolveThemeRegistry({
@@ -358,40 +227,12 @@ extension InstallerThemePart on Installer {
     final indexData = await indexLoader.load();
     final entries = indexLoader.entriesFrom(indexData);
     return _ResolvedThemeRegistry(
-      namespace: registryNamespace ?? config.effectiveDefaultNamespace,
       registryId: registryId,
       registryBaseUrl: registryBaseUrl,
       themesPath: themesPath,
       themesSchemaPath: themesSchemaPathOverride ?? entry?.themesSchemaPath,
-      themeConverterDartPath:
-          themeConverterDartPathOverride ?? entry?.themeConverterDartPath,
       cacheRootPath: _themeCacheRootPath(registryId),
-      indexLoader: indexLoader,
       indexEntries: entries,
-    );
-  }
-
-  Future<_ResolvedThemeConverterRegistry?>
-      _resolveThemeConverterRegistry() async {
-    await _ensureConfigLoaded();
-    final config = _cachedConfig ?? const ShadcnConfig();
-    final entry = config.registryConfig(registryNamespace);
-    final converterPath =
-        themeConverterDartPathOverride ?? entry?.themeConverterDartPath;
-    if (converterPath == null || converterPath.trim().isEmpty) {
-      return null;
-    }
-    final registryBaseUrl = registryBaseUrlOverride ??
-        entry?.baseUrl ??
-        entry?.registryUrl ??
-        registry.sourceRoot.root;
-    final registryId = _themeRegistryId(registryBaseUrl);
-    return _ResolvedThemeConverterRegistry(
-      namespace: registryNamespace ?? config.effectiveDefaultNamespace,
-      registryId: registryId,
-      registryBaseUrl: registryBaseUrl,
-      themeConverterDartPath: converterPath,
-      cacheRootPath: _themeCacheRootPath(registryId),
     );
   }
 
@@ -404,7 +245,6 @@ extension InstallerThemePart on Installer {
       registryBaseUrl: resolved.registryBaseUrl,
       themesPath: resolved.themesPath,
       themesSchemaPath: resolved.themesSchemaPath,
-      themeConverterDartPath: resolved.themeConverterDartPath,
       refresh: refresh,
       offline: registry.sourceRoot.offline,
       logger: logger,
@@ -412,152 +252,225 @@ extension InstallerThemePart on Installer {
     );
   }
 
-  Future<RegistryThemeConverterResponse?> _runWidgetThemeConverter({
-    required String action,
-    String? componentId,
-    File? payloadFile,
-    required bool refresh,
+  Future<_ThemeArtifactManifest> _loadThemeArtifactManifestById({
+    required _ResolvedThemeRegistry resolved,
+    required ThemeIndexEntry entry,
   }) async {
-    final resolved = await _resolveThemeConverterRegistry();
-    if (resolved == null) {
-      logger.info('This registry does not provide widget theming support.');
-      return null;
+    final presetLoader = _buildThemePresetLoader(resolved, refresh: false);
+    final manifestFile = await presetLoader.cachePresetJson(entry);
+    final content = await manifestFile.readAsString();
+    final decoded = jsonDecode(content);
+    if (decoded is! Map<String, dynamic>) {
+      throw const FormatException(
+        'Theme preset payload must be a JSON object.',
+      );
     }
-    final request = <String, dynamic>{
-      'scope': 'widget',
-      'action': action,
-      'namespace': resolved.namespace,
-      if (componentId != null && componentId.trim().isNotEmpty)
-        'componentId': componentId.trim(),
-      if (payloadFile != null) 'payloadFile': p.normalize(payloadFile.path),
-      'context': _converterContext(),
-    };
-    return _runThemeConverter(
-      registryId: resolved.registryId,
-      registryBaseUrl: resolved.registryBaseUrl,
-      themeConverterDartPath: resolved.themeConverterDartPath,
-      cacheRootPath: resolved.cacheRootPath,
-      request: request,
+    return _parseThemeArtifactManifest(decoded);
+  }
+
+  _ThemeArtifactManifest _parseThemeArtifactManifest(
+      Map<String, dynamic> data) {
+    final rawFiles = data['files'];
+    if (rawFiles is! List || rawFiles.isEmpty) {
+      throw const FormatException(
+        'Expected a declarative theme manifest with a non-empty "files" array.',
+      );
+    }
+    final files = <_ThemeArtifactFile>[];
+    for (final entry in rawFiles) {
+      if (entry is! Map) {
+        throw const FormatException(
+          'Each theme manifest file entry must be an object.',
+        );
+      }
+      final json = entry.map(
+        (key, value) => MapEntry(key.toString(), value),
+      );
+      final source = json['source']?.toString().trim() ?? '';
+      final target =
+          (json['target'] ?? json['destination'])?.toString().trim() ?? '';
+      final hash = json['sha256']?.toString().trim() ?? '';
+      if (source.isEmpty || target.isEmpty || hash.isEmpty) {
+        throw const FormatException(
+          'Each theme manifest file entry must include source, target, and sha256.',
+        );
+      }
+      files.add(
+        _ThemeArtifactFile(
+          source: source,
+          target: target,
+          sha256: hash,
+        ),
+      );
+    }
+    return _ThemeArtifactManifest(
+      id: _themeIdFromPayload(data),
+      name: _themeNameFromPayload(data),
+      files: List.unmodifiable(files),
     );
   }
 
-  Future<RegistryThemeConverterResponse> _runThemeConverter({
+  Future<void> _applyThemeArtifactManifest(
+    _ThemeArtifactManifest manifest, {
     required String registryId,
     required String registryBaseUrl,
-    required String themeConverterDartPath,
-    required String cacheRootPath,
-    required Map<String, dynamic> request,
-  }) async {
-    if (themeConverterDartPath.trim().isEmpty) {
-      throw Exception(
-          'This registry does not provide a theme converter script.');
-    }
-    final converter = RegistryThemeConverterClient(
-      registryId: registryId,
-      registryBaseUrl: registryBaseUrl,
-      converterPath: themeConverterDartPath,
-      offline: registry.sourceRoot.offline,
-      logger: logger,
-      cacheRootPath: cacheRootPath,
-    );
-    return converter.execute(request);
-  }
-
-  Map<String, dynamic> _converterContext() {
-    return <String, dynamic>{
-      'targetDir': targetDir,
-      'registryRoot': registry.registryRoot.root,
-      'registrySourceRoot': registry.sourceRoot.root,
-      'installPath': _installPath(_cachedConfig),
-      'sharedPath': _sharedPath(_cachedConfig),
-    };
-  }
-
-  Future<void> _applyThemeConverterResult(
-    RegistryThemeConverterResponse response, {
     required String successMessage,
-    String? emptyMessage,
     String? themeId,
   }) async {
-    if (response.operations.isNotEmpty) {
-      await _applyThemeInstallPlan(response.operations);
-    } else if (emptyMessage != null) {
-      logger.info(emptyMessage);
+    await _ensureConfigLoaded();
+    final prepared = await _prepareThemeArtifacts(
+      manifest: manifest,
+      registryId: registryId,
+      registryBaseUrl: registryBaseUrl,
+    );
+    for (final artifact in prepared) {
+      await _atomicWriteBytes(artifact.targetFile, artifact.bytes);
     }
-    _printConverterPreview(response.preview);
-    _logConverterMessages(response.messages);
     if (themeId != null && themeId.isNotEmpty) {
       final config = await ShadcnConfig.load(targetDir);
       await ShadcnConfig.save(targetDir, config.copyWith(themeId: themeId));
     }
-    if (response.operations.isNotEmpty) {
-      logger.success(successMessage);
+    logger.success(successMessage);
+  }
+
+  Future<List<_PreparedThemeArtifact>> _prepareThemeArtifacts({
+    required _ThemeArtifactManifest manifest,
+    required String registryId,
+    required String registryBaseUrl,
+  }) async {
+    final prepared = <_PreparedThemeArtifact>[];
+    final seenTargets = <String>{};
+    for (final file in manifest.files) {
+      final targetFile = File(_resolveDestinationPath(file.target));
+      final normalizedTarget = p.normalize(targetFile.path);
+      if (!seenTargets.add(normalizedTarget)) {
+        throw Exception(
+          'Theme manifest contains duplicate target path: ${file.target}',
+        );
+      }
+      final bytes = await _readThemeArtifactBytes(
+        registryBaseUrl: registryBaseUrl,
+        source: file.source,
+      );
+      final actual = sha256.convert(bytes).toString().toLowerCase();
+      final expected = file.sha256.toLowerCase();
+      if (actual != expected) {
+        throw Exception(
+          'SHA-256 mismatch for theme artifact ${file.source}: expected $expected but received $actual.',
+        );
+      }
+      await _writeThemeArtifactCache(
+        registryId: registryId,
+        source: file.source,
+        sha256Digest: expected,
+        bytes: bytes,
+      );
+      prepared.add(
+        _PreparedThemeArtifact(
+          bytes: bytes,
+          targetFile: targetFile,
+        ),
+      );
+    }
+    return prepared;
+  }
+
+  Future<List<int>> _readThemeArtifactBytes({
+    required String registryBaseUrl,
+    required String source,
+  }) async {
+    final trimmed = source.trim();
+    if (trimmed.isEmpty) {
+      throw const FormatException('Theme artifact source must not be empty.');
+    }
+    if (p.isAbsolute(trimmed)) {
+      final file = File(trimmed);
+      if (!file.existsSync()) {
+        throw Exception('Theme artifact source not found: $trimmed');
+      }
+      return file.readAsBytes();
+    }
+
+    final uri = Uri.tryParse(trimmed);
+    if (uri != null && uri.hasScheme) {
+      if (uri.scheme == 'file') {
+        final file = File(uri.toFilePath());
+        if (!file.existsSync()) {
+          throw Exception('Theme artifact source not found: $trimmed');
+        }
+        return file.readAsBytes();
+      }
+      if (uri.scheme == 'http' || uri.scheme == 'https') {
+        return _fetchThemeArtifactFromUri(uri);
+      }
+      throw Exception('Unsupported theme artifact source: $trimmed');
+    }
+
+    final baseUri = Uri.tryParse(registryBaseUrl);
+    final isRemoteBase =
+        baseUri != null && baseUri.hasScheme && baseUri.scheme != 'file';
+    final sourceRoot = isRemoteBase
+        ? RegistryLocation.remote(
+            registryBaseUrl,
+            offline: registry.sourceRoot.offline,
+          )
+        : RegistryLocation.local(
+            (baseUri != null && baseUri.scheme == 'file')
+                ? baseUri.toFilePath()
+                : registryBaseUrl,
+            offline: registry.sourceRoot.offline,
+          );
+    return sourceRoot.readBytes(trimmed);
+  }
+
+  Future<List<int>> _fetchThemeArtifactFromUri(Uri uri) async {
+    if (registry.sourceRoot.offline) {
+      throw Exception(
+        'Offline mode: remote theme artifact not available for ${uri.toString()}.',
+      );
+    }
+    final client = HttpClient();
+    try {
+      final request = await client.getUrl(uri);
+      final response = await request.close();
+      if (response.statusCode < 200 || response.statusCode >= 300) {
+        throw Exception(
+          'Failed to fetch theme artifact ${uri.toString()} (${response.statusCode}).',
+        );
+      }
+      final builder = BytesBuilder(copy: false);
+      await for (final chunk in response) {
+        builder.add(chunk);
+      }
+      return builder.takeBytes();
+    } finally {
+      client.close();
     }
   }
 
-  void _printConverterPreview(Map<String, dynamic>? preview) {
-    if (preview == null || preview.isEmpty) {
-      return;
-    }
-    final components = preview['components'];
-    if (components is List) {
-      if (components.isEmpty) {
-        logger.info('No themeable widgets available.');
-        return;
-      }
-      logger.info('Themeable widgets:');
-      for (final item in components) {
-        if (item is! Map) {
-          continue;
-        }
-        final componentId = item['componentId']?.toString() ?? '';
-        final targets = item['targets'];
-        final targetCount = targets is List ? targets.length : 0;
-        final suffix = targetCount == 1 ? 'target' : 'targets';
-        logger.info('  - $componentId ($targetCount $suffix)');
-      }
-      return;
-    }
-    final targets = preview['targets'];
-    if (targets is List) {
-      if (targets.isEmpty) {
-        logger.info('No widget theme targets available.');
-        return;
-      }
-      final componentId = preview['componentId']?.toString();
-      if (componentId != null && componentId.isNotEmpty) {
-        logger.info('Theme targets for $componentId:');
-      }
-      for (final item in targets) {
-        if (item is! Map) {
-          continue;
-        }
-        final id = item['id']?.toString() ?? '';
-        final isDefault = item['default'] == true;
-        final marker = isDefault ? ' (default)' : '';
-        logger.info('  - $id$marker');
-      }
-    }
-  }
-
-  void _logConverterMessages(List<RegistryThemeConverterMessage> messages) {
-    for (final message in messages) {
-      switch (message.level) {
-        case 'success':
-          logger.success(message.text);
-          break;
-        case 'warn':
-        case 'warning':
-          logger.warn(message.text);
-          break;
-        case 'detail':
-          logger.detail(message.text);
-          break;
-        default:
-          logger.info(message.text);
-          break;
-      }
-    }
+  Future<File> _writeThemeArtifactCache({
+    required String registryId,
+    required String source,
+    required String sha256Digest,
+    required List<int> bytes,
+  }) async {
+    final basename = p.basename(source.trim().isEmpty ? 'artifact' : source);
+    final extension = p.extension(basename);
+    final stem = extension.isEmpty
+        ? basename
+        : basename.substring(0, basename.length - extension.length);
+    final safeStem = stem.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
+    final safeExtension = extension.replaceAll(RegExp(r'[^A-Za-z0-9.]'), '');
+    final fileName =
+        '${sha256Digest}_${safeStem.isEmpty ? 'artifact' : safeStem}$safeExtension';
+    final cacheFile = File(
+      _resolveProjectPath(
+        p.join(
+            '.shadcn', 'cache', 'registry', registryId, 'artifacts', fileName),
+      ),
+    );
+    await _atomicWriteBytes(cacheFile, bytes);
+    return cacheFile;
   }
 
   Future<Map<String, dynamic>?> _readJsonObjectFile(
@@ -615,75 +528,6 @@ extension InstallerThemePart on Installer {
     }
   }
 
-  Future<File> _writeThemePayloadCache({
-    required String namespace,
-    required Map<String, dynamic> data,
-    String? sourceHint,
-  }) async {
-    final fileName = _safeFileName(
-      _themeIdFromPayload(data).isNotEmpty
-          ? '${_themeIdFromPayload(data)}.json'
-          : (sourceHint == null || sourceHint.isEmpty
-              ? 'custom-theme.json'
-              : sourceHint),
-    );
-    final file = File(
-      _resolveProjectPath(
-        p.join('.shadcn', 'cache', 'themes', namespace, fileName),
-      ),
-    );
-    return _writeCachedJsonFile(file, data);
-  }
-
-  Future<File> _writeWidgetPayloadCache({
-    required String namespace,
-    required String componentId,
-    required Map<String, dynamic> data,
-    required String sourceHint,
-  }) async {
-    final file = File(
-      _resolveProjectPath(
-        p.join(
-          '.shadcn',
-          'cache',
-          'widget_themes',
-          namespace,
-          componentId.trim().toLowerCase(),
-          _safeFileName(sourceHint.isEmpty ? 'widget-theme.json' : sourceHint),
-        ),
-      ),
-    );
-    return _writeCachedJsonFile(file, data);
-  }
-
-  Future<File> _writeCachedJsonFile(
-    File file,
-    Map<String, dynamic> data,
-  ) async {
-    if (!file.parent.existsSync()) {
-      await file.parent.create(recursive: true);
-    }
-    const encoder = JsonEncoder.withIndent('  ');
-    await file.writeAsString('${encoder.convert(data)}\n', flush: true);
-    return file;
-  }
-
-  String _safeFileName(String raw) {
-    final trimmed = raw.trim();
-    final base = trimmed.isEmpty ? 'payload.json' : trimmed;
-    final sanitized = base.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
-    return sanitized.endsWith('.json') ? sanitized : '$sanitized.json';
-  }
-
-  String _urlFileHint(String url, {required String fallback}) {
-    final uri = Uri.tryParse(url);
-    if (uri == null) {
-      return fallback;
-    }
-    final segment = uri.pathSegments.isEmpty ? '' : uri.pathSegments.last;
-    return segment.trim().isEmpty ? fallback : segment;
-  }
-
   String _themeRegistryId(String registryBaseUrl) {
     final safe = registryBaseUrl.replaceAll(RegExp(r'[^A-Za-z0-9._-]'), '_');
     if (safe.length <= 80) {
@@ -698,127 +542,16 @@ extension InstallerThemePart on Installer {
     );
   }
 
-  Future<void> _applyThemeInstallPlan(
-    List<RegistryThemeInstallOperation> operations,
-  ) async {
-    final sorted = [...operations]
-      ..sort((left, right) => left.path.compareTo(right.path));
-    for (final operation in sorted) {
-      final file = _resolvePlanFile(operation.path);
-      switch (operation.type) {
-        case 'write_file':
-          final content = operation.content;
-          if (content == null) {
-            throw Exception(
-                'write_file requires content for ${operation.path}');
-          }
-          await _atomicWriteFile(file, content);
-          break;
-        case 'patch_file':
-          final find = operation.find;
-          final replace = operation.replace;
-          if (find == null || replace == null) {
-            throw Exception(
-              'patch_file requires find/replace for ${operation.path}',
-            );
-          }
-          if (!file.existsSync()) {
-            throw Exception('Patch target not found: ${operation.path}');
-          }
-          final current = await file.readAsString();
-          if (!current.contains(find)) {
-            throw Exception(
-              'Patch anchor not found in ${operation.path}: ${operation.find}',
-            );
-          }
-          final updated = operation.replaceAll
-              ? current.replaceAll(find, replace)
-              : current.replaceFirst(find, replace);
-          await _atomicWriteFile(file, updated);
-          break;
-        case 'ensure_import':
-          final importStatement = operation.importStatement;
-          if (importStatement == null || importStatement.trim().isEmpty) {
-            throw Exception(
-              'ensure_import requires import for ${operation.path}',
-            );
-          }
-          if (!file.existsSync()) {
-            throw Exception('Import target not found: ${operation.path}');
-          }
-          final current = await file.readAsString();
-          if (current.contains(importStatement)) {
-            break;
-          }
-          final updated = _insertImport(current, importStatement);
-          await _atomicWriteFile(file, updated);
-          break;
-        case 'delete_file':
-          if (file.existsSync()) {
-            await file.delete();
-          }
-          break;
-        default:
-          throw Exception('Unsupported install operation: ${operation.type}');
-      }
-    }
-  }
-
-  File _resolvePlanFile(String relativePath) {
-    final normalized = p.normalize(relativePath);
-    if (p.isAbsolute(normalized)) {
-      throw Exception('Install plan path must be relative: $relativePath');
-    }
-    if (normalized == '..' ||
-        normalized.startsWith('../') ||
-        normalized.startsWith('..\\')) {
-      throw Exception('Install plan path escapes project root: $relativePath');
-    }
-    return File(_resolveProjectPath(normalized));
-  }
-
-  Future<void> _atomicWriteFile(File file, String content) async {
+  Future<void> _atomicWriteBytes(File file, List<int> bytes) async {
     if (!file.parent.existsSync()) {
       await file.parent.create(recursive: true);
     }
     final tempFile = File(_resolveProjectOrAbsolutePath('${file.path}.tmp'));
-    await tempFile.writeAsString(content, flush: true);
+    await tempFile.writeAsBytes(bytes, flush: true);
     if (file.existsSync()) {
       await file.delete();
     }
     await tempFile.rename(file.path);
-  }
-
-  String _insertImport(String content, String importStatement) {
-    final normalizedImport = importStatement.trim().endsWith(';')
-        ? importStatement.trim()
-        : '${importStatement.trim()};';
-    final lines = content.split('\n');
-    var lastImportIndex = -1;
-    for (var index = 0; index < lines.length; index++) {
-      if (lines[index].trimLeft().startsWith('import ')) {
-        lastImportIndex = index;
-      }
-    }
-    if (lastImportIndex == -1) {
-      return '$normalizedImport\n$content';
-    }
-    lines.insert(lastImportIndex + 1, normalizedImport);
-    return lines.join('\n');
-  }
-
-  RegistryThemePresetData? _findPreset(
-    String identifier,
-    List<RegistryThemePresetData> presets,
-  ) {
-    final normalized = identifier.toLowerCase();
-    for (final preset in presets) {
-      if (preset.id.toLowerCase() == normalized ||
-          preset.name.toLowerCase() == normalized) {
-        return preset;
-      }
-    }
-    return null;
   }
 
   ThemeIndexEntry? _findThemeIndexEntry(
@@ -851,63 +584,61 @@ extension InstallerThemePart on Installer {
     return _themeIdFromPayload(data);
   }
 
-  String _widgetSuccessMessage({
-    required String action,
-    required String componentId,
-    required RegistryThemeConverterResponse response,
-  }) {
-    final resolvedComponent = response.resolvedComponent;
-    final resolvedTarget = response.resolvedTargetThemeType;
-    final componentLabel =
-        (resolvedComponent == null || resolvedComponent.isEmpty)
-            ? componentId
-            : resolvedComponent;
-    final targetSuffix = (resolvedTarget == null || resolvedTarget.isEmpty)
-        ? ''
-        : ' [$resolvedTarget]';
-    if (action == 'reset') {
-      return 'Reset widget theme: $componentLabel$targetSuffix';
-    }
-    return 'Applied widget theme: $componentLabel$targetSuffix';
+  UnsupportedError _unsupportedWidgetThemeFlow({required String action}) {
+    return UnsupportedError(
+      '$action Widget theme commands remain experimental and are disabled for the non-executable manifest installer.',
+    );
   }
 }
 
 class _ResolvedThemeRegistry {
-  final String namespace;
   final String registryId;
   final String registryBaseUrl;
   final String themesPath;
   final String? themesSchemaPath;
-  final String? themeConverterDartPath;
   final String cacheRootPath;
-  final ThemeIndexLoader indexLoader;
   final List<ThemeIndexEntry> indexEntries;
 
   const _ResolvedThemeRegistry({
-    required this.namespace,
     required this.registryId,
     required this.registryBaseUrl,
     required this.themesPath,
     required this.themesSchemaPath,
-    required this.themeConverterDartPath,
     required this.cacheRootPath,
-    required this.indexLoader,
     required this.indexEntries,
   });
 }
 
-class _ResolvedThemeConverterRegistry {
-  const _ResolvedThemeConverterRegistry({
-    required this.namespace,
-    required this.registryId,
-    required this.registryBaseUrl,
-    required this.themeConverterDartPath,
-    required this.cacheRootPath,
+class _ThemeArtifactManifest {
+  const _ThemeArtifactManifest({
+    required this.id,
+    required this.name,
+    required this.files,
   });
 
-  final String namespace;
-  final String registryId;
-  final String registryBaseUrl;
-  final String themeConverterDartPath;
-  final String cacheRootPath;
+  final String id;
+  final String name;
+  final List<_ThemeArtifactFile> files;
+}
+
+class _ThemeArtifactFile {
+  const _ThemeArtifactFile({
+    required this.source,
+    required this.target,
+    required this.sha256,
+  });
+
+  final String source;
+  final String target;
+  final String sha256;
+}
+
+class _PreparedThemeArtifact {
+  const _PreparedThemeArtifact({
+    required this.bytes,
+    required this.targetFile,
+  });
+
+  final List<int> bytes;
+  final File targetFile;
 }

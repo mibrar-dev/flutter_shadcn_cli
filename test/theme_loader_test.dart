@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/index_loader.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_entry.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_loader.dart';
@@ -90,7 +91,9 @@ void main() {
       expect(entries.first.file, 'themes_preset/amber-minimal.json');
     });
 
-    test('ThemePresetLoader supports registry converter dart script', () async {
+    test(
+        'ThemePresetLoader loads declarative theme manifests and caches artifacts',
+        () async {
       final temp = Directory.systemTemp.createTempSync('theme_preset_loader_');
       addTearDown(() {
         if (temp.existsSync()) {
@@ -98,7 +101,24 @@ void main() {
         }
       });
 
-      final presetFile = File(
+      final artifactFile = File(
+        p.join(
+          temp.path,
+          'registry',
+          'shared',
+          'theme',
+          '_impl',
+          'core',
+          'custom_theme.dart',
+        ),
+      )..createSync(recursive: true);
+      artifactFile.writeAsStringSync(
+        'const customThemeName = "Custom Theme";\n',
+      );
+      final artifactBytes = artifactFile.readAsBytesSync();
+      final digest = sha256.convert(artifactBytes).toString();
+
+      final manifestFile = File(
         p.join(
           temp.path,
           'registry',
@@ -107,56 +127,127 @@ void main() {
           'custom-theme.json',
         ),
       )..createSync(recursive: true);
-      presetFile.writeAsStringSync(
+      manifestFile.writeAsStringSync(
         jsonEncode({
-          'theme_id': 'custom-theme',
-          'theme_name': 'Custom Theme',
-          'tokens': {
-            'light': {'primary': '#ffffff'},
-            'dark': {'primary': '#000000'},
-          }
+          'id': 'custom-theme',
+          'name': 'Custom Theme',
+          'files': [
+            {
+              'source': 'registry/shared/theme/_impl/core/custom_theme.dart',
+              'target':
+                  'lib/ui/shadcn/shared/theme/_impl/core/custom_theme.dart',
+              'sha256': digest,
+            }
+          ],
         }),
       );
-
-      final converter = File(
-        p.join(temp.path, 'registry', 'manifests', 'theme_converter.dart'),
-      )..createSync(recursive: true);
-      converter.writeAsStringSync('''
-import 'dart:convert';
-import 'dart:io';
-
-void main(List<String> args) async {
-  final input = jsonDecode(await File(args.first).readAsString()) as Map<String, dynamic>;
-  final tokens = input['tokens'] as Map<String, dynamic>;
-  final output = {
-    'id': input['theme_id'],
-    'name': input['theme_name'],
-    'light': (tokens['light'] as Map).map((k, v) => MapEntry(k.toString(), v.toString())),
-    'dark': (tokens['dark'] as Map).map((k, v) => MapEntry(k.toString(), v.toString())),
-  };
-  stdout.write(jsonEncode(output));
-}
-''');
 
       final loader = ThemePresetLoader(
         registryId: 'theme_preset_loader_test',
         registryBaseUrl: temp.path,
         themesPath: 'registry/manifests/theme.index.json',
-        themeConverterDartPath: 'registry/manifests/theme_converter.dart',
       );
 
-      final preset = await loader.loadPreset(
+      final manifest = await loader.loadManifest(
         const ThemeIndexEntry(
           id: 'custom-theme',
           name: 'Custom Theme',
           file: 'themes_preset/custom-theme.json',
         ),
       );
+      final artifacts = await loader.cacheArtifacts(manifest);
 
-      expect(preset.id, 'custom-theme');
-      expect(preset.name, 'Custom Theme');
-      expect(preset.light['primary'], '#ffffff');
-      expect(preset.dark['primary'], '#000000');
+      expect(manifest.id, 'custom-theme');
+      expect(manifest.name, 'Custom Theme');
+      expect(manifest.files, hasLength(1));
+      expect(
+        manifest.files.single.target,
+        'lib/ui/shadcn/shared/theme/_impl/core/custom_theme.dart',
+      );
+      expect(manifest.files.single.sha256, digest);
+      expect(artifacts, hasLength(1));
+      expect(artifacts.single.bytes, artifactBytes);
+      expect(artifacts.single.cacheFile.existsSync(), isTrue);
+      expect(loader.verifySha256(artifactBytes, digest), isTrue);
+      expect(loader.verifySha256(artifactBytes, '0' * 64), isFalse);
+    });
+
+    test('ThemePresetLoader revalidates cached artifacts before reuse',
+        () async {
+      final temp = Directory.systemTemp.createTempSync('theme_preset_cache_');
+      addTearDown(() {
+        if (temp.existsSync()) {
+          temp.deleteSync(recursive: true);
+        }
+      });
+
+      final artifactFile = File(
+        p.join(
+          temp.path,
+          'registry',
+          'shared',
+          'theme',
+          '_impl',
+          'core',
+          'validated_theme.dart',
+        ),
+      )..createSync(recursive: true);
+      artifactFile.writeAsStringSync(
+        'const validatedThemeName = "Validated Theme";\n',
+      );
+      final artifactBytes = artifactFile.readAsBytesSync();
+      final digest = sha256.convert(artifactBytes).toString();
+
+      final manifestFile = File(
+        p.join(
+          temp.path,
+          'registry',
+          'manifests',
+          'themes_preset',
+          'validated-theme.json',
+        ),
+      )..createSync(recursive: true);
+      manifestFile.writeAsStringSync(
+        jsonEncode({
+          'id': 'validated-theme',
+          'name': 'Validated Theme',
+          'files': [
+            {
+              'source': 'registry/shared/theme/_impl/core/validated_theme.dart',
+              'target':
+                  'lib/ui/shadcn/shared/theme/_impl/core/validated_theme.dart',
+              'sha256': digest,
+            }
+          ],
+        }),
+      );
+
+      final loader = ThemePresetLoader(
+        registryId: 'theme_preset_loader_cache_validation_test',
+        registryBaseUrl: temp.path,
+        themesPath: 'registry/manifests/theme.index.json',
+        cacheRootPath: p.join(temp.path, '.cache'),
+      );
+
+      final manifest = await loader.loadManifest(
+        const ThemeIndexEntry(
+          id: 'validated-theme',
+          name: 'Validated Theme',
+          file: 'themes_preset/validated-theme.json',
+        ),
+      );
+      final initialArtifacts = await loader.cacheArtifacts(manifest);
+      expect(initialArtifacts.single.bytes, artifactBytes);
+
+      initialArtifacts.single.cacheFile.writeAsStringSync(
+        'corrupted cache contents\n',
+        flush: true,
+      );
+
+      final reloadedArtifacts = await loader.cacheArtifacts(manifest);
+      expect(reloadedArtifacts.single.bytes, artifactBytes);
+      expect(
+          reloadedArtifacts.single.cacheFile.readAsBytesSync(), artifactBytes);
     });
   });
 }
