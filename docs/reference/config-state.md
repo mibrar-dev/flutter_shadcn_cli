@@ -65,7 +65,7 @@ Registry file fields:
 - `themesSchemaPath`: themes schema path
 - `folderStructurePath`: folder structure metadata path
 - `metaPath`: optional registry metadata path
-- `themeConverterDartPath`: optional theme converter endpoint or path
+- `themeConverterDartPath`: deprecated legacy field. It is ignored by current CLI builds.
 
 Install fields:
 
@@ -84,6 +84,10 @@ Capability and trust fields:
 - `capabilityTheme`: registry supports theme commands
 - `trustMode`: integrity mode, such as `none` or `sha256`
 - `trustSha256`: expected SHA-256 digest for the registry directory entry
+
+Theme artifact rule:
+
+Each registry owns its theme format and generation pipeline. Conversion should happen at registry publish time. The CLI consumes only pre-generated, hash-verified theme artifacts.
 
 ## `.shadcn/state.json`
 

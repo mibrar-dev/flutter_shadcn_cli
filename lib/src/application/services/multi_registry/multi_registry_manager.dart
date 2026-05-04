@@ -10,7 +10,6 @@ import 'package:flutter_shadcn_cli/src/core/utils/path_utils.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_entry.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_loader.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_preset_loader.dart';
 import 'package:flutter_shadcn_cli/src/init_action_engine.dart';
 import 'package:flutter_shadcn_cli/src/inline_action_journal.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';

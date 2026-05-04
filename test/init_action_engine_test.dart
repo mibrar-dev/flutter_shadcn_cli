@@ -7,6 +7,7 @@ import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
+import 'package:yaml/yaml.dart';
 
 void main() {
   group('InitActionEngine', () {
@@ -22,7 +23,8 @@ void main() {
           'name: test_app',
           'description: test',
           'dependencies:',
-          '  flutter: sdk: flutter',
+          '  flutter:',
+          '    sdk: flutter',
         ].join('\n'),
       );
 
@@ -108,6 +110,14 @@ void main() {
       expect(pubspec.contains('lints: ^6.1.0'), isTrue);
       expect(pubspec.contains('assets/fonts/GeistSans-Regular.ttf'), isTrue);
       expect(pubspec.contains('family: GeistSans'), isTrue);
+
+      final doc = loadYaml(pubspec) as YamlMap;
+      final flutterSection = doc['flutter'] as YamlMap;
+      final dependencies = doc['dependencies'] as YamlMap;
+      expect(flutterSection['assets'], isA<YamlList>());
+      expect(flutterSection['fonts'], isA<YamlList>());
+      expect(dependencies['assets'], isNull);
+      expect(dependencies['fonts'], isNull);
     });
 
     test('rolls back recorded inline changes', () async {

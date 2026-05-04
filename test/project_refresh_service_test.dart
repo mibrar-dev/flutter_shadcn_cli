@@ -24,7 +24,8 @@ void main() {
           'name: refresh_test',
           'description: refresh test',
           'dependencies:',
-          '  flutter: sdk: flutter',
+          '  flutter:',
+          '    sdk: flutter',
         ].join('\n'),
       );
     });

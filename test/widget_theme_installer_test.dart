@@ -2,8 +2,6 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/config.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/io/process_runner.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/registry/registry_theme_converter_client.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
@@ -24,7 +22,6 @@ void main() {
       _writeRegistryFixtures(registryRoot);
       _writePubspec(appRoot);
       _writeWidgetThemeHostFiles(appRoot, 'lib/ui/shadcn');
-      _writeWidgetThemeHostFiles(appRoot, 'lib/ui/alt');
       await ShadcnConfig.save(
         appRoot.path,
         const ShadcnConfig(
@@ -35,15 +32,6 @@ void main() {
               registryPath: 'unused',
               installPath: 'lib/ui/shadcn',
               sharedPath: 'lib/ui/shadcn/shared',
-              themeConverterDartPath: 'registry/manifests/theme_converter.dart',
-              enabled: true,
-            ),
-            'alt': RegistryConfigEntry(
-              registryMode: 'local',
-              registryPath: 'unused',
-              installPath: 'lib/ui/alt',
-              sharedPath: 'lib/ui/alt/shared',
-              themeConverterDartPath: 'registry/manifests/theme_converter.dart',
               enabled: true,
             ),
           },
@@ -61,112 +49,32 @@ void main() {
       }
     });
 
-    test('apply and reset are namespace aware', () async {
+    test('apply from file fails explicitly without modifying widget files',
+        () async {
       final payloadFile = File(p.join(appRoot.path, 'button_theme.json'))
         ..writeAsStringSync(
-          jsonEncode({'targetThemeType': 'PrimaryButtonTheme'}),
+          jsonEncode({
+            'name': 'button-theme',
+            'label': 'Button Theme',
+            'files': [
+              {
+                'source': 'https://example.com/button_theme.dart',
+                'target':
+                    'lib/ui/shadcn/components/button/generated_button_theme.dart',
+                'sha256': '0' * 64,
+              }
+            ],
+          }),
         );
-
-      final shadcnInstaller = Installer(
-        registry: registry,
-        targetDir: appRoot.path,
-        logger: CliLogger(),
-        registryNamespace: 'shadcn',
-        registryBaseUrlOverride: tempRoot.path,
-        themeConverterDartPathOverride:
-            'registry/manifests/theme_converter.dart',
-      );
-      final altInstaller = Installer(
-        registry: registry,
-        targetDir: appRoot.path,
-        logger: CliLogger(),
-        registryNamespace: 'alt',
-        registryBaseUrlOverride: tempRoot.path,
-        themeConverterDartPathOverride:
-            'registry/manifests/theme_converter.dart',
-      );
-
-      await shadcnInstaller.applyWidgetThemeFromFile(
-          'button', payloadFile.path);
-
-      final shadcnHost = File(
-        p.join(
-          appRoot.path,
-          'lib',
-          'ui',
-          'shadcn',
-          'components',
-          'button',
-          'button_theme_host.dart',
-        ),
-      );
-      final altHost = File(
-        p.join(
-          appRoot.path,
-          'lib',
-          'ui',
-          'alt',
-          'components',
-          'button',
-          'button_theme_host.dart',
-        ),
-      );
-
-      expect(
-        shadcnHost.readAsStringSync(),
-        contains("const buttonThemeTarget = 'PrimaryButtonTheme';"),
-      );
-      expect(
-        altHost.readAsStringSync(),
-        contains("const buttonThemeTarget = '__BUTTON_THEME_TARGET__';"),
-      );
-
-      await altInstaller.applyWidgetThemeFromFile('button', payloadFile.path);
-      expect(
-        altHost.readAsStringSync(),
-        contains("const buttonThemeTarget = 'PrimaryButtonTheme';"),
-      );
-
-      await altInstaller.resetWidgetTheme('button');
-      expect(
-        altHost.readAsStringSync(),
-        contains("const buttonThemeTarget = '__BUTTON_THEME_TARGET__';"),
-      );
-      expect(
-        shadcnHost.readAsStringSync(),
-        contains("const buttonThemeTarget = 'PrimaryButtonTheme';"),
-      );
-    });
-
-    test('apply from URL stores payload locally before invoking converter',
-        () async {
-      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
-      addTearDown(() async {
-        await server.close(force: true);
-      });
-      server.listen((request) async {
-        request.response.write(
-          jsonEncode({'targetThemeType': 'PrimaryButtonTheme'}),
-        );
-        await request.response.close();
-      });
-
       final installer = Installer(
         registry: registry,
         targetDir: appRoot.path,
         logger: CliLogger(),
         registryNamespace: 'shadcn',
         registryBaseUrlOverride: tempRoot.path,
-        themeConverterDartPathOverride:
-            'registry/manifests/theme_converter.dart',
       );
 
-      await installer.applyWidgetThemeFromUrl(
-        'button',
-        'http://${server.address.host}:${server.port}/button-theme.json',
-      );
-
-      final shadcnHost = File(
+      final hostFile = File(
         p.join(
           appRoot.path,
           'lib',
@@ -177,74 +85,56 @@ void main() {
           'button_theme_host.dart',
         ),
       );
-      expect(
-        shadcnHost.readAsStringSync(),
-        contains("const buttonThemeSource = 'cache';"),
-      );
-      expect(
-        File(
-          p.join(
-            appRoot.path,
-            '.shadcn',
-            'cache',
-            'widget_themes',
-            'shadcn',
-            'button',
-            'button-theme.json',
+      final before = hostFile.readAsStringSync();
+
+      await expectLater(
+        installer.applyWidgetThemeFromFile('button', payloadFile.path),
+        throwsA(
+          isA<UnsupportedError>().having(
+            (error) => error.message,
+            'message',
+            contains('experimental'),
           ),
-        ).existsSync(),
-        isTrue,
+        ),
       );
+      expect(hostFile.readAsStringSync(), before);
     });
 
-    test('converter process receives a stable working directory', () async {
-      final runner = _WorkingDirectoryAssertingProcessRunner();
-      final client = RegistryThemeConverterClient(
-        registryId: 'shadcn',
-        registryBaseUrl: tempRoot.path,
-        converterPath: 'registry/manifests/theme_converter.dart',
-        cacheRootPath: p.join(tempRoot.path, 'cache'),
-        processRunner: runner,
+    test('reset fails explicitly without modifying widget files', () async {
+      final installer = Installer(
+        registry: registry,
+        targetDir: appRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+        registryBaseUrlOverride: tempRoot.path,
       );
 
-      await client.execute({
-        'scope': 'widget',
-        'action': 'apply',
-        'namespace': 'shadcn',
-        'componentId': 'button',
-      });
+      final hostFile = File(
+        p.join(
+          appRoot.path,
+          'lib',
+          'ui',
+          'shadcn',
+          'components',
+          'button',
+          'button_theme_host.dart',
+        ),
+      );
+      final before = hostFile.readAsStringSync();
 
-      expect(runner.seenWorkingDirectory, isNotNull);
-      expect(Directory(runner.seenWorkingDirectory!).existsSync(), isTrue);
+      await expectLater(
+        installer.resetWidgetTheme('button'),
+        throwsA(
+          isA<UnsupportedError>().having(
+            (error) => error.message,
+            'message',
+            contains('experimental'),
+          ),
+        ),
+      );
+      expect(hostFile.readAsStringSync(), before);
     });
   });
-}
-
-class _WorkingDirectoryAssertingProcessRunner extends ProcessRunner {
-  String? seenWorkingDirectory;
-
-  @override
-  Future<ProcessResult> run(
-    String executable,
-    List<String> args, {
-    String? workingDirectory,
-  }) async {
-    seenWorkingDirectory = workingDirectory;
-    if (workingDirectory == null ||
-        workingDirectory.trim().isEmpty ||
-        !Directory(workingDirectory).existsSync()) {
-      return ProcessResult(1, 255, '', 'missing stable working directory');
-    }
-    return ProcessResult(
-      1,
-      0,
-      jsonEncode({
-        'scope': 'widget',
-        'installPlan': {'operations': []},
-      }),
-      '',
-    );
-  }
 }
 
 void _writeRegistryFixtures(Directory registryRoot) {
@@ -294,103 +184,6 @@ void _writeRegistryFixtures(Directory registryRoot) {
   );
   File(p.join(registryRoot.path, 'components.schema.json'))
       .writeAsStringSync(jsonEncode({}));
-
-  final themeConverter = File(
-    p.join(registryRoot.path, 'manifests', 'theme_converter.dart'),
-  )..createSync(recursive: true);
-  themeConverter.writeAsStringSync(r'''
-import 'dart:convert';
-import 'dart:io';
-
-String joinPath(String left, String right) {
-  if (left.isEmpty) {
-    return right;
-  }
-  if (left.endsWith('/') || left.endsWith('\\')) {
-    return '$left$right';
-  }
-  return '$left${Platform.pathSeparator}$right';
-}
-
-Future<void> main(List<String> args) async {
-  final request = jsonDecode(await File(args.first).readAsString())
-      as Map<String, dynamic>;
-  if (request['scope'] != 'widget') {
-    stdout.write(jsonEncode({
-      'scope': request['scope'],
-      'installPlan': {'operations': []}
-    }));
-    return;
-  }
-
-  final context = request['context'] as Map<String, dynamic>? ?? const {};
-  final installPath = context['installPath']?.toString() ?? '';
-  final namespace = request['namespace']?.toString() ?? '';
-  final componentId = request['componentId']?.toString() ?? '';
-  final hostPath = joinPath(
-    joinPath(joinPath(installPath, 'components'), componentId),
-    'button_theme_host.dart',
-  );
-  final generatedPath = joinPath(
-    joinPath(joinPath(installPath, 'components'), componentId),
-    'generated_${namespace}_theme.dart',
-  );
-
-  if (request['action'] == 'reset') {
-    stdout.write(jsonEncode({
-      'scope': 'widget',
-      'resolvedNamespace': namespace,
-      'resolvedComponent': componentId,
-      'installPlan': {
-        'operations': [
-          {
-            'type': 'write_file',
-            'path': hostPath,
-            'content': "const buttonThemeTarget = '__BUTTON_THEME_TARGET__';\nconst buttonThemeSource = '__BUTTON_THEME_SOURCE__';\n",
-          },
-          {
-            'type': 'delete_file',
-            'path': generatedPath,
-          }
-        ]
-      }
-    }));
-    return;
-  }
-
-  final payloadFile = request['payloadFile']?.toString() ?? '';
-  final payload =
-      jsonDecode(await File(payloadFile).readAsString()) as Map<String, dynamic>;
-  final selectedTarget = payload['targetThemeType']?.toString() ?? 'global';
-  stdout.write(jsonEncode({
-    'scope': 'widget',
-    'resolvedNamespace': namespace,
-    'resolvedComponent': componentId,
-    'resolvedTargetThemeType': selectedTarget,
-    'installPlan': {
-      'operations': [
-        {
-          'type': 'patch_file',
-          'path': hostPath,
-          'find': '__BUTTON_THEME_TARGET__',
-          'replace': selectedTarget,
-        },
-        {
-          'type': 'patch_file',
-          'path': hostPath,
-          'find': '__BUTTON_THEME_SOURCE__',
-          'replace': 'cache',
-        },
-        {
-          'type': 'write_file',
-          'path': generatedPath,
-          'content': "const activeButtonTheme = '${selectedTarget}';\n",
-        }
-      ]
-    }
-  }));
-}
-''');
 }
 
 void _writePubspec(Directory targetRoot) {

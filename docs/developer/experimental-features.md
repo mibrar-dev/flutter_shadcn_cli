@@ -11,6 +11,8 @@ Current advanced-only surfaces:
 - `flutter_shadcn --advanced theme widget <target> --apply-file <path>`
 - `flutter_shadcn --advanced theme widget <target> --apply-url <url>`
 
+Theme file and URL inputs are experimental manifest flows only. They accept generated theme artifact manifests, not raw theme JSON, and they do not perform theme conversion at apply time.
+
 Developer-only registry overrides also require `--advanced`:
 
 - `--registry-path <path>`

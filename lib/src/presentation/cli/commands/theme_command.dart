@@ -38,8 +38,7 @@ Future<int> runThemeCommand({
   }
   final refresh = themeCommand['refresh'] == true;
   if (themeCommand['list'] == true) {
-    await activeInstaller.listThemes(refresh: refresh);
-    return ExitCodes.success;
+    return _runThemeAction(() => activeInstaller.listThemes(refresh: refresh));
   }
   final applyFile = themeCommand['apply-file'] as String?;
   final applyUrl = themeCommand['apply-url'] as String?;
@@ -49,12 +48,11 @@ Future<int> runThemeCommand({
       return ExitCodes.usage;
     }
     if (applyFile != null) {
-      await activeInstaller.applyThemeFromFile(applyFile);
-      return ExitCodes.success;
+      return _runThemeAction(
+          () => activeInstaller.applyThemeFromFile(applyFile));
     }
     if (applyUrl != null) {
-      await activeInstaller.applyThemeFromUrl(applyUrl);
-      return ExitCodes.success;
+      return _runThemeAction(() => activeInstaller.applyThemeFromUrl(applyUrl));
     }
   }
   final applyOption = themeCommand['apply'] as String?;
@@ -66,11 +64,11 @@ Future<int> runThemeCommand({
   }
   final presetArg = applyOption ?? (rest.isEmpty ? null : rest.first);
   if (presetArg != null) {
-    await activeInstaller.applyThemeById(presetArg, refresh: refresh);
-    return ExitCodes.success;
+    return _runThemeAction(
+      () => activeInstaller.applyThemeById(presetArg, refresh: refresh),
+    );
   }
-  await activeInstaller.chooseTheme(refresh: refresh);
-  return ExitCodes.success;
+  return _runThemeAction(() => activeInstaller.chooseTheme(refresh: refresh));
 }
 
 Future<int> _runWidgetThemeCommand({
@@ -79,8 +77,7 @@ Future<int> _runWidgetThemeCommand({
   required bool advanced,
 }) async {
   if (widgetCommand['list'] == true) {
-    await installer.listWidgetThemes();
-    return ExitCodes.success;
+    return _runThemeAction(installer.listWidgetThemes);
   }
 
   final rest = [...widgetCommand.rest];
@@ -98,8 +95,7 @@ Future<int> _runWidgetThemeCommand({
   }
 
   if (widgetCommand['list-targets'] == true) {
-    await installer.listWidgetThemeTargets(component);
-    return ExitCodes.success;
+    return _runThemeAction(() => installer.listWidgetThemeTargets(component));
   }
 
   final applyFile = widgetCommand['apply-file'] as String?;
@@ -109,23 +105,49 @@ Future<int> _runWidgetThemeCommand({
     return ExitCodes.usage;
   }
   if (applyFile != null) {
-    await installer.applyWidgetThemeFromFile(component, applyFile);
-    return ExitCodes.success;
+    return _runThemeAction(
+      () => installer.applyWidgetThemeFromFile(component, applyFile),
+    );
   }
   if (applyUrl != null) {
-    await installer.applyWidgetThemeFromUrl(component, applyUrl);
-    return ExitCodes.success;
+    return _runThemeAction(
+      () => installer.applyWidgetThemeFromUrl(component, applyUrl),
+    );
   }
 
   if (widgetCommand['reset'] == true) {
-    await installer.resetWidgetTheme(component);
-    return ExitCodes.success;
+    return _runThemeAction(() => installer.resetWidgetTheme(component));
   }
 
   stderr.writeln(
     'Error: No widget theme action provided. Use --list-targets, --apply-file, --apply-url, or --reset.',
   );
   return ExitCodes.usage;
+}
+
+Future<int> _runThemeAction(Future<void> Function() action) async {
+  try {
+    await action();
+    return ExitCodes.success;
+  } on UnsupportedError catch (error) {
+    stderr.writeln('Error: ${error.message}');
+    return ExitCodes.validationFailed;
+  } on FormatException catch (error) {
+    stderr.writeln('Error: ${error.message}');
+    return ExitCodes.validationFailed;
+  } catch (error) {
+    stderr.writeln('Error: ${_formatThemeError(error)}');
+    return ExitCodes.validationFailed;
+  }
+}
+
+String _formatThemeError(Object error) {
+  final message = error.toString();
+  const exceptionPrefix = 'Exception: ';
+  if (message.startsWith(exceptionPrefix)) {
+    return message.substring(exceptionPrefix.length);
+  }
+  return message;
 }
 
 void _printThemeHelp({required bool advanced}) {
@@ -146,8 +168,8 @@ void _printThemeHelp({required bool advanced}) {
   print('  --refresh          Refresh theme cache');
   print('  --apply, -a <id>   Apply the preset with the given ID');
   if (advanced) {
-    print('  --apply-file       Apply a theme JSON file');
-    print('  --apply-url        Apply a theme JSON URL');
+    print('  --apply-file       Apply a declarative theme manifest file');
+    print('  --apply-url        Apply a declarative theme manifest URL');
   }
   print('  --help, -h         Show this message');
 }

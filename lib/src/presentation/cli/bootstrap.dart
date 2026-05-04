@@ -1,5 +1,4 @@
 import 'dart:io';
-import 'dart:async';
 import 'package:args/args.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_shadcn_cli/src/installer.dart';
@@ -10,7 +9,6 @@ import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/core/utils/path_utils.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
-import 'package:flutter_shadcn_cli/src/version_manager.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/cli_parser.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/command_dispatcher.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/add_command.dart';
@@ -115,19 +113,6 @@ Future<void> runCliBootstrap(List<String> arguments) async {
         registryUrlOverride?.isNotEmpty == true ? registryUrlOverride : null,
   );
   try {
-    // Auto-check for updates (rate-limited to once per 24 hours)
-    // Skip for version and upgrade commands to avoid recursion
-    final shouldCheckUpdates = config.checkUpdates ?? true;
-    final commandName = argResults.command?.name;
-    if (shouldCheckUpdates &&
-        !offline &&
-        commandName != 'version' &&
-        commandName != 'upgrade') {
-      final versionMgr = VersionManager(logger: logger);
-      // Run in background without blocking
-      unawaited(versionMgr.autoCheckForUpdates());
-    }
-
     final routeDecision = await resolveBootstrapRouteDecision(
       argResults: argResults,
       config: config,
@@ -221,8 +206,6 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             registryBaseUrlOverride: preloadedSelection?.sourceRoot.root,
             themesPathOverride: preloadedSelection?.themesPath,
             themesSchemaPathOverride: preloadedSelection?.themesSchemaPath,
-            themeConverterDartPathOverride:
-                preloadedSelection?.themeConverterDartPath,
             enableSharedGroups:
                 preloadedSelection?.capabilitySharedGroups ?? true,
             enableComposites: preloadedSelection?.capabilityComposites ?? true,
@@ -530,7 +513,8 @@ Future<List<Map<String, dynamic>>> _selectProjectRefreshGroups(
   if (description != null && description.isNotEmpty) {
     stdout.writeln(description);
   }
-  stdout.writeln('Select groups (comma-separated numbers, Enter for defaults):');
+  stdout
+      .writeln('Select groups (comma-separated numbers, Enter for defaults):');
   for (var i = 0; i < groups.length; i++) {
     final group = groups[i];
     final suffix = group['default'] == false ? '' : ' [default]';

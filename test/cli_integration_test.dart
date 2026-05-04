@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:crypto/crypto.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -288,6 +289,101 @@ void main() {
       expect(advancedHelp.exitCode, ExitCodes.success);
       expect(advancedHelp.stdout, contains('--apply-file'));
       expect(advancedHelp.stdout, contains('--apply-url'));
+    });
+
+    test('theme --apply-file installs a declarative manifest in advanced mode',
+        () async {
+      final artifactFile = File(
+        p.join(
+          registryRoot.path,
+          'shared',
+          'theme',
+          '_impl',
+          'core',
+          'generated_cli_theme.dart',
+        ),
+      )..createSync(recursive: true);
+      artifactFile.writeAsStringSync(
+        "const generatedCliTheme = 'cli-theme';\n",
+      );
+      final digest = sha256.convert(artifactFile.readAsBytesSync()).toString();
+
+      final manifestFile = File(p.join(appRoot.path, 'cli-theme.json'))
+        ..writeAsStringSync(
+          jsonEncode({
+            'id': 'cli-theme',
+            'name': 'CLI Theme',
+            'files': [
+              {
+                'source':
+                    'registry/shared/theme/_impl/core/generated_cli_theme.dart',
+                'target':
+                    '{sharedPath}/theme/_impl/core/generated_cli_theme.dart',
+                'sha256': digest,
+              }
+            ],
+          }),
+        );
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          '--registry-path',
+          registryRoot.path,
+          'theme',
+          '--apply-file',
+          manifestFile.path,
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.success);
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'shared',
+            'theme',
+            '_impl',
+            'core',
+            'generated_cli_theme.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+      final config = await ShadcnConfig.load(appRoot.path);
+      expect(config.themeId, 'cli-theme');
+    });
+
+    test('theme --apply-file rejects raw preset payloads', () async {
+      final payloadFile = File(p.join(appRoot.path, 'legacy-theme.json'))
+        ..writeAsStringSync(
+          jsonEncode({
+            'id': 'legacy-theme',
+            'light': {'primary': '0xFFFFFFFF'},
+            'dark': {'primary': '0xFF000000'},
+          }),
+        );
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          '--registry-path',
+          registryRoot.path,
+          'theme',
+          '--apply-file',
+          payloadFile.path,
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.validationFailed);
+      expect(result.stderr, contains('declarative theme manifest'));
     });
 
     test('developer registry override requires advanced mode', () async {
@@ -1474,49 +1570,44 @@ void main() {
       expect(exitCode, ExitCodes.success);
     });
 
-    test('theme widget apply/reset is namespace-aware', () async {
+    test('theme widget commands fail explicitly without runtime execution',
+        () async {
       _writeWidgetThemeHostFiles(appRoot, 'lib/ui/shadcn');
-      _writeWidgetThemeHostFiles(appRoot, 'lib/ui/alt');
 
       final payloadFile = File(p.join(appRoot.path, 'button_theme.json'))
-        ..writeAsStringSync(jsonEncode({'target': 'PrimaryButtonTheme'}));
+        ..writeAsStringSync(
+          jsonEncode({
+            'name': 'button-theme',
+            'label': 'Button Theme',
+            'files': [
+              {
+                'source': 'https://example.com/button_theme.dart',
+                'target':
+                    'lib/ui/shadcn/components/button/generated_button_theme.dart',
+                'sha256':
+                    '0000000000000000000000000000000000000000000000000000000000000000',
+              }
+            ],
+          }),
+        );
 
-      File(p.join(appRoot.path, '.shadcn', 'config.json')).writeAsStringSync(
-        jsonEncode({
-          'defaultNamespace': 'shadcn',
-          'registries': {
-            'shadcn': {
-              'registryMode': 'local',
-              'registryPath': registryRoot.path,
-              'installPath': 'lib/ui/shadcn',
-              'sharedPath': 'lib/ui/shadcn/shared',
-              'themeConverterDartPath':
-                  'registry/manifests/theme_converter.dart',
-              'enabled': true
-            },
-            'alt': {
-              'registryMode': 'local',
-              'registryPath': registryRoot.path,
-              'installPath': 'lib/ui/alt',
-              'sharedPath': 'lib/ui/alt/shared',
-              'themeConverterDartPath':
-                  'registry/manifests/theme_converter.dart',
-              'enabled': true
-            }
-          }
-        }),
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          '--registry-path',
+          registryRoot.path,
+          'theme',
+          '@shadcn',
+          'widget',
+          'button',
+          '--apply-file',
+          payloadFile.path,
+        ],
       );
-
-      await cli.main([
-        '--advanced',
-        'theme',
-        '@shadcn',
-        'widget',
-        'button',
-        '--apply-file',
-        payloadFile.path,
-      ]);
-      expect(exitCode, ExitCodes.success);
+      expect(result.exitCode, ExitCodes.validationFailed);
+      expect(result.stderr, contains('experimental'));
 
       final shadcnHost = File(
         p.join(
@@ -1529,58 +1620,9 @@ void main() {
           'button_theme_host.dart',
         ),
       );
-      final altHost = File(
-        p.join(
-          appRoot.path,
-          'lib',
-          'ui',
-          'alt',
-          'components',
-          'button',
-          'button_theme_host.dart',
-        ),
-      );
       expect(
         shadcnHost.readAsStringSync(),
-        contains("const buttonThemeTarget = 'PrimaryButtonTheme';"),
-      );
-      expect(
-        altHost.readAsStringSync(),
         contains("const buttonThemeTarget = '__BUTTON_THEME_TARGET__';"),
-      );
-
-      exitCode = 0;
-      await cli.main([
-        '--advanced',
-        'theme',
-        '@alt',
-        'widget',
-        'button',
-        '--apply-file',
-        payloadFile.path,
-      ]);
-      expect(exitCode, ExitCodes.success);
-      expect(
-        altHost.readAsStringSync(),
-        contains("const buttonThemeTarget = 'PrimaryButtonTheme';"),
-      );
-
-      exitCode = 0;
-      await cli.main([
-        'theme',
-        '@alt',
-        'widget',
-        'button',
-        '--reset',
-      ]);
-      expect(exitCode, ExitCodes.success);
-      expect(
-        altHost.readAsStringSync(),
-        contains("const buttonThemeTarget = '__BUTTON_THEME_TARGET__';"),
-      );
-      expect(
-        shadcnHost.readAsStringSync(),
-        contains("const buttonThemeTarget = 'PrimaryButtonTheme';"),
       );
     });
   });

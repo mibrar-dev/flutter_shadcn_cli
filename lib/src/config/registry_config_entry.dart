@@ -13,7 +13,6 @@ class RegistryConfigEntry {
   final String? themesSchemaPath;
   final String? folderStructurePath;
   final String? metaPath;
-  final String? themeConverterDartPath;
   final String? installPath;
   final String? sharedPath;
   final bool? includeReadme;
@@ -41,7 +40,8 @@ class RegistryConfigEntry {
     this.themesSchemaPath,
     this.folderStructurePath,
     this.metaPath,
-    this.themeConverterDartPath,
+    @Deprecated('themeConverterDartPath is no longer supported.')
+    String? themeConverterDartPath,
     this.installPath,
     this.sharedPath,
     this.includeReadme,
@@ -71,7 +71,6 @@ class RegistryConfigEntry {
       themesSchemaPath: json['themesSchemaPath'] as String?,
       folderStructurePath: json['folderStructurePath'] as String?,
       metaPath: json['metaPath'] as String?,
-      themeConverterDartPath: json['themeConverterDartPath'] as String?,
       installPath: json['installPath'] as String?,
       sharedPath: json['sharedPath'] as String?,
       includeReadme: json['includeReadme'] as bool?,
@@ -108,7 +107,6 @@ class RegistryConfigEntry {
     add('themesSchemaPath', themesSchemaPath);
     add('folderStructurePath', folderStructurePath);
     add('metaPath', metaPath);
-    add('themeConverterDartPath', themeConverterDartPath);
     add('installPath', installPath);
     add('sharedPath', sharedPath);
     add('includeReadme', includeReadme);
@@ -137,6 +135,7 @@ class RegistryConfigEntry {
     Object? themesSchemaPath = _copyWithUnset,
     Object? folderStructurePath = _copyWithUnset,
     Object? metaPath = _copyWithUnset,
+    @Deprecated('themeConverterDartPath is no longer supported.')
     Object? themeConverterDartPath = _copyWithUnset,
     Object? installPath = _copyWithUnset,
     Object? sharedPath = _copyWithUnset,
@@ -167,8 +166,6 @@ class RegistryConfigEntry {
       folderStructurePath:
           _copyWithValue(folderStructurePath, this.folderStructurePath),
       metaPath: _copyWithValue(metaPath, this.metaPath),
-      themeConverterDartPath:
-          _copyWithValue(themeConverterDartPath, this.themeConverterDartPath),
       installPath: _copyWithValue(installPath, this.installPath),
       sharedPath: _copyWithValue(sharedPath, this.sharedPath),
       includeReadme: _copyWithValue(includeReadme, this.includeReadme),
@@ -204,4 +201,9 @@ List<String>? _stringListOrNull(dynamic raw) {
       .where((item) => item.isNotEmpty)
       .toList();
   return values.isEmpty ? null : values;
+}
+
+extension RegistryConfigEntryThemeConverterCompat on RegistryConfigEntry {
+  @Deprecated('themeConverterDartPath is no longer supported.')
+  String? get themeConverterDartPath => null;
 }

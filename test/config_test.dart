@@ -137,4 +137,27 @@ void main() {
     expect(cleared.includeFiles, isNull);
     expect(cleared.excludeFiles, isNull);
   });
+
+  test('registry entry ignores legacy theme converter path during json mapping',
+      () {
+    final entry = RegistryConfigEntry.fromJson({
+      'themesPath': 'registry/manifests/theme.index.json',
+      'themesSchemaPath': 'registry/manifests/themes.index.schema.json',
+      'themeConverterDartPath': 'registry/manifests/theme_converter.dart',
+    });
+
+    expect(entry.themesPath, 'registry/manifests/theme.index.json');
+    expect(
+      entry.themesSchemaPath,
+      'registry/manifests/themes.index.schema.json',
+    );
+    expect(entry.themeConverterDartPath, isNull);
+    expect(entry.toJson().containsKey('themeConverterDartPath'), isFalse);
+
+    final copied = entry.copyWith(
+      themeConverterDartPath: 'registry/ignored.dart',
+    );
+    expect(copied.themeConverterDartPath, isNull);
+    expect(copied.toJson().containsKey('themeConverterDartPath'), isFalse);
+  });
 }

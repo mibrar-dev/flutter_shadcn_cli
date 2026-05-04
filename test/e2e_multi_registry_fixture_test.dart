@@ -23,7 +23,8 @@ void main() {
         [
           'name: fixture_app',
           'dependencies:',
-          '  flutter: sdk: flutter',
+          '  flutter:',
+          '    sdk: flutter',
         ].join('\n'),
       );
       Directory(p.join(appRoot.path, '.shadcn')).createSync(recursive: true);

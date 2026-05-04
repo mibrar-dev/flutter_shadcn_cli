@@ -255,18 +255,6 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       logger: logger,
       cacheRootPath: cacheRoot,
     );
-    final presetLoader = ThemePresetLoader(
-      registryId: registryId,
-      registryBaseUrl: registryEntry.baseUrl,
-      themesPath: themesPath,
-      themesSchemaPath: registryEntry.themesSchemaPath,
-      themeConverterDartPath: registryEntry.themeConverterDartPath,
-      refresh: false,
-      offline: offline,
-      logger: logger,
-      cacheRootPath: cacheRoot,
-    );
-
     final indexData = await indexLoader.load();
     final entries = indexLoader.entriesFrom(indexData);
     if (entries.isEmpty) {
@@ -283,7 +271,6 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       return;
     }
 
-    final preset = await presetLoader.loadPreset(selected);
     final source = await _resolveSourceForNamespace(
       namespace,
       config,
@@ -299,15 +286,13 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       sharedPathOverride: source.sharedRoot,
       stateNamespace: namespace,
       registryNamespace: namespace,
+      registryBaseUrlOverride: registryEntry.baseUrl,
+      themesPathOverride: themesPath,
+      themesSchemaPathOverride: registryEntry.themesSchemaPath,
       enableSharedGroups: registryEntry.capabilities.sharedGroups,
       enableComposites: registryEntry.capabilities.composites,
     );
-    await installer.applyThemeFromJson({
-      'id': preset.id,
-      'name': preset.name,
-      'light': preset.light,
-      'dark': preset.dark,
-    });
+    await installer.applyThemeById(selected.id);
   }
 
   Future<bool> _shouldRunOptionalInitAction({
@@ -353,7 +338,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     if (description != null && description.isNotEmpty) {
       stdout.writeln(description);
     }
-    stdout.writeln('Select groups (comma-separated numbers, Enter for defaults):');
+    stdout.writeln(
+        'Select groups (comma-separated numbers, Enter for defaults):');
     for (var i = 0; i < groups.length; i++) {
       final group = groups[i];
       final suffix = group['default'] == false ? '' : ' [default]';
