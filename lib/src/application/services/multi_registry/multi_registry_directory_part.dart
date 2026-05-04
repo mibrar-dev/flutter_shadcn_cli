@@ -282,16 +282,15 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     );
 
     config = await _upsertConfigFromDirectory(config, directoryEntry);
-    final existing = config.registryConfig(trimmed) ?? const RegistryConfigEntry();
+    final existing =
+        config.registryConfig(trimmed) ?? const RegistryConfigEntry();
     final localEntry = existing.copyWith(
       registryMode: 'local',
       registryPath: trimmedRegistryPath,
       registryUrl: null,
       enabled: true,
     );
-    config = config
-        .withRegistry(trimmed, localEntry)
-        .copyWith(
+    config = config.withRegistry(trimmed, localEntry).copyWith(
           defaultNamespace: trimmed,
           registriesPath: trimmedRegistriesPath,
           registryMode: 'local',
@@ -328,7 +327,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     );
 
     config = await _upsertConfigFromDirectory(config, directoryEntry);
-    final existing = config.registryConfig(trimmed) ?? const RegistryConfigEntry();
+    final existing =
+        config.registryConfig(trimmed) ?? const RegistryConfigEntry();
     final remoteEntry = existing.copyWith(
       registryMode: 'remote',
       registryPath: null,
@@ -336,9 +336,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       baseUrl: directoryEntry.baseUrl,
       enabled: true,
     );
-    config = config
-        .withRegistry(trimmed, remoteEntry)
-        .copyWith(
+    config = config.withRegistry(trimmed, remoteEntry).copyWith(
           defaultNamespace: trimmed,
           registriesPath: null,
           registryMode: 'remote',
@@ -605,11 +603,11 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     if ((configEntry?.registryMode == 'local' || configuredPath != null) &&
         configuredPath != null &&
         configuredPath.isNotEmpty) {
-      return _localOverrideSourceRoot(configuredPath);
+      return _resolveLocalOverridePath(configuredPath);
     }
     final path = registryPathOverride?.trim();
     if (path != null && path.isNotEmpty) {
-      return _localOverrideSourceRoot(path);
+      return _resolveLocalOverridePath(path);
     }
     final url = registryUrlOverride?.trim();
     if (url != null && url.isNotEmpty) {

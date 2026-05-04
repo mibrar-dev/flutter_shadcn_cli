@@ -114,6 +114,9 @@ class ThemePresetLoader {
   }
 
   Future<ThemePresetManifest> loadManifest(ThemeIndexEntry entry) async {
+    if (entry.files.isNotEmpty) {
+      return _parseManifest(entry.toJson(), entry);
+    }
     final data = await _loadEntryJson(entry);
     await _validatePresetSchema(data);
     return _parseManifest(data, entry);
@@ -138,6 +141,13 @@ class ThemePresetLoader {
   }
 
   Future<Map<String, dynamic>> _loadEntryJson(ThemeIndexEntry entry) async {
+    if (entry.file.trim().isEmpty) {
+      if (entry.files.isNotEmpty) {
+        return entry.toJson();
+      }
+      throw Exception(
+          'Theme entry "${entry.id}" does not define file or files.');
+    }
     final cacheFile = _manifestCacheFile(entry.id);
 
     if (offline && cacheFile.existsSync()) {

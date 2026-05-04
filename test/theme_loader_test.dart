@@ -71,7 +71,14 @@ void main() {
             {
               'id': 'amber-minimal',
               'name': 'Amber Minimal',
-              'file': 'themes_preset/amber-minimal.json',
+              'files': [
+                {
+                  'source':
+                      'shared/theme/generated/amber-minimal/preset_themes.dart',
+                  'target': '{sharedPath}/theme/preset_themes.dart',
+                  'sha256': 'a' * 64,
+                }
+              ],
             }
           ]
         }),
@@ -88,7 +95,45 @@ void main() {
       final entries = loader.entriesFrom(data);
       expect(entries.length, 1);
       expect(entries.first.id, 'amber-minimal');
-      expect(entries.first.file, 'themes_preset/amber-minimal.json');
+      expect(entries.first.file, isEmpty);
+      expect(entries.first.files.single['target'],
+          '{sharedPath}/theme/preset_themes.dart');
+    });
+
+    test('ThemePresetLoader reads declarative file entries from theme index',
+        () async {
+      final loader = ThemePresetLoader(
+        registryId: 'theme_preset_index_entry_test',
+        registryBaseUrl: Directory.systemTemp.path,
+        themesPath: 'registry/manifests/theme.index.json',
+      );
+
+      final manifest = await loader.loadManifest(
+        ThemeIndexEntry(
+          id: 'amber-minimal',
+          name: 'Amber Minimal',
+          files: [
+            {
+              'source':
+                  'shared/theme/generated/amber-minimal/preset_themes.dart',
+              'target': '{sharedPath}/theme/preset_themes.dart',
+              'sha256': 'b' * 64,
+            },
+            {
+              'source':
+                  'shared/theme/generated/amber-minimal/app_theme_preset.dart',
+              'target': '{sharedPath}/theme/app_theme_preset.dart',
+              'sha256': 'c' * 64,
+            },
+          ],
+        ),
+      );
+
+      expect(manifest.id, 'amber-minimal');
+      expect(manifest.name, 'Amber Minimal');
+      expect(manifest.files, hasLength(2));
+      expect(manifest.files.last.source, contains('app_theme_preset.dart'));
+      expect(manifest.files.last.sha256, 'c' * 64);
     });
 
     test(

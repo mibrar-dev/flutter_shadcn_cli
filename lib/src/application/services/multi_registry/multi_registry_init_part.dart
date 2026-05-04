@@ -240,7 +240,11 @@ extension MultiRegistryInitPart on MultiRegistryManager {
         return;
       }
 
-      final registryId = _themeRegistryId(namespace, registryEntry.baseUrl);
+      final themeRegistryBaseUrl = _inlineActionBaseUrl(
+        entry: registryEntry,
+        configEntry: config.registryConfig(namespace),
+      );
+      final registryId = _themeRegistryId(namespace, themeRegistryBaseUrl);
       final cacheRoot = ProjectPathGuard.resolveSafeWritePath(
         projectRoot: projectRoot,
         destinationRelativePath:
@@ -248,7 +252,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       );
       final indexLoader = ThemeIndexLoader(
         registryId: registryId,
-        registryBaseUrl: registryEntry.baseUrl,
+        registryBaseUrl: themeRegistryBaseUrl,
         themesPath: themesPath,
         themesSchemaPath: registryEntry.themesSchemaPath,
         refresh: false,
@@ -287,7 +291,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
         sharedPathOverride: source.sharedRoot,
         stateNamespace: namespace,
         registryNamespace: namespace,
-        registryBaseUrlOverride: registryEntry.baseUrl,
+        registryBaseUrlOverride: themeRegistryBaseUrl,
         themesPathOverride: themesPath,
         themesSchemaPathOverride: registryEntry.themesSchemaPath,
         enableSharedGroups: registryEntry.capabilities.sharedGroups,

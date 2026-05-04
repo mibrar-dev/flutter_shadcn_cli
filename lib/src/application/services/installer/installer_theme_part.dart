@@ -256,6 +256,9 @@ extension InstallerThemePart on Installer {
     required _ResolvedThemeRegistry resolved,
     required ThemeIndexEntry entry,
   }) async {
+    if (entry.files.isNotEmpty) {
+      return _parseThemeArtifactManifest(entry.toJson());
+    }
     final presetLoader = _buildThemePresetLoader(resolved, refresh: false);
     final manifestFile = await presetLoader.cachePresetJson(entry);
     final content = await manifestFile.readAsString();
