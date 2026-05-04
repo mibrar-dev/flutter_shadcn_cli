@@ -88,7 +88,8 @@ Future<void> runCliBootstrap(List<String> arguments) async {
   final logger = CliLogger(verbose: verbose);
   var config = await ShadcnConfig.load(targetDir);
   final registriesPath =
-      optionalStringOption(argResults, 'registries-path')?.trim();
+      optionalStringOption(argResults, 'registries-path')?.trim() ??
+          config.registriesPath?.trim();
   final registryPathOverride =
       optionalStringOption(argResults, 'registry-path')?.trim();
   final registryUrlOverride =

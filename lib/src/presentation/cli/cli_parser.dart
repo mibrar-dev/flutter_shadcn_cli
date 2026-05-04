@@ -209,7 +209,18 @@ ArgParser buildCliParser() {
     )
     ..addCommand(
       'default',
-      ArgParser()..addFlag('help', abbr: 'h', negatable: false),
+      ArgParser()
+        ..addFlag(
+          'local',
+          negatable: false,
+          help: 'Persist a local development registry for the namespace',
+        )
+        ..addFlag(
+          'remote',
+          negatable: false,
+          help: 'Switch the namespace back to the published remote registry',
+        )
+        ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
       'list',

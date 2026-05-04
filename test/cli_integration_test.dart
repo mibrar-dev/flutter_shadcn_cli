@@ -913,6 +913,101 @@ void main() {
     });
 
     test(
+        'init without flags uses persisted local registry mode from config',
+        () async {
+      final fixture = jsonDecode(
+        File(
+          p.join(
+            originalCwd.path,
+            'test',
+            'fixtures',
+            'registry_inline_init_entry.json',
+          ),
+        ).readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        Map<String, dynamic>.from(fixture)
+          ..['install'] = {
+            ...((fixture['install'] as Map?)?.cast<String, dynamic>() ??
+                const <String, dynamic>{}),
+            'namespace': 'shadcn',
+          }
+          ..['paths'] = {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json',
+          },
+      ]);
+
+      File(
+        p.join(registryRoot.path, 'shared', 'theme', 'color_scheme.dart'),
+      )
+        ..createSync(recursive: true)
+        ..writeAsStringSync('class AppColorScheme {}');
+      File(
+        p.join(registryRoot.path, 'components', 'index.json'),
+      )
+        ..createSync(recursive: true)
+        ..writeAsStringSync(
+          jsonEncode({
+            'files': ['registry/components/button/button.dart'],
+          }),
+        );
+
+      await ShadcnConfig.save(
+        appRoot.path,
+        ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          registriesPath: registriesPath,
+          registries: {
+            'shadcn': RegistryConfigEntry(
+              registryMode: 'local',
+              registryPath: registryRoot.path,
+              installPath: 'lib/ui/shadcn',
+              sharedPath: 'lib/ui/shadcn/shared',
+              enabled: true,
+            ),
+          },
+        ),
+      );
+
+      await cli.main([
+        '--advanced',
+        '--offline',
+        'init',
+        '--yes',
+      ]);
+
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'button',
+            'button.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'shared',
+            'theme',
+            'color_scheme.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test(
         'registries schema accepts deprecated themeConverterDart path during directory load',
         () async {
       final fixture = jsonDecode(

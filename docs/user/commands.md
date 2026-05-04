@@ -253,11 +253,13 @@ Options:
 
 ## `default`
 
-Shows or sets the default registry namespace.
+Shows or sets the default registry namespace and source mode.
 
 ```bash
 flutter_shadcn default
 flutter_shadcn default shadcn
+flutter_shadcn --advanced default shadcn --local
+flutter_shadcn --advanced default shadcn --remote
 ```
 
 The default namespace is used when a component name is unqualified and not ambiguous.

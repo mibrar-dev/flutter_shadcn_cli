@@ -26,6 +26,7 @@ class ShadcnConfig {
   final String? classPrefix;
   final String? themeId;
   final String? registryMode;
+  final String? registriesPath;
   final String? registryPath;
   final String? registryUrl;
   final String? installPath;
@@ -45,6 +46,7 @@ class ShadcnConfig {
     this.classPrefix,
     this.themeId,
     this.registryMode,
+    this.registriesPath,
     this.registryPath,
     this.registryUrl,
     this.installPath,
@@ -74,6 +76,7 @@ class ShadcnConfig {
       themeId: json['themeId'] as String?,
       registryMode:
           json['registryMode'] as String? ?? activeRegistry?.registryMode,
+      registriesPath: json['registriesPath'] as String?,
       registryPath:
           json['registryPath'] as String? ?? activeRegistry?.registryPath,
       registryUrl: json['registryUrl'] as String? ??
@@ -122,6 +125,7 @@ class ShadcnConfig {
     add('classPrefix', classPrefix);
     add('themeId', themeId);
     add('registryMode', registryMode);
+    add('registriesPath', registriesPath);
     add('registryPath', registryPath);
     add('registryUrl', registryUrl);
     add('installPath', installPath);
@@ -167,6 +171,7 @@ class ShadcnConfig {
       defaultNamespace: defaultNs,
       registries: next,
       registryMode: active?.registryMode ?? registryMode,
+      registriesPath: registriesPath,
       registryPath: active?.registryPath ?? registryPath,
       registryUrl: active?.registryUrl ?? active?.baseUrl ?? registryUrl,
       installPath: active?.installPath ?? installPath,
@@ -229,6 +234,7 @@ class ShadcnConfig {
     Object? classPrefix = _copyWithUnset,
     Object? themeId = _copyWithUnset,
     Object? registryMode = _copyWithUnset,
+    Object? registriesPath = _copyWithUnset,
     Object? registryPath = _copyWithUnset,
     Object? registryUrl = _copyWithUnset,
     Object? installPath = _copyWithUnset,
@@ -248,6 +254,7 @@ class ShadcnConfig {
       classPrefix: _copyWithValue(classPrefix, this.classPrefix),
       themeId: _copyWithValue(themeId, this.themeId),
       registryMode: _copyWithValue(registryMode, this.registryMode),
+      registriesPath: _copyWithValue(registriesPath, this.registriesPath),
       registryPath: _copyWithValue(registryPath, this.registryPath),
       registryUrl: _copyWithValue(registryUrl, this.registryUrl),
       installPath: _copyWithValue(installPath, this.installPath),

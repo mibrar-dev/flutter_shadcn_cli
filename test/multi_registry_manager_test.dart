@@ -177,6 +177,46 @@ void main() {
       );
     });
 
+    test('configureDefaultRegistryLocal persists local registry settings',
+        () async {
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        _inlineRegistryEntry(
+          baseUrl: 'https://example.com/remote/',
+          actions: const [
+            {
+              'type': 'ensureDirs',
+              'dirs': ['lib/ui/shadcn'],
+            },
+          ],
+        ),
+      ]);
+
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: true,
+        logger: CliLogger(),
+      );
+
+      final next = await manager.configureDefaultRegistryLocal(
+        'shadcn',
+        registriesPath: registriesPath,
+        registryPath: p.join(registryBaseA.path, 'registry'),
+      );
+
+      expect(next.effectiveDefaultNamespace, 'shadcn');
+      expect(next.registriesPath, registriesPath);
+      expect(next.registryMode, 'local');
+      expect(next.registryPath, p.join(registryBaseA.path, 'registry'));
+
+      final persisted = await ShadcnConfig.load(appRoot.path);
+      final entry = persisted.registryConfig('shadcn');
+      expect(persisted.registriesPath, registriesPath);
+      expect(entry?.registryMode, 'local');
+      expect(entry?.registryPath, p.join(registryBaseA.path, 'registry'));
+      expect(entry?.installPath, 'lib/ui/shadcn');
+      expect(entry?.sharedPath, 'lib/ui/shadcn/shared');
+    });
+
     test('registry path override is used as current-engine source', () async {
       final overrideBase = Directory(p.join(tempRoot.path, 'reg_override'))
         ..createSync();

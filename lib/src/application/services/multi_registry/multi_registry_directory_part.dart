@@ -247,6 +247,110 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     return config;
   }
 
+  Future<ShadcnConfig> configureDefaultRegistryLocal(
+    String namespace, {
+    required String registriesPath,
+    required String registryPath,
+  }) async {
+    final trimmed = namespace.trim();
+    final trimmedRegistriesPath = registriesPath.trim();
+    final trimmedRegistryPath = registryPath.trim();
+    if (trimmed.isEmpty) {
+      throw MultiRegistryException('Registry namespace cannot be empty.');
+    }
+    if (trimmedRegistriesPath.isEmpty) {
+      throw MultiRegistryException('Registries path cannot be empty.');
+    }
+    if (trimmedRegistryPath.isEmpty) {
+      throw MultiRegistryException('Registry path cannot be empty.');
+    }
+
+    final projectRoot = findProjectRootFrom(targetDir);
+    var config = await ShadcnConfig.load(projectRoot);
+    final directory = await directoryClient.load(
+      projectRoot: projectRoot,
+      directoryPath: trimmedRegistriesPath,
+      offline: offline,
+      currentCliVersion: VersionManager.currentVersion,
+      logger: logger,
+    );
+    final directoryEntry = directory.registries.firstWhere(
+      (item) => item.namespace == trimmed,
+      orElse: () => throw MultiRegistryException(
+        'Registry namespace "$trimmed" not found in $trimmedRegistriesPath.',
+      ),
+    );
+
+    config = await _upsertConfigFromDirectory(config, directoryEntry);
+    final existing = config.registryConfig(trimmed) ?? const RegistryConfigEntry();
+    final localEntry = existing.copyWith(
+      registryMode: 'local',
+      registryPath: trimmedRegistryPath,
+      registryUrl: null,
+      enabled: true,
+    );
+    config = config
+        .withRegistry(trimmed, localEntry)
+        .copyWith(
+          defaultNamespace: trimmed,
+          registriesPath: trimmedRegistriesPath,
+          registryMode: 'local',
+          registryPath: trimmedRegistryPath,
+          registryUrl: null,
+          installPath: localEntry.installPath ?? config.installPath,
+          sharedPath: localEntry.sharedPath ?? config.sharedPath,
+        );
+    await ShadcnConfig.save(projectRoot, config);
+    return config;
+  }
+
+  Future<ShadcnConfig> configureDefaultRegistryRemote(String namespace) async {
+    final trimmed = namespace.trim();
+    if (trimmed.isEmpty) {
+      throw MultiRegistryException('Registry namespace cannot be empty.');
+    }
+
+    final projectRoot = findProjectRootFrom(targetDir);
+    var config = await ShadcnConfig.load(projectRoot);
+    final directory = await directoryClient.load(
+      projectRoot: projectRoot,
+      directoryUrl: defaultRegistriesDirectoryUrl,
+      directoryPath: null,
+      offline: offline,
+      currentCliVersion: VersionManager.currentVersion,
+      logger: logger,
+    );
+    final directoryEntry = directory.registries.firstWhere(
+      (item) => item.namespace == trimmed,
+      orElse: () => throw MultiRegistryException(
+        'Registry namespace "$trimmed" not found.',
+      ),
+    );
+
+    config = await _upsertConfigFromDirectory(config, directoryEntry);
+    final existing = config.registryConfig(trimmed) ?? const RegistryConfigEntry();
+    final remoteEntry = existing.copyWith(
+      registryMode: 'remote',
+      registryPath: null,
+      registryUrl: directoryEntry.baseUrl,
+      baseUrl: directoryEntry.baseUrl,
+      enabled: true,
+    );
+    config = config
+        .withRegistry(trimmed, remoteEntry)
+        .copyWith(
+          defaultNamespace: trimmed,
+          registriesPath: null,
+          registryMode: 'remote',
+          registryPath: null,
+          registryUrl: directoryEntry.baseUrl,
+          installPath: remoteEntry.installPath ?? config.installPath,
+          sharedPath: remoteEntry.sharedPath ?? config.sharedPath,
+        );
+    await ShadcnConfig.save(projectRoot, config);
+    return config;
+  }
+
   Future<Registry> _loadRegistryForSource(
     RegistrySource source, {
     required String projectRoot,
@@ -497,9 +601,15 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     required RegistryDirectoryEntry entry,
     required RegistryConfigEntry? configEntry,
   }) {
+    final configuredPath = configEntry?.registryPath?.trim();
+    if ((configEntry?.registryMode == 'local' || configuredPath != null) &&
+        configuredPath != null &&
+        configuredPath.isNotEmpty) {
+      return _localOverrideSourceRoot(configuredPath);
+    }
     final path = registryPathOverride?.trim();
     if (path != null && path.isNotEmpty) {
-      return _resolveLocalOverridePath(path);
+      return _localOverrideSourceRoot(path);
     }
     final url = registryUrlOverride?.trim();
     if (url != null && url.isNotEmpty) {

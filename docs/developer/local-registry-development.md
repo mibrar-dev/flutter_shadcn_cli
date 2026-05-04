@@ -73,6 +73,25 @@ If your registry uses a custom path, set it in the registry directory entry unde
 
 ## Testing a Local Registry
 
+Persist local development mode once:
+
+```bash
+flutter_shadcn --advanced default shadcn --local
+```
+
+This prompts for:
+
+- the local `registries.json` path
+- the local registry root
+
+After that, regular commands use the saved local paths until you switch back:
+
+```bash
+flutter_shadcn init --yes
+flutter_shadcn add @shadcn/button
+flutter_shadcn --advanced default shadcn --remote
+```
+
 Use a local registry directory file:
 
 ```bash

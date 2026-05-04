@@ -15,7 +15,7 @@ Generated from CLI command metadata. Do not edit these files by hand.
 
 - [`flutter_shadcn init`](./project/init.md) - Initialize shadcn_flutter in the current project.
 - [`flutter_shadcn registries`](./project/registries.md) - List available and configured registries.
-- [`flutter_shadcn default`](./project/default.md) - Set or show the default registry namespace.
+- [`flutter_shadcn default`](./project/default.md) - Set or show the default registry namespace and source mode.
 - [`flutter_shadcn sync`](./project/sync.md) - Sync paths and theme from .shadcn/config.json.
 - [`flutter_shadcn project`](./project/project.md) - Project repair and cleanup commands.
 - [`flutter_shadcn assets`](./project/assets.md) - Install font and icon assets.

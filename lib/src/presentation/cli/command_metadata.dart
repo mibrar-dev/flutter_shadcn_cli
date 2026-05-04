@@ -306,9 +306,9 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
       ),
       CliCommandMeta(
         id: 'default',
-        description: 'Set or show the default registry namespace.',
+        description: 'Set or show the default registry namespace and source mode.',
         sortOrder: 30,
-        usage: 'flutter_shadcn default [namespace]',
+        usage: 'flutter_shadcn default [namespace] [--local | --remote]',
         arguments: [
           CliArgumentMeta(
             '[namespace]',
@@ -319,6 +319,8 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
         examples: [
           'flutter_shadcn default',
           'flutter_shadcn default shadcn',
+          'flutter_shadcn --advanced default shadcn --local',
+          'flutter_shadcn --advanced default shadcn --remote',
         ],
         seeAlso: ['registries', 'init'],
       ),

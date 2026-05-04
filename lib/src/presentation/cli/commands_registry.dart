@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
@@ -67,18 +69,72 @@ Future<({ShadcnConfig config, int exitCode})> runDefaultCommand({
   required ShadcnConfig config,
   required MultiRegistryManager multiRegistry,
 }) async {
+  final wantsLocal = command['local'] == true;
+  final wantsRemote = command['remote'] == true;
   if (command['help'] == true) {
-    print('Usage: flutter_shadcn default <namespace>');
+    print('Usage: flutter_shadcn default [namespace] [--local | --remote]');
     print('');
-    print('Sets the default registry namespace.');
+    print('Sets the default registry namespace and active source mode.');
+    print('');
+    print('Options:');
+    print('  --local            Persist local registry development paths');
+    print('  --remote           Switch back to the published remote registry');
     return (config: config, exitCode: ExitCodes.success);
   }
-  if (command.rest.isEmpty) {
+  if (wantsLocal && wantsRemote) {
+    print('Error: --local and --remote cannot be used together.');
+    return (config: config, exitCode: ExitCodes.usage);
+  }
+  final namespace = command.rest.isNotEmpty
+      ? command.rest.first.trim()
+      : config.effectiveDefaultNamespace;
+  if (!wantsLocal && !wantsRemote && command.rest.isEmpty) {
+    final current = config.registryConfig();
     print('Current default registry: ${config.effectiveDefaultNamespace}');
+    if (current?.registryMode != null) {
+      print('Mode: ${current!.registryMode}');
+    }
+    if (config.registriesPath?.trim().isNotEmpty == true) {
+      print('Registries path: ${config.registriesPath}');
+    }
+    if (current?.registryPath?.trim().isNotEmpty == true) {
+      print('Registry path: ${current!.registryPath}');
+    }
     return (config: config, exitCode: ExitCodes.success);
   }
-  final namespace = command.rest.first.trim();
   try {
+    if (wantsLocal) {
+      stdout.write('Path to local registries.json file or directory: ');
+      final registriesPath = stdin.readLineSync()?.trim() ?? '';
+      if (registriesPath.isEmpty) {
+        print('Error: registries path is required for local mode.');
+        return (config: config, exitCode: ExitCodes.usage);
+      }
+      stdout.write('Path to local registry root: ');
+      final registryPath = stdin.readLineSync()?.trim() ?? '';
+      if (registryPath.isEmpty) {
+        print('Error: registry path is required for local mode.');
+        return (config: config, exitCode: ExitCodes.usage);
+      }
+      final next = await multiRegistry.configureDefaultRegistryLocal(
+        namespace,
+        registriesPath: registriesPath,
+        registryPath: registryPath,
+      );
+      print(
+        'Default registry set to: ${next.effectiveDefaultNamespace} (local)',
+      );
+      return (config: next, exitCode: ExitCodes.success);
+    }
+    if (wantsRemote) {
+      final next = await multiRegistry.configureDefaultRegistryRemote(
+        namespace,
+      );
+      print(
+        'Default registry set to: ${next.effectiveDefaultNamespace} (remote)',
+      );
+      return (config: next, exitCode: ExitCodes.success);
+    }
     final next = await multiRegistry.setDefaultRegistry(namespace);
     print('Default registry set to: ${next.effectiveDefaultNamespace}');
     return (config: next, exitCode: ExitCodes.success);
