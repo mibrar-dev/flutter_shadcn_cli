@@ -36,9 +36,9 @@ class ThemeIndexLoader {
 
   Future<Map<String, dynamic>> load() async {
     final cacheFile = _getCacheFile();
+    final localPath = _resolveLocalPath();
 
     if (offline) {
-      final localPath = _resolveLocalPath();
       if (localPath != null) {
         final file = File(localPath);
         if (file.existsSync()) {
@@ -53,6 +53,17 @@ class ThemeIndexLoader {
         return data;
       }
       throw Exception('Offline mode: cached theme.index.json not found.');
+    }
+
+    if (localPath != null) {
+      final file = File(localPath);
+      if (!file.existsSync()) {
+        throw Exception('Theme index file not found: $localPath');
+      }
+      final data = await _parse(file);
+      await _validate(data);
+      await cacheFile.writeAsString(jsonEncode(data), flush: true);
+      return data;
     }
 
     final shouldRefresh = refresh || _isStale(cacheFile);
