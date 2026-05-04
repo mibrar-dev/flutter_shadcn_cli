@@ -11,7 +11,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       return directory.registries.firstWhere(
         (item) => item.namespace == trimmed,
       );
-    } catch (_) {
+    } on StateError {
       return null;
     }
   }
@@ -310,7 +310,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       directoryEntry = directory.registries.firstWhere(
         (item) => item.namespace == namespace,
       );
-    } catch (_) {
+    } on StateError {
       directoryEntry = null;
     }
 
@@ -499,7 +499,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
   }) {
     final path = registryPathOverride?.trim();
     if (path != null && path.isNotEmpty) {
-      return _localOverrideSourceRoot(path);
+      return _resolveLocalOverridePath(path);
     }
     final url = registryUrlOverride?.trim();
     if (url != null && url.isNotEmpty) {

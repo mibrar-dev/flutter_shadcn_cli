@@ -15,7 +15,7 @@ extension MultiRegistryAssetsPart on MultiRegistryManager {
       entry = directory.registries.firstWhere(
         (item) => item.namespace == namespace,
       );
-    } catch (_) {
+    } on StateError {
       return false;
     }
     if (!entry.hasInlineInit) {

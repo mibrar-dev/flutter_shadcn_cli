@@ -826,6 +826,136 @@ void main() {
     });
 
     test(
+        'init without namespace bootstraps shadcn from registries directory on a clean project',
+        () async {
+      final fixture = jsonDecode(
+        File(
+          p.join(
+            originalCwd.path,
+            'test',
+            'fixtures',
+            'registry_inline_init_entry.json',
+          ),
+        ).readAsStringSync(),
+      ) as Map<String, dynamic>;
+      File(p.join(appRoot.path, '.shadcn', 'config.json')).deleteSync();
+      File(
+        p.join(
+          registryRoot.path,
+          'shared',
+          'theme',
+          'color_scheme.dart',
+        ),
+      )
+        ..createSync(recursive: true)
+        ..writeAsStringSync('class AppColorScheme {}');
+      File(
+        p.join(registryRoot.path, 'components', 'index.json'),
+      )
+        ..createSync(recursive: true)
+        ..writeAsStringSync(
+          jsonEncode({
+            'files': ['registry/components/button/button.dart'],
+          }),
+        );
+
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        Map<String, dynamic>.from(fixture)
+          ..['install'] = {
+            ...((fixture['install'] as Map?)?.cast<String, dynamic>() ??
+                const <String, dynamic>{}),
+            'namespace': 'shadcn',
+          }
+          ..['paths'] = {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json',
+          },
+      ]);
+
+      await cli.main([
+        '--advanced',
+        '--offline',
+        'init',
+        '--yes',
+        '--registries-path',
+        registriesPath,
+        '--registry-path',
+        registryRoot.path,
+      ]);
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'button',
+            'button.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'shared',
+            'theme',
+            'color_scheme.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test(
+        'registries schema accepts deprecated themeConverterDart path during directory load',
+        () async {
+      final fixture = jsonDecode(
+        File(
+          p.join(
+            originalCwd.path,
+            'test',
+            'fixtures',
+            'registry_inline_init_entry.json',
+          ),
+        ).readAsStringSync(),
+      ) as Map<String, dynamic>;
+
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        Map<String, dynamic>.from(fixture)
+          ..['paths'] = {
+            'componentsJson': 'components.json',
+            'themeConverterDart': 'https://example.com/tool/theme_converter.dart',
+          },
+      ]);
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          'registries',
+          '--registries-path',
+          registriesPath,
+          '--json',
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.success);
+      final payload = jsonDecode(result.stdout) as Map<String, dynamic>;
+      expect(payload['status'], 'ok');
+      expect(
+        ((payload['data'] as Map<String, dynamic>)['items'] as List).length,
+        1,
+      );
+    });
+
+    test(
         'init consumes optional grouped actions from registries schema and derives assets from written files only',
         () async {
       final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);

@@ -27,7 +27,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       directoryEntry = directory.registries.firstWhere(
         (entry) => entry.namespace == namespace,
       );
-    } catch (_) {
+    } on StateError {
       directoryEntry = null;
     }
     final configured = config.registryConfig(namespace);
@@ -44,7 +44,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
         : await _resolveSourceForNamespace(
             namespace,
             config,
-            allowDirectoryFallback: false,
+            allowDirectoryFallback: true,
           );
     await _validateRegistryForNamespaceInit(source, projectRoot: projectRoot);
     if (directoryEntry != null) {
@@ -233,66 +233,70 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     required ShadcnConfig config,
     required bool assumeYes,
   }) async {
-    final supportsTheme = registryEntry.capabilities.theme;
-    final themesPath = registryEntry.themesPath?.trim();
-    if (!supportsTheme || themesPath == null || themesPath.isEmpty) {
-      return;
-    }
+    try {
+      final supportsTheme = registryEntry.capabilities.theme;
+      final themesPath = registryEntry.themesPath?.trim();
+      if (!supportsTheme || themesPath == null || themesPath.isEmpty) {
+        return;
+      }
 
-    final registryId = _themeRegistryId(namespace, registryEntry.baseUrl);
-    final cacheRoot = ProjectPathGuard.resolveSafeWritePath(
-      projectRoot: projectRoot,
-      destinationRelativePath:
-          p.join('.shadcn', 'cache', 'registry', registryId),
-    );
-    final indexLoader = ThemeIndexLoader(
-      registryId: registryId,
-      registryBaseUrl: registryEntry.baseUrl,
-      themesPath: themesPath,
-      themesSchemaPath: registryEntry.themesSchemaPath,
-      refresh: false,
-      offline: offline,
-      logger: logger,
-      cacheRootPath: cacheRoot,
-    );
-    final indexData = await indexLoader.load();
-    final entries = indexLoader.entriesFrom(indexData);
-    if (entries.isEmpty) {
-      logger.info('No theme presets available for @$namespace.');
-      return;
-    }
+      final registryId = _themeRegistryId(namespace, registryEntry.baseUrl);
+      final cacheRoot = ProjectPathGuard.resolveSafeWritePath(
+        projectRoot: projectRoot,
+        destinationRelativePath:
+            p.join('.shadcn', 'cache', 'registry', registryId),
+      );
+      final indexLoader = ThemeIndexLoader(
+        registryId: registryId,
+        registryBaseUrl: registryEntry.baseUrl,
+        themesPath: themesPath,
+        themesSchemaPath: registryEntry.themesSchemaPath,
+        refresh: false,
+        offline: offline,
+        logger: logger,
+        cacheRootPath: cacheRoot,
+      );
+      final indexData = await indexLoader.load();
+      final entries = indexLoader.entriesFrom(indexData);
+      if (entries.isEmpty) {
+        logger.info('No theme presets available for @$namespace.');
+        return;
+      }
 
-    final selected = assumeYes
-        ? _defaultThemeEntry(indexData, entries)
-        : _promptThemeSelection(
-            namespace: namespace, entries: entries, indexData: indexData);
-    if (selected == null) {
-      logger.info('Skipping theme selection.');
-      return;
-    }
+      final selected = assumeYes
+          ? _defaultThemeEntry(indexData, entries)
+          : _promptThemeSelection(
+              namespace: namespace, entries: entries, indexData: indexData);
+      if (selected == null) {
+        logger.info('Skipping theme selection.');
+        return;
+      }
 
-    final source = await _resolveSourceForNamespace(
-      namespace,
-      config,
-      allowDirectoryFallback: true,
-    );
-    final registry =
-        await _loadRegistryForSource(source, projectRoot: projectRoot);
-    final installer = Installer(
-      registry: registry,
-      targetDir: projectRoot,
-      logger: logger,
-      installPathOverride: source.installRoot,
-      sharedPathOverride: source.sharedRoot,
-      stateNamespace: namespace,
-      registryNamespace: namespace,
-      registryBaseUrlOverride: registryEntry.baseUrl,
-      themesPathOverride: themesPath,
-      themesSchemaPathOverride: registryEntry.themesSchemaPath,
-      enableSharedGroups: registryEntry.capabilities.sharedGroups,
-      enableComposites: registryEntry.capabilities.composites,
-    );
-    await installer.applyThemeById(selected.id);
+      final source = await _resolveSourceForNamespace(
+        namespace,
+        config,
+        allowDirectoryFallback: true,
+      );
+      final registry =
+          await _loadRegistryForSource(source, projectRoot: projectRoot);
+      final installer = Installer(
+        registry: registry,
+        targetDir: projectRoot,
+        logger: logger,
+        installPathOverride: source.installRoot,
+        sharedPathOverride: source.sharedRoot,
+        stateNamespace: namespace,
+        registryNamespace: namespace,
+        registryBaseUrlOverride: registryEntry.baseUrl,
+        themesPathOverride: themesPath,
+        themesSchemaPathOverride: registryEntry.themesSchemaPath,
+        enableSharedGroups: registryEntry.capabilities.sharedGroups,
+        enableComposites: registryEntry.capabilities.composites,
+      );
+      await installer.applyThemeById(selected.id);
+    } catch (e) {
+      logger.warn('Skipping theme selection for @$namespace: $e');
+    }
   }
 
   Future<bool> _shouldRunOptionalInitAction({

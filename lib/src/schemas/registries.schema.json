@@ -133,6 +133,18 @@
         "themesSchemaJson": {
           "$ref": "#/$defs/relativePath"
         },
+        "themeConverterDart": {
+          "oneOf": [
+            {
+              "$ref": "#/$defs/relativePath"
+            },
+            {
+              "type": "string",
+              "format": "uri",
+              "pattern": "^(https://).+"
+            }
+          ]
+        },
         "folderStructureJson": {
           "$ref": "#/$defs/relativePath"
         },
