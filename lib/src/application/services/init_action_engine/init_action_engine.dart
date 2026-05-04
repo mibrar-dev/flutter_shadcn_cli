@@ -6,6 +6,7 @@ import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
 
 part 'init_action_engine_exception_part.dart';
 part 'init_execution_result_part.dart';
@@ -378,20 +379,15 @@ class InitActionEngine {
       ..sort();
     final flutterFonts = _fontFamilies(action['flutterFonts']);
 
-    var lines = file.readAsLinesSync();
+    final document = _loadPubspecDocument(file);
     final addedDeps =
-        _missingTopLevelMapEntries(lines, 'dependencies', dependencies);
+        _mergeTopLevelMapEntries(document, 'dependencies', dependencies);
     final addedDevDeps =
-        _missingTopLevelMapEntries(lines, 'dev_dependencies', devDependencies);
-    final addedAssets = _missingFlutterAssets(lines, flutterAssets);
-    final addedFonts = _missingFlutterFontFamilies(lines, flutterFonts);
+        _mergeTopLevelMapEntries(document, 'dev_dependencies', devDependencies);
+    final addedAssets = _mergeFlutterAssetsIntoDocument(document, flutterAssets);
+    final addedFonts = _mergeFlutterFontsIntoDocument(document, flutterFonts);
 
-    lines = _mergeMapSection(lines, 'dependencies', dependencies);
-    lines = _mergeMapSection(lines, 'dev_dependencies', devDependencies);
-    lines = _mergeFlutterAssets(lines, flutterAssets);
-    lines = _mergeFlutterFonts(lines, flutterFonts);
-
-    await file.writeAsString('${lines.join('\n')}\n');
+    await file.writeAsString(_encodeYamlDocument(document));
 
     return InitPubspecDelta(
       dependencies: addedDeps,
@@ -606,278 +602,6 @@ class InitActionEngine {
     return specs;
   }
 
-  Map<String, String> _missingTopLevelMapEntries(
-    List<String> lines,
-    String section,
-    Map<String, String> desired,
-  ) {
-    if (desired.isEmpty) {
-      return const {};
-    }
-    final sectionIndex = lines.indexWhere((line) => line.trim() == '$section:');
-    if (sectionIndex == -1) {
-      return Map<String, String>.from(desired);
-    }
-    final end = _findTopLevelSectionEnd(lines, sectionIndex);
-    final existing = <String>{};
-    for (var i = sectionIndex + 1; i < end; i++) {
-      final match = RegExp(r'^\s{2}([^:#\s]+)\s*:').firstMatch(lines[i]);
-      if (match != null) {
-        existing.add(match.group(1)!);
-      }
-    }
-    final missing = <String, String>{};
-    desired.forEach((key, value) {
-      if (!existing.contains(key)) {
-        missing[key] = value;
-      }
-    });
-    return missing;
-  }
-
-  List<String> _missingFlutterAssets(List<String> lines, List<String> assets) {
-    if (assets.isEmpty) {
-      return const [];
-    }
-    final flutterIndex = lines.indexWhere((line) => line.trim() == 'flutter:');
-    if (flutterIndex == -1) {
-      return assets.toSet().toList()..sort();
-    }
-    final assetsIndex = _findChildSection(lines, flutterIndex, 'assets');
-    if (assetsIndex == -1) {
-      return assets.toSet().toList()..sort();
-    }
-    final end = _findChildSectionEnd(lines, assetsIndex);
-    final existing = <String>{};
-    for (var i = assetsIndex + 1; i < end; i++) {
-      final match = RegExp(r'^\s{4}-\s+(.+)$').firstMatch(lines[i]);
-      if (match != null) {
-        existing.add(match.group(1)!.trim());
-      }
-    }
-    final normalized = assets.toSet().toList()..sort();
-    return normalized.where((asset) => !existing.contains(asset)).toList();
-  }
-
-  List<_FontFamilySpec> _missingFlutterFontFamilies(
-    List<String> lines,
-    List<_FontFamilySpec> fonts,
-  ) {
-    if (fonts.isEmpty) {
-      return const [];
-    }
-    final flutterIndex = lines.indexWhere((line) => line.trim() == 'flutter:');
-    if (flutterIndex == -1) {
-      return fonts;
-    }
-    final fontsIndex = _findChildSection(lines, flutterIndex, 'fonts');
-    if (fontsIndex == -1) {
-      return fonts;
-    }
-    final end = _findChildSectionEnd(lines, fontsIndex);
-    final existing = <String>{};
-    for (var i = fontsIndex + 1; i < end; i++) {
-      final match = RegExp(r'^\s{4}-\s+family:\s+(.+)$').firstMatch(lines[i]);
-      if (match != null) {
-        existing.add(match.group(1)!.trim());
-      }
-    }
-    return fonts.where((family) => !existing.contains(family.family)).toList();
-  }
-
-  List<String> _mergeMapSection(
-    List<String> lines,
-    String section,
-    Map<String, String> additions,
-  ) {
-    if (additions.isEmpty) {
-      return lines;
-    }
-    final sectionIndex = lines.indexWhere((line) => line.trim() == '$section:');
-    final entries = additions.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    if (sectionIndex == -1) {
-      final updated = List<String>.from(lines);
-      if (updated.isNotEmpty && updated.last.trim().isNotEmpty) {
-        updated.add('');
-      }
-      updated.add('$section:');
-      for (final entry in entries) {
-        updated.add('  ${entry.key}: ${entry.value}');
-      }
-      return updated;
-    }
-
-    final end = _findTopLevelSectionEnd(lines, sectionIndex);
-    final existing = <String>{};
-    for (var i = sectionIndex + 1; i < end; i++) {
-      final match = RegExp(r'^\s{2}([^:#\s]+)\s*:').firstMatch(lines[i]);
-      if (match != null) {
-        existing.add(match.group(1)!);
-      }
-    }
-    final missing =
-        entries.where((entry) => !existing.contains(entry.key)).toList();
-    if (missing.isEmpty) {
-      return lines;
-    }
-    final updated = List<String>.from(lines);
-    updated.insertAll(
-      end,
-      missing.map((entry) => '  ${entry.key}: ${entry.value}'),
-    );
-    return updated;
-  }
-
-  List<String> _mergeFlutterAssets(List<String> lines, List<String> assets) {
-    if (assets.isEmpty) {
-      return lines;
-    }
-    final flutterIndex = _ensureFlutterSection(lines);
-    final assetsIndex = _findChildSection(lines, flutterIndex, 'assets');
-    final normalized = assets.toSet().toList()..sort();
-
-    if (assetsIndex == -1) {
-      final end = _findTopLevelSectionEnd(lines, flutterIndex);
-      final updated = List<String>.from(lines);
-      final block = <String>['  assets:', ...normalized.map((a) => '    - $a')];
-      updated.insertAll(end, block);
-      return updated;
-    }
-
-    final end = _findTopLevelSectionEnd(lines, flutterIndex);
-    final existing = <String>{};
-    for (var i = assetsIndex + 1; i < end; i++) {
-      final match = RegExp(r'^\s{4}-\s+(.+)$').firstMatch(lines[i]);
-      if (match != null) {
-        existing.add(match.group(1)!.trim());
-      }
-      if (lines[i].startsWith('  ') &&
-          !lines[i].startsWith('    ') &&
-          lines[i].trim().isNotEmpty) {
-        break;
-      }
-    }
-    final missing = normalized.where((a) => !existing.contains(a)).toList();
-    if (missing.isEmpty) {
-      return lines;
-    }
-    final insertAt = _findChildSectionEnd(lines, assetsIndex);
-    final updated = List<String>.from(lines);
-    updated.insertAll(insertAt, missing.map((a) => '    - $a'));
-    return updated;
-  }
-
-  List<String> _mergeFlutterFonts(
-    List<String> lines,
-    List<_FontFamilySpec> fonts,
-  ) {
-    if (fonts.isEmpty) {
-      return lines;
-    }
-    final flutterIndex = _ensureFlutterSection(lines);
-    final fontsIndex = _findChildSection(lines, flutterIndex, 'fonts');
-    if (fontsIndex == -1) {
-      final end = _findTopLevelSectionEnd(lines, flutterIndex);
-      final updated = List<String>.from(lines);
-      final block = <String>['  fonts:'];
-      for (final family in fonts) {
-        block.addAll(_formatFontFamily(family));
-      }
-      updated.insertAll(end, block);
-      return updated;
-    }
-
-    final existingFamilies = <String>{};
-    final sectionEnd = _findChildSectionEnd(lines, fontsIndex);
-    for (var i = fontsIndex + 1; i < sectionEnd; i++) {
-      final match = RegExp(r'^\s{4}-\s+family:\s+(.+)$').firstMatch(lines[i]);
-      if (match != null) {
-        existingFamilies.add(match.group(1)!.trim());
-      }
-    }
-
-    final additions = fonts
-        .where((family) => !existingFamilies.contains(family.family))
-        .toList();
-    if (additions.isEmpty) {
-      return lines;
-    }
-    final updated = List<String>.from(lines);
-    final addLines = <String>[];
-    for (final family in additions) {
-      addLines.addAll(_formatFontFamily(family));
-    }
-    updated.insertAll(sectionEnd, addLines);
-    return updated;
-  }
-
-  List<String> _formatFontFamily(_FontFamilySpec family) {
-    final out = <String>[
-      '    - family: ${family.family}',
-      '      fonts:',
-    ];
-    for (final entry in family.fonts) {
-      out.add('        - asset: ${entry.asset}');
-      if (entry.weight != null) {
-        out.add('          weight: ${entry.weight}');
-      }
-      if (entry.style != null && entry.style!.isNotEmpty) {
-        out.add('          style: ${entry.style}');
-      }
-    }
-    return out;
-  }
-
-  int _ensureFlutterSection(List<String> lines) {
-    final index = lines.indexWhere((line) => line.trim() == 'flutter:');
-    if (index != -1) {
-      return index;
-    }
-    lines.add('');
-    lines.add('flutter:');
-    return lines.length - 1;
-  }
-
-  int _findTopLevelSectionEnd(List<String> lines, int sectionIndex) {
-    for (var i = sectionIndex + 1; i < lines.length; i++) {
-      final line = lines[i];
-      if (line.trim().isEmpty || line.trim().startsWith('#')) {
-        continue;
-      }
-      if (!line.startsWith(' ')) {
-        return i;
-      }
-    }
-    return lines.length;
-  }
-
-  int _findChildSection(List<String> lines, int parentIndex, String childName) {
-    final end = _findTopLevelSectionEnd(lines, parentIndex);
-    final expected = '  $childName:';
-    for (var i = parentIndex + 1; i < end; i++) {
-      if (lines[i].trimRight() == expected) {
-        return i;
-      }
-    }
-    return -1;
-  }
-
-  int _findChildSectionEnd(List<String> lines, int childIndex) {
-    for (var i = childIndex + 1; i < lines.length; i++) {
-      final line = lines[i];
-      if (line.trim().isEmpty || line.trim().startsWith('#')) {
-        continue;
-      }
-      if (line.startsWith('  ') && !line.startsWith('    ')) {
-        return i;
-      }
-      if (!line.startsWith(' ')) {
-        return i;
-      }
-    }
-    return lines.length;
-  }
 
   Future<void> _rollbackPubspec(
     String projectRoot,
@@ -892,133 +616,410 @@ class InitActionEngine {
     if (!file.existsSync()) {
       return;
     }
-    var lines = file.readAsLinesSync();
-    lines = _removeMapEntries(lines, 'dependencies', delta.dependencies.keys);
-    lines = _removeMapEntries(
-        lines, 'dev_dependencies', delta.devDependencies.keys);
-    lines = _removeFlutterAssets(lines, delta.flutterAssets);
+    final document = _loadPubspecDocument(file);
+    _removeTopLevelMapEntries(document, 'dependencies', delta.dependencies.keys);
+    _removeTopLevelMapEntries(
+      document,
+      'dev_dependencies',
+      delta.devDependencies.keys,
+    );
+    _removeFlutterAssetsFromDocument(document, delta.flutterAssets);
     final families = delta.flutterFonts
         .map((entry) => entry['family']?.toString())
         .whereType<String>()
         .where((family) => family.trim().isNotEmpty)
         .toSet();
-    lines = _removeFlutterFamilies(lines, families);
-    await file.writeAsString('${lines.join('\n')}\n');
+    _removeFlutterFamiliesFromDocument(document, families);
+    await file.writeAsString(_encodeYamlDocument(document));
   }
 
-  List<String> _removeMapEntries(
-    List<String> lines,
+  Map<String, dynamic> _loadPubspecDocument(File file) {
+    final content = file.readAsStringSync();
+    final raw = loadYaml(content);
+    if (raw is! YamlMap) {
+      throw InitActionEngineException('pubspec.yaml must contain a YAML map');
+    }
+    return _deepConvertYamlMap(raw);
+  }
+
+  Map<String, dynamic> _deepConvertYamlMap(YamlMap map) {
+    final converted = <String, dynamic>{};
+    map.nodes.forEach((keyNode, valueNode) {
+      final key = keyNode.value.toString();
+      converted[key] = _deepConvertYamlValue(valueNode.value);
+    });
+    return converted;
+  }
+
+  dynamic _deepConvertYamlValue(dynamic value) {
+    if (value is YamlMap) {
+      return _deepConvertYamlMap(value);
+    }
+    if (value is YamlList) {
+      return value.nodes
+          .map((node) => _deepConvertYamlValue(node.value))
+          .toList(growable: true);
+    }
+    return value;
+  }
+
+  Map<String, String> _mergeTopLevelMapEntries(
+    Map<String, dynamic> document,
+    String section,
+    Map<String, String> desired,
+  ) {
+    if (desired.isEmpty) {
+      return const {};
+    }
+    final sectionMap = _ensureTopLevelStringMap(document, section);
+    final added = <String, String>{};
+    final orderedKeys = desired.keys.toList()..sort();
+    for (final key in orderedKeys) {
+      if (!sectionMap.containsKey(key)) {
+        final value = desired[key]!;
+        sectionMap[key] = value;
+        added[key] = value;
+      }
+    }
+    return added;
+  }
+
+  Map<String, dynamic> _ensureTopLevelStringMap(
+    Map<String, dynamic> document,
+    String section,
+  ) {
+    final existing = document[section];
+    if (existing == null) {
+      final next = <String, dynamic>{};
+      document[section] = next;
+      return next;
+    }
+    if (existing is Map<String, dynamic>) {
+      return existing;
+    }
+    if (existing is Map) {
+      final next = <String, dynamic>{}
+        ..addAll(existing.map((key, value) => MapEntry(key.toString(), value)));
+      document[section] = next;
+      return next;
+    }
+    throw InitActionEngineException('pubspec.$section must be a YAML map');
+  }
+
+  Map<String, dynamic> _ensureFlutterSectionMap(
+    Map<String, dynamic> document,
+  ) {
+    final existing = document['flutter'];
+    if (existing == null) {
+      final next = <String, dynamic>{};
+      document['flutter'] = next;
+      return next;
+    }
+    if (existing is Map<String, dynamic>) {
+      return existing;
+    }
+    if (existing is Map) {
+      final next = <String, dynamic>{}
+        ..addAll(existing.map((key, value) => MapEntry(key.toString(), value)));
+      document['flutter'] = next;
+      return next;
+    }
+    throw InitActionEngineException('pubspec.flutter must be a YAML map');
+  }
+
+  List<String> _mergeFlutterAssetsIntoDocument(
+    Map<String, dynamic> document,
+    List<String> assets,
+  ) {
+    if (assets.isEmpty) {
+      return const [];
+    }
+    final flutter = _ensureFlutterSectionMap(document);
+    final existingRaw = flutter['assets'];
+    final existing = existingRaw is List
+        ? existingRaw.map((entry) => entry.toString()).toSet()
+        : <String>{};
+    final normalized = assets.toSet().toList()..sort();
+    final added = normalized.where((asset) => !existing.contains(asset)).toList();
+    if (added.isEmpty) {
+      return const [];
+    }
+    final merged = <String>{...existing, ...normalized}.toList()..sort();
+    flutter['assets'] = merged;
+    return added;
+  }
+
+  List<_FontFamilySpec> _mergeFlutterFontsIntoDocument(
+    Map<String, dynamic> document,
+    List<_FontFamilySpec> fonts,
+  ) {
+    if (fonts.isEmpty) {
+      return const [];
+    }
+    final flutter = _ensureFlutterSectionMap(document);
+    final existingRaw = flutter['fonts'];
+    final existingFamilies = <String>{};
+    final mergedFonts = <Map<String, dynamic>>[];
+    if (existingRaw is List) {
+      for (final entry in existingRaw) {
+        if (entry is Map) {
+          final normalized = <String, dynamic>{}
+            ..addAll(entry.map((key, value) => MapEntry(key.toString(), value)));
+          mergedFonts.add(normalized);
+          final family = normalized['family']?.toString();
+          if (family != null && family.trim().isNotEmpty) {
+            existingFamilies.add(family.trim());
+          }
+        }
+      }
+    }
+
+    final additions = fonts
+        .where((family) => !existingFamilies.contains(family.family))
+        .toList();
+    if (additions.isEmpty) {
+      return const [];
+    }
+    for (final family in additions) {
+      mergedFonts.add(_fontFamilyToMap(family));
+    }
+    flutter['fonts'] = mergedFonts;
+    return additions;
+  }
+
+  Map<String, dynamic> _fontFamilyToMap(_FontFamilySpec family) {
+    final map = <String, dynamic>{};
+    map['family'] = family.family;
+    map['fonts'] = family.fonts.map((entry) {
+      final font = <String, dynamic>{};
+      font['asset'] = entry.asset;
+      if (entry.weight != null) {
+        font['weight'] = entry.weight;
+      }
+      if (entry.style != null && entry.style!.isNotEmpty) {
+        font['style'] = entry.style;
+      }
+      return font;
+    }).toList(growable: false);
+    return map;
+  }
+
+  void _removeTopLevelMapEntries(
+    Map<String, dynamic> document,
     String section,
     Iterable<String> keys,
   ) {
     final target = keys.toSet();
     if (target.isEmpty) {
-      return lines;
+      return;
     }
-    final sectionIndex = lines.indexWhere((line) => line.trim() == '$section:');
-    if (sectionIndex == -1) {
-      return lines;
+    final existing = document[section];
+    if (existing is! Map) {
+      return;
     }
-    final end = _findTopLevelSectionEnd(lines, sectionIndex);
-    final updated = List<String>.from(lines);
-    for (var i = end - 1; i > sectionIndex; i--) {
-      final match = RegExp(r'^\s{2}([^:#\s]+)\s*:').firstMatch(updated[i]);
-      if (match != null && target.contains(match.group(1))) {
-        updated.removeAt(i);
-      }
+    final normalized = <String, dynamic>{}
+      ..addAll(existing.map((key, value) => MapEntry(key.toString(), value)));
+    normalized.removeWhere((key, _) => target.contains(key));
+    if (normalized.isEmpty) {
+      document.remove(section);
+      return;
     }
-    final hasEntries = updated
-        .sublist(
-            sectionIndex + 1, _findTopLevelSectionEnd(updated, sectionIndex))
-        .any((line) => line.startsWith('  ') && line.trim().isNotEmpty);
-    if (!hasEntries) {
-      updated.removeAt(sectionIndex);
-    }
-    return updated;
+    document[section] = normalized;
   }
 
-  List<String> _removeFlutterAssets(
-      List<String> lines, Iterable<String> assets) {
+  void _removeFlutterAssetsFromDocument(
+    Map<String, dynamic> document,
+    Iterable<String> assets,
+  ) {
     final target = assets.toSet();
     if (target.isEmpty) {
-      return lines;
+      return;
     }
-    final flutterIndex = lines.indexWhere((line) => line.trim() == 'flutter:');
-    if (flutterIndex == -1) {
-      return lines;
+    final flutter = document['flutter'];
+    if (flutter is! Map) {
+      return;
     }
-    final assetsIndex = _findChildSection(lines, flutterIndex, 'assets');
-    if (assetsIndex == -1) {
-      return lines;
+    final flutterMap = <String, dynamic>{}
+      ..addAll(flutter.map((key, value) => MapEntry(key.toString(), value)));
+    final existingRaw = flutterMap['assets'];
+    if (existingRaw is! List) {
+      document['flutter'] = flutterMap;
+      return;
     }
-    final end = _findChildSectionEnd(lines, assetsIndex);
-    final updated = List<String>.from(lines);
-    for (var i = end - 1; i > assetsIndex; i--) {
-      final match = RegExp(r'^\s{4}-\s+(.+)$').firstMatch(updated[i]);
-      if (match != null && target.contains(match.group(1)!.trim())) {
-        updated.removeAt(i);
-      }
+    final next = existingRaw
+        .map((entry) => entry.toString())
+        .where((entry) => !target.contains(entry))
+        .toList(growable: false);
+    if (next.isEmpty) {
+      flutterMap.remove('assets');
+    } else {
+      flutterMap['assets'] = next;
     }
-    final hasAssets = updated
-        .sublist(
-          assetsIndex + 1,
-          _findChildSectionEnd(updated, assetsIndex),
-        )
-        .any((line) => line.startsWith('    - '));
-    if (!hasAssets) {
-      updated.removeAt(assetsIndex);
-    }
-    return updated;
+    document['flutter'] = flutterMap;
   }
 
-  List<String> _removeFlutterFamilies(
-    List<String> lines,
+  void _removeFlutterFamiliesFromDocument(
+    Map<String, dynamic> document,
     Set<String> families,
   ) {
     if (families.isEmpty) {
-      return lines;
+      return;
     }
-    final flutterIndex = lines.indexWhere((line) => line.trim() == 'flutter:');
-    if (flutterIndex == -1) {
-      return lines;
+    final flutter = document['flutter'];
+    if (flutter is! Map) {
+      return;
     }
-    final fontsIndex = _findChildSection(lines, flutterIndex, 'fonts');
-    if (fontsIndex == -1) {
-      return lines;
+    final flutterMap = <String, dynamic>{}
+      ..addAll(flutter.map((key, value) => MapEntry(key.toString(), value)));
+    final existingRaw = flutterMap['fonts'];
+    if (existingRaw is! List) {
+      document['flutter'] = flutterMap;
+      return;
     }
-    final updated = List<String>.from(lines);
-    var sectionEnd = _findChildSectionEnd(updated, fontsIndex);
-    var i = fontsIndex + 1;
-    while (i < sectionEnd) {
-      final familyMatch =
-          RegExp(r'^\s{4}-\s+family:\s+(.+)$').firstMatch(updated[i]);
-      if (familyMatch == null) {
-        i += 1;
-        continue;
+    final next = existingRaw.where((entry) {
+      if (entry is! Map) {
+        return true;
       }
-      final family = familyMatch.group(1)!.trim();
-      var blockEnd = i + 1;
-      while (blockEnd < sectionEnd) {
-        final isNextFamily =
-            RegExp(r'^\s{4}-\s+family:\s+(.+)$').hasMatch(updated[blockEnd]);
-        if (isNextFamily) {
-          break;
-        }
-        blockEnd += 1;
-      }
-      if (families.contains(family)) {
-        updated.removeRange(i, blockEnd);
-        sectionEnd -= (blockEnd - i);
-        continue;
-      }
-      i = blockEnd;
+      final family = entry['family']?.toString().trim();
+      return family == null || !families.contains(family);
+    }).toList(growable: false);
+    if (next.isEmpty) {
+      flutterMap.remove('fonts');
+    } else {
+      flutterMap['fonts'] = next;
     }
-    final hasFamilies = updated
-        .sublist(fontsIndex + 1, _findChildSectionEnd(updated, fontsIndex))
-        .any((line) => RegExp(r'^\s{4}-\s+family:\s+').hasMatch(line));
-    if (!hasFamilies) {
-      updated.removeAt(fontsIndex);
-    }
-    return updated;
+    document['flutter'] = flutterMap;
   }
+
+  String _encodeYamlDocument(Map<String, dynamic> document) {
+    final lines = <String>[];
+    document.forEach((key, value) {
+      _writeYamlEntry(lines, 0, key, value);
+    });
+    return '${lines.join('\n')}\n';
+  }
+
+  void _writeYamlEntry(
+    List<String> lines,
+    int indent,
+    String key,
+    dynamic value,
+  ) {
+    final prefix = ' ' * indent;
+    if (value is Map) {
+      lines.add('$prefix$key:');
+      value.forEach((childKey, childValue) {
+        _writeYamlEntry(
+          lines,
+          indent + 2,
+          childKey.toString(),
+          childValue,
+        );
+      });
+      return;
+    }
+    if (value is List) {
+      if (value.isEmpty) {
+        lines.add('$prefix$key: []');
+        return;
+      }
+      lines.add('$prefix$key:');
+      for (final item in value) {
+        _writeYamlListItem(lines, indent + 2, item);
+      }
+      return;
+    }
+    lines.add('$prefix$key: ${_encodeYamlScalar(value)}');
+  }
+
+  void _writeYamlListItem(List<String> lines, int indent, dynamic value) {
+    final prefix = ' ' * indent;
+    if (value is Map) {
+      if (value.isEmpty) {
+        lines.add('$prefix- {}');
+        return;
+      }
+      final entries = value.entries.toList(growable: false);
+      final first = entries.first;
+      final firstValue = first.value;
+      if (firstValue is Map || firstValue is List) {
+        lines.add('$prefix- ${first.key}:');
+        _writeYamlNestedValue(lines, indent + 4, firstValue);
+      } else {
+        lines.add(
+          '$prefix- ${first.key}: ${_encodeYamlScalar(firstValue)}',
+        );
+      }
+      for (final entry in entries.skip(1)) {
+        _writeYamlEntry(lines, indent + 2, entry.key.toString(), entry.value);
+      }
+      return;
+    }
+    if (value is List) {
+      if (value.isEmpty) {
+        lines.add('$prefix- []');
+        return;
+      }
+      lines.add('$prefix-');
+      for (final item in value) {
+        _writeYamlListItem(lines, indent + 2, item);
+      }
+      return;
+    }
+    lines.add('$prefix- ${_encodeYamlScalar(value)}');
+  }
+
+  void _writeYamlNestedValue(List<String> lines, int indent, dynamic value) {
+    if (value is Map) {
+      value.forEach((childKey, childValue) {
+        _writeYamlEntry(lines, indent, childKey.toString(), childValue);
+      });
+      return;
+    }
+    if (value is List) {
+      for (final item in value) {
+        _writeYamlListItem(lines, indent, item);
+      }
+      return;
+    }
+    lines.add('${' ' * indent}${_encodeYamlScalar(value)}');
+  }
+
+  String _encodeYamlScalar(dynamic value) {
+    if (value == null) {
+      return 'null';
+    }
+    if (value is num || value is bool) {
+      return value.toString();
+    }
+    final stringValue = value.toString();
+    if (stringValue.isEmpty) {
+      return "''";
+    }
+    final safe = RegExp(r'^[A-Za-z0-9_./@:+<>=^~ -]+$');
+    final reserved = <String>{
+      'null',
+      'Null',
+      'NULL',
+      'true',
+      'false',
+      'yes',
+      'no',
+      'on',
+      'off',
+    };
+    if (safe.hasMatch(stringValue) &&
+        !stringValue.startsWith('-') &&
+        !stringValue.startsWith('{') &&
+        !stringValue.startsWith('[') &&
+        !stringValue.contains('<') &&
+        !stringValue.contains('>') &&
+        !stringValue.contains('#') &&
+        !stringValue.contains(': ') &&
+        !reserved.contains(stringValue)) {
+      return stringValue;
+    }
+    return "'${stringValue.replaceAll("'", "''")}'";
+  }
+
 }

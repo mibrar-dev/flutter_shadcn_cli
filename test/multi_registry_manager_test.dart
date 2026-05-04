@@ -26,7 +26,8 @@ void main() {
         [
           'name: test_app',
           'dependencies:',
-          '  flutter: sdk: flutter',
+          '  flutter:',
+          '    sdk: flutter',
         ].join('\n'),
       );
       await ShadcnConfig.save(

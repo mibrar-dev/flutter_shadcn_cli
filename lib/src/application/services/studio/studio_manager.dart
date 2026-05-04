@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 
@@ -336,7 +337,10 @@ Do not edit files here directly - they may be regenerated.
 
   Future<List<String>> _getInstalledComponents() async {
     // Scan the components directory to find what's installed
-    final installPath = 'lib/ui/shadcn'; // TODO: read from config or defaults
+    final config = await ShadcnConfig.load(projectRoot);
+    final installPath = config.registryConfig()?.installPath ??
+        config.installPath ??
+        'lib/ui/shadcn';
     final componentsDir =
         Directory(p.join(projectRoot, installPath, 'components'));
 
