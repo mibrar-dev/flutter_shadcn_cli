@@ -2,6 +2,7 @@ import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
+import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 import 'package:path/path.dart' as p;
 
 class RegistrySource {
@@ -101,6 +102,19 @@ class RegistrySource {
       throw Exception(
         'Remote registry URL is not configured for namespace "$namespace".',
       );
+    }
+    final componentsUri = ResolverV1.resolveUrl(
+      remoteRoot,
+      entry.componentsPath ?? 'components.json',
+    );
+    final trustError = RegistryTrustPolicy.validateRemoteRegistryTrust(
+      namespace: namespace,
+      url: componentsUri,
+      trustMode: entry.trustMode,
+      trustSha256: entry.trustSha256,
+    );
+    if (trustError != null) {
+      throw Exception(trustError);
     }
     return Registry.load(
       registryRoot: RegistryLocation.remote(remoteRoot, offline: offline),

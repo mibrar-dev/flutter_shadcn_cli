@@ -6,6 +6,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry_directory/registry_directory_entry.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry_directory/registry_directory_exception.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry_directory/registry_directory_model.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/registry_directory/registry_trust_policy.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 import 'package:http/http.dart' as http;
@@ -50,10 +51,18 @@ class RegistryDirectoryClient {
         directoryPath: localPath,
       );
     } else {
+      final url = Uri.parse(directoryUrl);
+      final urlError = RegistryTrustPolicy.validateRemoteUrl(
+        url: url,
+        context: 'registries.json URL',
+      );
+      if (urlError != null) {
+        throw RegistryDirectoryException(urlError);
+      }
       final cacheBody = _cacheFile(projectRoot, 'registries.json');
       final cacheMeta = _cacheFile(projectRoot, 'registries.meta.json');
       response = await _fetchWithEtag(
-        url: Uri.parse(directoryUrl),
+        url: url,
         bodyCacheFile: cacheBody,
         metaCacheFile: cacheMeta,
         offline: offline,
@@ -123,6 +132,17 @@ class RegistryDirectoryClient {
     final cacheMeta = _cacheFile(projectRoot, '$key.meta.json');
     final uri =
         ResolverV1.resolveUrl(registry.baseUrl, registry.componentsPath);
+    final trustError = RegistryTrustPolicy.validateRemoteRegistryTrust(
+      namespace: registry.namespace,
+      url: uri,
+      trustMode: registry.trust.mode,
+      trustSha256: registry.trust.sha256,
+      trustModeField: 'trust.mode',
+      trustSha256Field: 'trust.sha256',
+    );
+    if (trustError != null) {
+      throw RegistryDirectoryException(trustError);
+    }
     final content = await _fetchWithEtag(
       url: uri,
       bodyCacheFile: cacheBody,
@@ -303,11 +323,14 @@ class RegistryDirectoryClient {
     required bool skipIntegrity,
     required CliLogger? logger,
   }) {
-    if (!registry.trust.isSha256 || skipIntegrity) {
+    if (!registry.trust.isSha256) {
       return;
     }
     final expected = registry.trust.sha256?.trim().toLowerCase();
     if (expected == null || expected.isEmpty) {
+      return;
+    }
+    if (skipIntegrity) {
       return;
     }
     final bytes = utf8.encode(body);

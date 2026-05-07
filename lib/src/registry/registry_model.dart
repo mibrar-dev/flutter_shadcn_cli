@@ -2,11 +2,13 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/registry_directory/registry_trust_policy.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry/component.dart';
 import 'package:flutter_shadcn_cli/src/registry/components_schema_validator.dart';
 import 'package:flutter_shadcn_cli/src/registry/registry_location.dart';
 import 'package:flutter_shadcn_cli/src/registry/shared_item.dart';
+import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 
 class RegistrySchemaValidationException implements Exception {
   final List<String> errors;
@@ -40,6 +42,22 @@ class Registry {
     bool offline = false,
     CliLogger? logger,
   }) async {
+    if (registryRoot.isRemote) {
+      final componentsUri = ResolverV1.resolveUrl(
+        registryRoot.root,
+        componentsPath,
+      );
+      final trustError = RegistryTrustPolicy.validateRemoteRegistryTrust(
+        namespace: componentsUri.toString(),
+        url: componentsUri,
+        trustMode: trustMode,
+        trustSha256: trustSha256,
+      );
+      if (trustError != null) {
+        throw Exception(trustError);
+      }
+    }
+
     String content;
     if (offline && registryRoot.isRemote) {
       if (cachePath == null) {
@@ -93,22 +111,20 @@ class Registry {
     CliLogger? logger,
   }) async {
     final data = jsonDecode(content);
-    if (!skipIntegrity) {
-      final schemaSource = ComponentsSchemaValidator.resolveSchemaSource(
-        data: data is Map<String, dynamic> ? data : const {},
-        registryRoot: registryRoot,
-        schemaPathOverride: schemaPath,
-      );
-      if (schemaSource == null) {
-        return Registry(data, registryRoot, sourceRoot);
-      }
-      final result = await ComponentsSchemaValidator.validateWithJsonSchema(
-        data,
-        schemaSource,
-      );
-      if (!result.isValid) {
-        throw RegistrySchemaValidationException(result.errors);
-      }
+    final schemaSource = ComponentsSchemaValidator.resolveSchemaSource(
+      data: data is Map<String, dynamic> ? data : const {},
+      registryRoot: registryRoot,
+      schemaPathOverride: schemaPath,
+    );
+    if (schemaSource == null) {
+      return Registry(data, registryRoot, sourceRoot);
+    }
+    final result = await ComponentsSchemaValidator.validateWithJsonSchema(
+      data,
+      schemaSource,
+    );
+    if (!result.isValid) {
+      throw RegistrySchemaValidationException(result.errors);
     }
 
     return Registry(data, registryRoot, sourceRoot);
@@ -172,14 +188,14 @@ class Registry {
     required bool skipIntegrity,
     required CliLogger? logger,
   }) {
-    if (skipIntegrity) {
-      return;
-    }
     if ((trustMode ?? '').trim().toLowerCase() != 'sha256') {
       return;
     }
     final expected = trustSha256?.trim().toLowerCase();
     if (expected == null || expected.isEmpty) {
+      return;
+    }
+    if (skipIntegrity) {
       return;
     }
     final digest =

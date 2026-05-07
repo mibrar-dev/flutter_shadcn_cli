@@ -1549,7 +1549,7 @@ void main() {
       expect(result.stderr, contains('schema validation failed'));
     });
 
-    test('add bypasses invalid components schema with skip integrity',
+    test('add still validates invalid components schema with skip integrity',
         () async {
       final invalidRegistry =
           Directory(p.join(tempRoot.path, 'invalid_add_schema_bypass'))
@@ -1570,21 +1570,8 @@ void main() {
         ],
       );
 
-      expect(result.exitCode, ExitCodes.success);
-      expect(
-        File(
-          p.join(
-            appRoot.path,
-            'lib',
-            'ui',
-            'shadcn',
-            'components',
-            'button',
-            'button.dart',
-          ),
-        ).existsSync(),
-        isTrue,
-      );
+      expect(result.exitCode, ExitCodes.schemaInvalid);
+      expect(result.stderr, contains('schema validation failed'));
     });
 
     test('init exits schema invalid when components schema fails', () async {

@@ -165,6 +165,12 @@ Date: 2026-02-22
 
 ## Multi-registry production rewrite progress (2026-05-01)
 
+- V1 gap remediation Task 1 trust policy (2026-05-07):
+  - added a shared registry trust policy for remote URL and trust metadata preflight
+  - reject non-HTTPS non-loopback registry directory/component URLs before fetch
+  - require sha256 trust metadata for non-loopback remote component registries before public loads
+  - preserve local registry paths and loopback development registries
+  - keep `--skip-integrity` limited to digest comparison bypass, not trust or schema validation bypass
 - Completed command boundary cleanup:
   - removed public legacy `--registry` routing
   - kept hidden developer overrides wired into the current multi-registry source path

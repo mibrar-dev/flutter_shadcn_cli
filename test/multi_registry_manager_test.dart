@@ -282,8 +282,7 @@ void main() {
       );
     });
 
-    test('skip integrity bypasses invalid components schema for developer add',
-        () async {
+    test('skip integrity does not bypass invalid components schema', () async {
       final invalidBase =
           Directory(p.join(tempRoot.path, 'invalid_schema_bypass'))
             ..createSync();
@@ -317,20 +316,10 @@ void main() {
         logger: CliLogger(),
       );
 
-      await manager.runAdd(['button']);
-
-      final installed = File(
-        p.join(
-          appRoot.path,
-          'lib',
-          'ui',
-          'shadcn',
-          'components',
-          'button',
-          'button.dart',
-        ),
+      await expectLater(
+        () => manager.runAdd(['button']),
+        throwsA(anything),
       );
-      expect(installed.readAsStringSync(), contains('ButtonSchemaBypass'));
     });
 
     test('component add rejects symlink escape through install path', () async {

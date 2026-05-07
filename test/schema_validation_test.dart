@@ -160,9 +160,13 @@ void main() {
   });
 
   test('Registry caches parsed components per instance', () async {
-    final registryRoot = RegistryLocation.local('/tmp/registry');
+    final fixtureDir = await createSchemaFixtureDir();
+    addTearDown(() => fixtureDir.delete(recursive: true));
+
+    final registryRoot = RegistryLocation.local(fixtureDir.path);
     final registry = await Registry.fromContent(
       content: jsonEncode({
+        r'$schema': './components.schema.json',
         'schemaVersion': 1,
         'name': 'component_cache_registry',
         'defaults': {},
@@ -256,7 +260,7 @@ void main() {
     expect(reads, 2);
   });
 
-  test('Registry.fromContent bypasses schema validation with skipIntegrity',
+  test('Registry.fromContent still validates schema with skipIntegrity',
       () async {
     final fixtureDir = await createSchemaFixtureDir();
     addTearDown(() => fixtureDir.delete(recursive: true));
@@ -269,13 +273,14 @@ void main() {
       'defaults': {},
     });
 
-    final registry = await Registry.fromContent(
-      content: invalid,
-      registryRoot: registryRoot,
-      sourceRoot: registryRoot,
-      skipIntegrity: true,
+    await expectLater(
+      () => Registry.fromContent(
+        content: invalid,
+        registryRoot: registryRoot,
+        sourceRoot: registryRoot,
+        skipIntegrity: true,
+      ),
+      throwsA(isA<RegistrySchemaValidationException>()),
     );
-
-    expect(registry.data['name'], 'invalid_registry');
   });
 }
