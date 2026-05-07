@@ -109,6 +109,7 @@ extension InstallerPlatformAliasPart on Installer {
     final fullPath = _resolveProjectPath(targetPath);
     final file = File(fullPath);
     if (!await file.parent.exists()) {
+      _recordDirectoryCreateTree(file.parent);
       await file.parent.create(recursive: true);
     }
     final marker = 'shadcn_flutter_cli:$platform:$section';
@@ -117,6 +118,7 @@ extension InstallerPlatformAliasPart on Installer {
       return;
     }
     final block = _formatPlatformBlock(fullPath, marker, lines);
+    _recordFileWrite(file);
     await file.writeAsString(existing + block);
     logger.detail('Updated $targetPath ($platform/$section)');
   }
@@ -249,6 +251,8 @@ extension InstallerPlatformAliasPart on Installer {
 
     final outputFile = File(_resolveProjectPath(
         p.join(_installPath(config), 'app_components.dart')));
+    _recordDirectoryCreateTree(outputFile.parent);
+    _recordFileWrite(outputFile);
     await outputFile.writeAsString(output.toString());
   }
 }

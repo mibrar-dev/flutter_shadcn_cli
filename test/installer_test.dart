@@ -77,6 +77,81 @@ void main() {
       );
     });
 
+    test(
+        'rolls back component add files, manifests, state, and pubspec on failure',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      final originalPubspec =
+          File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync();
+      _rewriteButtonComponent(registryRoot, (button) {
+        button['files'] = [
+          {
+            'source': 'registry/components/button/button.dart',
+            'destination': '{installPath}/components/button/button.dart',
+          },
+          {
+            'source': 'registry/components/button/missing.dart',
+            'destination': '{installPath}/components/button/missing.dart',
+          },
+        ];
+        button['assets'] = ['assets/generated/button.png'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        () => installer.addComponent('button'),
+        throwsA(anything),
+      );
+
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'button',
+            'button.dart',
+          ),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(
+          p.join(targetRoot.path, '.shadcn', 'components', 'button.json'),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(p.join(targetRoot.path, '.shadcn', 'state.json')).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync(),
+        originalPubspec,
+      );
+    });
+
     test('registry includeFiles=preview installs preview and preview_state',
         () async {
       await _writeConfig(
@@ -601,7 +676,8 @@ void main() {
       );
     });
 
-    test('applies theme artifact manifest and updates config theme id', () async {
+    test('applies theme artifact manifest and updates config theme id',
+        () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -671,7 +747,8 @@ void main() {
       );
       final manifestData =
           jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
-      final files = (manifestData['files'] as List).cast<Map<String, dynamic>>();
+      final files =
+          (manifestData['files'] as List).cast<Map<String, dynamic>>();
       files[0] = {
         ...files[0],
         'sha256': '0' * 64,
@@ -1026,6 +1103,22 @@ class ColorSchemes {
         ],
       }),
     );
+}
+
+void _rewriteButtonComponent(
+  Directory registryRoot,
+  void Function(Map<String, dynamic> button) update,
+) {
+  final componentsFile = File(p.join(registryRoot.path, 'components.json'));
+  final data =
+      jsonDecode(componentsFile.readAsStringSync()) as Map<String, dynamic>;
+  final components = (data['components'] as List).cast<Map<String, dynamic>>();
+  final button =
+      components.firstWhere((component) => component['id'] == 'button');
+  update(button);
+  componentsFile.writeAsStringSync(
+    const JsonEncoder.withIndent('  ').convert(data),
+  );
 }
 
 void _writePubspec(Directory targetRoot, {Map<String, String>? dependencies}) {

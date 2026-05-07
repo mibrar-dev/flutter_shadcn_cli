@@ -1,6 +1,51 @@
 part of 'installer.dart';
 
 extension InstallerSharedPart on Installer {
+  Future<T> _runInInstallTransaction<T>(Future<T> Function() action) async {
+    final existing = _installTransaction;
+    if (existing != null) {
+      return action();
+    }
+
+    final transaction = InstallTransaction();
+    _installTransaction = transaction;
+    try {
+      final result = await action();
+      transaction.commit();
+      return result;
+    } catch (error) {
+      _installedComponentCache = null;
+      _installedSharedCache.clear();
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        throw InstallTransactionRollbackException(
+          originalError: error,
+          rollbackErrors: [rollbackError],
+        );
+      }
+      rethrow;
+    } finally {
+      _installTransaction = null;
+    }
+  }
+
+  void _recordFileWrite(File file) {
+    _installTransaction?.recordFileWrite(file);
+  }
+
+  void _recordFileDelete(File file) {
+    _installTransaction?.recordFileDelete(file);
+  }
+
+  void _recordDirectoryCreateTree(Directory directory) {
+    _installTransaction?.recordDirectoryCreateTree(directory);
+  }
+
+  void _recordDirectoryDelete(Directory directory) {
+    _installTransaction?.recordDirectoryDelete(directory);
+  }
+
   Future<void> installShared(String id) async {
     await _ensureConfigLoaded();
     final resolvedId = _normalizeSharedId(id);
@@ -63,18 +108,33 @@ extension InstallerSharedPart on Installer {
   }
 
   Future<void> runBulkInstall(Future<void> Function() action) async {
-    final previousAlias = _deferAliases;
-    final previousDeps = _deferDependencyUpdates;
-    final previousManifest = _deferComponentManifest;
-    _deferAliases = true;
-    _deferDependencyUpdates = true;
-    _deferComponentManifest = true;
-    try {
-      await action();
-    } finally {
-      _deferAliases = previousAlias;
-      _deferDependencyUpdates = previousDeps;
-      _deferComponentManifest = previousManifest;
+    await _runInInstallTransaction(() async {
+      final previousAlias = _deferAliases;
+      final previousDeps = _deferDependencyUpdates;
+      final previousManifest = _deferComponentManifest;
+      _deferAliases = true;
+      _deferDependencyUpdates = true;
+      _deferComponentManifest = true;
+      Object? actionError;
+      StackTrace? actionStack;
+      try {
+        await action();
+      } catch (error, stackTrace) {
+        actionError = error;
+        actionStack = stackTrace;
+      } finally {
+        _deferAliases = previousAlias;
+        _deferDependencyUpdates = previousDeps;
+        _deferComponentManifest = previousManifest;
+      }
+
+      if (actionError != null) {
+        _pendingDependencies.clear();
+        _pendingAssets.clear();
+        _pendingFonts.clear();
+        Error.throwWithStackTrace(actionError, actionStack!);
+      }
+
       if (_pendingDependencies.isNotEmpty) {
         final pending = Map<String, dynamic>.from(_pendingDependencies);
         _pendingDependencies.clear();
@@ -98,7 +158,7 @@ extension InstallerSharedPart on Installer {
         await _updateComponentManifest();
       }
       await _updateState();
-    }
+    });
   }
 
   Future<void> _queueDependencyUpdates(Map<String, dynamic> deps) async {

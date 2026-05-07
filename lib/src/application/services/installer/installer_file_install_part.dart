@@ -6,6 +6,7 @@ extension InstallerFileInstallPart on Installer {
     final destFile = File(_resolveDestinationPath(file.destination));
 
     if (!await destFile.parent.exists()) {
+      _recordDirectoryCreateTree(destFile.parent);
       await destFile.parent.create(recursive: true);
     }
 
@@ -16,6 +17,7 @@ extension InstallerFileInstallPart on Installer {
 
     logger.detail('Writing ${destFile.path}');
     final bytes = await registry.readSourceBytes(file.source);
+    _recordFileWrite(destFile);
     await destFile.writeAsBytes(bytes, flush: true);
   }
 

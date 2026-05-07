@@ -152,6 +152,53 @@ void main() {
       expect(pubspec.contains('family: GeistSans'), isFalse);
     });
 
+    test('rolls back inline writes and pubspec when a later action fails',
+        () async {
+      final originalPubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      final engine = InitActionEngine();
+
+      await expectLater(
+        () => engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'copyFiles',
+              'base': 'registry',
+              'destBase': 'lib/ui/shadcn',
+              'files': ['registry/shared/theme/color_scheme.dart'],
+            },
+            {
+              'type': 'mergePubspec',
+              'dependencies': {'gap': '^3.0.1'},
+            },
+            {
+              'type': 'copyFiles',
+              'base': 'registry',
+              'destBase': 'lib/ui/shadcn',
+              'files': ['registry/shared/theme/missing.dart'],
+            },
+          ],
+        ),
+        throwsA(isA<InitActionEngineException>()),
+      );
+
+      expect(
+        File(
+          p.join(
+            projectRoot.path,
+            'lib/ui/shadcn/shared/theme/color_scheme.dart',
+          ),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync(),
+        originalPubspec,
+      );
+    });
+
     test('copyDir requires exactly one of files or index', () async {
       final entry = await _loadFixtureEntry(
         baseUrl: 'http://${server.address.host}:${server.port}/',
@@ -348,9 +395,8 @@ void main() {
       expect(pubspec.contains('assets/theme/color_scheme.dart'), isFalse);
       expect(result.filesWritten, 1);
       expect(result.record.filesWritten, ['assets/fonts/bootstrap.otf']);
-      expect(result.record.pubspecDelta.flutterAssets, [
-        'assets/fonts/bootstrap.otf'
-      ]);
+      expect(result.record.pubspecDelta.flutterAssets,
+          ['assets/fonts/bootstrap.otf']);
     });
   });
 }

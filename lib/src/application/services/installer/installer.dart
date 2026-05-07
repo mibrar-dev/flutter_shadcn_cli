@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
+import 'package:flutter_shadcn_cli/src/application/services/install_transaction.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/resolver_v1_exception.dart';
@@ -64,6 +65,7 @@ class Installer {
   Map<String, _RegistryFileOwner>? _registryFileIndex;
   final Map<String, Set<String>> _sharedDependencyCache = {};
   ShadcnConfig? _cachedConfig;
+  InstallTransaction? _installTransaction;
 
   Installer({
     required this.registry,
@@ -195,6 +197,20 @@ class Installer {
     bool installDependencies = true,
     Set<String>? ancestry,
   }) async {
+    await _runInInstallTransaction(
+      () => _addComponent(
+        name,
+        installDependencies: installDependencies,
+        ancestry: ancestry,
+      ),
+    );
+  }
+
+  Future<void> _addComponent(
+    String name, {
+    bool installDependencies = true,
+    Set<String>? ancestry,
+  }) async {
     await ensureInitFiles(allowPrompts: false);
     await _ensureConfigLoaded();
     final component = registry.getComponent(name);
@@ -238,7 +254,7 @@ class Installer {
       _installingComponentIds.add(component.id);
       if (installDependencies) {
         for (final dep in component.dependsOn) {
-          await addComponent(dep, ancestry: stack);
+          await _addComponent(dep, ancestry: stack);
         }
       }
 

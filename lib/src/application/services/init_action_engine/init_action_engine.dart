@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_shadcn_cli/src/application/services/install_transaction.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
@@ -102,79 +103,101 @@ class InitActionEngine {
     final writtenFiles = <String>{};
     final writtenAssetCandidates = <String>{};
     var pubspecDelta = InitPubspecDelta.empty;
+    final transaction = InstallTransaction();
 
-    for (final action in actions) {
-      final type = action['type']?.toString();
-      if (type == null || type.isEmpty) {
-        throw InitActionEngineException('init action missing "type"');
-      }
+    try {
+      for (final action in actions) {
+        final type = action['type']?.toString();
+        if (type == null || type.isEmpty) {
+          throw InitActionEngineException('init action missing "type"');
+        }
 
-      if (_isOptionalAction(action) && !_hasActionGroups(action)) {
-        final approved = optionalActionDecider == null
-            ? false
-            : await optionalActionDecider(action);
-        if (!approved) {
-          continue;
+        if (_isOptionalAction(action) && !_hasActionGroups(action)) {
+          final approved = optionalActionDecider == null
+              ? false
+              : await optionalActionDecider(action);
+          if (!approved) {
+            continue;
+          }
+        }
+
+        switch (type) {
+          case 'ensureDirs':
+            final created = await _runEnsureDirs(
+              projectRoot,
+              action,
+              transaction: transaction,
+            );
+            dirsCreated += created.length;
+            createdDirs.addAll(created);
+            break;
+          case 'copyFiles':
+            final written = await _runCopyFiles(
+              projectRoot,
+              baseUrl: baseUrl,
+              action: action,
+              groupSelector: groupSelector,
+              transaction: transaction,
+            );
+            if (written.isEmpty && _hasActionGroups(action)) {
+              continue;
+            }
+            filesWritten += written.length;
+            writtenFiles.addAll(written);
+            writtenAssetCandidates.addAll(
+              written.where(_isDerivableFlutterAssetPath),
+            );
+            break;
+          case 'copyDir':
+            final written = await _runCopyFiles(
+              projectRoot,
+              baseUrl: baseUrl,
+              action: action,
+              groupSelector: groupSelector,
+              transaction: transaction,
+            );
+            if (written.isEmpty && _hasActionGroups(action)) {
+              continue;
+            }
+            filesWritten += written.length;
+            writtenFiles.addAll(written);
+            writtenAssetCandidates.addAll(
+              written.where(_isDerivableFlutterAssetPath),
+            );
+            break;
+          case 'mergePubspec':
+            final delta = await _runMergePubspec(
+              projectRoot,
+              action,
+              derivedFlutterAssets: writtenAssetCandidates,
+              transaction: transaction,
+            );
+            pubspecDelta = pubspecDelta.merge(delta);
+            break;
+          case 'message':
+            final lines = _runMessage(action);
+            messages.addAll(lines);
+            for (final line in lines) {
+              logger?.info(line);
+            }
+            break;
+          default:
+            throw InitActionEngineException(
+              'Unsupported init action type: $type',
+            );
         }
       }
-
-      switch (type) {
-        case 'ensureDirs':
-          final created = await _runEnsureDirs(projectRoot, action);
-          dirsCreated += created.length;
-          createdDirs.addAll(created);
-          break;
-        case 'copyFiles':
-          final written = await _runCopyFiles(
-            projectRoot,
-            baseUrl: baseUrl,
-            action: action,
-            groupSelector: groupSelector,
-          );
-          if (written.isEmpty && _hasActionGroups(action)) {
-            continue;
-          }
-          filesWritten += written.length;
-          writtenFiles.addAll(written);
-          writtenAssetCandidates.addAll(
-            written.where(_isDerivableFlutterAssetPath),
-          );
-          break;
-        case 'copyDir':
-          final written = await _runCopyFiles(
-            projectRoot,
-            baseUrl: baseUrl,
-            action: action,
-            groupSelector: groupSelector,
-          );
-          if (written.isEmpty && _hasActionGroups(action)) {
-            continue;
-          }
-          filesWritten += written.length;
-          writtenFiles.addAll(written);
-          writtenAssetCandidates.addAll(
-            written.where(_isDerivableFlutterAssetPath),
-          );
-          break;
-        case 'mergePubspec':
-          final delta = await _runMergePubspec(
-            projectRoot,
-            action,
-            derivedFlutterAssets: writtenAssetCandidates,
-          );
-          pubspecDelta = pubspecDelta.merge(delta);
-          break;
-        case 'message':
-          final lines = _runMessage(action);
-          messages.addAll(lines);
-          for (final line in lines) {
-            logger?.info(line);
-          }
-          break;
-        default:
-          throw InitActionEngineException(
-              'Unsupported init action type: $type');
+      transaction.commit();
+    } catch (error) {
+      try {
+        await transaction.rollback();
+      } catch (rollbackError) {
+        throw InstallTransactionRollbackException(
+          originalError: error,
+          rollbackErrors: [rollbackError],
+        );
       }
+      rethrow;
     }
 
     return InitExecutionResult(
@@ -242,8 +265,9 @@ class InitActionEngine {
 
   Future<List<String>> _runEnsureDirs(
     String projectRoot,
-    Map<String, dynamic> action,
-  ) async {
+    Map<String, dynamic> action, {
+    required InstallTransaction transaction,
+  }) async {
     final dirs = (action['dirs'] as List<dynamic>? ?? const []);
     final created = <String>[];
     for (final entry in dirs) {
@@ -254,6 +278,7 @@ class InitActionEngine {
       );
       final dir = Directory(absPath);
       if (!await dir.exists()) {
+        transaction.recordDirectoryCreateTree(dir);
         await dir.create(recursive: true);
         created.add(relPath);
       }
@@ -266,6 +291,7 @@ class InitActionEngine {
     required String baseUrl,
     required Map<String, dynamic> action,
     InitActionGroupSelector? groupSelector,
+    required InstallTransaction transaction,
   }) async {
     final base = action['base']?.toString();
     final destBase = action['destBase']?.toString();
@@ -337,6 +363,7 @@ class InitActionEngine {
         continue;
       }
       if (!destinationFile.parent.existsSync()) {
+        transaction.recordDirectoryCreateTree(destinationFile.parent);
         destinationFile.parent.createSync(recursive: true);
       }
 
@@ -348,6 +375,7 @@ class InitActionEngine {
         baseUrl: baseUrl,
         relativePath: sourceRel,
       );
+      transaction.recordFileWrite(destinationFile);
       await destinationFile.writeAsBytes(bytes, flush: true);
       written.add(destinationRel);
     }
@@ -356,9 +384,9 @@ class InitActionEngine {
 
   Future<InitPubspecDelta> _runMergePubspec(
     String projectRoot,
-    Map<String, dynamic> action,
-    {
+    Map<String, dynamic> action, {
     Set<String> derivedFlutterAssets = const <String>{},
+    required InstallTransaction transaction,
   }) async {
     final file = File(
       ProjectPathGuard.resolveSafeWritePath(
@@ -384,9 +412,11 @@ class InitActionEngine {
         _mergeTopLevelMapEntries(document, 'dependencies', dependencies);
     final addedDevDeps =
         _mergeTopLevelMapEntries(document, 'dev_dependencies', devDependencies);
-    final addedAssets = _mergeFlutterAssetsIntoDocument(document, flutterAssets);
+    final addedAssets =
+        _mergeFlutterAssetsIntoDocument(document, flutterAssets);
     final addedFonts = _mergeFlutterFontsIntoDocument(document, flutterFonts);
 
+    transaction.recordFileWrite(file);
     await file.writeAsString(_encodeYamlDocument(document));
 
     return InitPubspecDelta(
@@ -495,7 +525,8 @@ class InitActionEngine {
   bool _isOptionalAction(Map<String, dynamic> action) =>
       action['optional'] == true;
 
-  bool _hasActionGroups(Map<String, dynamic> action) => action['groups'] is List;
+  bool _hasActionGroups(Map<String, dynamic> action) =>
+      action['groups'] is List;
 
   bool _isDerivableFlutterAssetPath(String relativePath) {
     final normalized = ResolverV1.normalizeRelativePath(relativePath);
@@ -602,7 +633,6 @@ class InitActionEngine {
     return specs;
   }
 
-
   Future<void> _rollbackPubspec(
     String projectRoot,
     InitPubspecDelta delta,
@@ -617,7 +647,8 @@ class InitActionEngine {
       return;
     }
     final document = _loadPubspecDocument(file);
-    _removeTopLevelMapEntries(document, 'dependencies', delta.dependencies.keys);
+    _removeTopLevelMapEntries(
+        document, 'dependencies', delta.dependencies.keys);
     _removeTopLevelMapEntries(
       document,
       'dev_dependencies',
@@ -740,7 +771,8 @@ class InitActionEngine {
         ? existingRaw.map((entry) => entry.toString()).toSet()
         : <String>{};
     final normalized = assets.toSet().toList()..sort();
-    final added = normalized.where((asset) => !existing.contains(asset)).toList();
+    final added =
+        normalized.where((asset) => !existing.contains(asset)).toList();
     if (added.isEmpty) {
       return const [];
     }
@@ -763,8 +795,8 @@ class InitActionEngine {
     if (existingRaw is List) {
       for (final entry in existingRaw) {
         if (entry is Map) {
-          final normalized = <String, dynamic>{}
-            ..addAll(entry.map((key, value) => MapEntry(key.toString(), value)));
+          final normalized = <String, dynamic>{}..addAll(
+              entry.map((key, value) => MapEntry(key.toString(), value)));
           mergedFonts.add(normalized);
           final family = normalized['family']?.toString();
           if (family != null && family.trim().isNotEmpty) {
@@ -1021,5 +1053,4 @@ class InitActionEngine {
     }
     return "'${stringValue.replaceAll("'", "''")}'";
   }
-
 }

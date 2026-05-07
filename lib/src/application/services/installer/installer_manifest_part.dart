@@ -12,6 +12,7 @@ extension InstallerManifestPart on Installer {
     final installed = await _installedComponentIds();
     if (installed.isEmpty) {
       if (await manifestFile.exists()) {
+        _recordFileDelete(manifestFile);
         await manifestFile.delete();
       }
       await _clearComponentManifests();
@@ -40,8 +41,10 @@ extension InstallerManifestPart on Installer {
       'updatedAt': DateTime.now().toUtc().toIso8601String(),
     };
     if (!await manifestFile.parent.exists()) {
+      _recordDirectoryCreateTree(manifestFile.parent);
       await manifestFile.parent.create(recursive: true);
     }
+    _recordFileWrite(manifestFile);
     await manifestFile
         .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
   }
@@ -59,6 +62,7 @@ extension InstallerManifestPart on Installer {
   Future<void> _writeComponentManifest(Component component) async {
     final dir = _componentManifestDirectory();
     if (!await dir.exists()) {
+      _recordDirectoryCreateTree(dir);
       await dir.create(recursive: true);
     }
     final file = _componentManifestFile(component.id);
@@ -89,6 +93,7 @@ extension InstallerManifestPart on Installer {
       'files': component.files.map((f) => f.source).toList()..sort(),
       'registryRoot': registry.registryRoot.root,
     };
+    _recordFileWrite(file);
     await file
         .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
   }
@@ -96,6 +101,7 @@ extension InstallerManifestPart on Installer {
   Future<void> _removeComponentManifest(String componentId) async {
     final file = _componentManifestFile(componentId);
     if (await file.exists()) {
+      _recordFileDelete(file);
       await file.delete();
     }
   }
@@ -103,6 +109,7 @@ extension InstallerManifestPart on Installer {
   Future<void> _clearComponentManifests() async {
     final dir = _componentManifestDirectory();
     if (await dir.exists()) {
+      _recordDirectoryDelete(dir);
       await dir.delete(recursive: true);
     }
   }
@@ -153,6 +160,7 @@ extension InstallerManifestPart on Installer {
 
     if (toRemove.isNotEmpty) {
       logger.info('Removing dependencies: ${toRemove.join(', ')}');
+      _recordFileWrite(pubspecFile);
       final result = await Process.run(
         'dart',
         ['pub', 'remove', ...toRemove],
@@ -184,6 +192,7 @@ extension InstallerManifestPart on Installer {
 
     if (toAdd.isNotEmpty) {
       logger.info('Adding dependencies: ${toAdd.join(', ')}');
+      _recordFileWrite(pubspecFile);
       final result = await Process.run(
         'dart',
         ['pub', 'add', ...toAdd],
@@ -233,6 +242,9 @@ extension InstallerManifestPart on Installer {
       sharedPath: _sharedPath(config),
       themeId: config.themeId,
     );
+    final stateFile = ShadcnState.stateFile(targetDir);
+    _recordDirectoryCreateTree(stateFile.parent);
+    _recordFileWrite(stateFile);
     await ShadcnState.save(
       targetDir,
       ShadcnState(

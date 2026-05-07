@@ -184,6 +184,7 @@ extension InstallerPubspecPart on Installer {
       return;
     }
 
+    _recordFileWrite(pubspecFile);
     await pubspecFile.writeAsString(result.lines.join('\n'));
     logger.success('Added dependencies: ${result.added.join(', ')}');
   }
@@ -205,6 +206,7 @@ extension InstallerPubspecPart on Installer {
       return;
     }
 
+    _recordFileWrite(pubspecFile);
     await pubspecFile.writeAsString(result.lines.join('\n'));
     logger.success('Added assets: ${result.added.join(', ')}');
   }
@@ -226,6 +228,7 @@ extension InstallerPubspecPart on Installer {
       return;
     }
 
+    _recordFileWrite(pubspecFile);
     await pubspecFile.writeAsString(result.lines.join('\n'));
     logger.success('Added font families: ${result.added.join(', ')}');
   }
