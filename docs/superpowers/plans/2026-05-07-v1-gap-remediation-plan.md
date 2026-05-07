@@ -14,11 +14,11 @@
 
 ### Not Current Gaps
 
-- **GAP-08:** Exclude. The current v1 spec and code do not implement the reviewed `pick_keys_preserve_user` localization merge strategy. Locale and manifest source-of-truth work belongs in Task 2.
-- **GAP-11:** Exclude. The reviewed `required: false` localization-resource behavior is not a current implemented surface. Optional init actions already use explicit approval/skipping semantics, and localization-resource semantics belong in Task 2.
-- **GAP-12:** Exclude. ARB-aware merge is not part of the current v1 code surface evidenced here. Locale/ARB design must be handled in Task 2.
-- **GAP-13:** Exclude. Consumer `l10n.yaml` target resolution is not active in current v1 install/init behavior. This remains a locale source-of-truth topic for Task 2.
-- **GAP-16:** Exclude. Locale filtering and fallback strategy are not current v1 behavior. Task 2 owns the detailed locale install/update contract.
+- **GAP-08:** Exclude. The current v1 spec and code do not implement the reviewed `pick_keys_preserve_user` localization merge strategy. Locale and manifest source-of-truth work belongs in the separate v1 locale/manifest source-of-truth specification.
+- **GAP-11:** Exclude. The reviewed `required: false` localization-resource behavior is not a current implemented surface. Optional init actions already use explicit approval/skipping semantics, and localization-resource semantics belong in the separate v1 locale/manifest source-of-truth specification.
+- **GAP-12:** Exclude. ARB-aware merge is not part of the current v1 code surface evidenced here. Locale/ARB design must be handled in the separate v1 locale/manifest source-of-truth specification.
+- **GAP-13:** Exclude. Consumer `l10n.yaml` target resolution is not active in current v1 install/init behavior. This remains a locale source-of-truth topic for the separate v1 locale/manifest source-of-truth specification.
+- **GAP-16:** Exclude. Locale filtering and fallback strategy are not current v1 behavior. The separate v1 locale/manifest source-of-truth specification owns the detailed locale install/update contract.
 - **GAP-20:** Exclude. The CLI command surface exists now: `init`, `add`, `dry-run`, `remove`, `sync`, `doctor`, `registries`, `list`, `search`, and related commands are registered in `cli_parser.dart`.
 
 ### Mostly Implemented Guard
@@ -33,13 +33,13 @@ The code verifies `components.json` when `trust.mode == sha256`, but normal remo
 
 **How To Solve**
 
-Add a single trust policy service used by registry-directory loading and registry-source resolution. Reject non-HTTPS remote URLs, allow local development paths, require explicit trust metadata for third-party remote registries, and keep `--skip-integrity` as a hidden developer-only bypass.
+Add a single trust policy service used by registry-directory loading and registry-source resolution. Reject non-HTTPS remote URLs, allow local development paths, require explicit trust metadata for every remote registry used by public commands, and keep `--skip-integrity` as a hidden developer-only bypass.
 
 **What To Do**
 
 - [ ] Add `RegistryTrustPolicy` with validation for directory URL, registry `baseUrl`, `componentsPath`, and trust metadata.
 - [ ] Enforce HTTPS before fetching `registries.json`, `components.json`, theme artifacts, or registry source files.
-- [ ] Require `trust.mode: sha256` with a non-empty `sha256` for third-party remote registries used by public `init` or `add`.
+- [ ] Require `trust.mode: sha256` with a non-empty `sha256` for every remote registry used by public `init` or `add`; do not maintain a first-party exemption list.
 - [ ] Keep local `--registry-path`, local `registries-path`, and file-backed test registries accepted.
 - [ ] Ensure `--skip-integrity` only bypasses hash validation in advanced/developer override flows.
 - [ ] Emit one clear error per rejected registry, including namespace and offending URL.
@@ -308,12 +308,12 @@ The CLI writes `.shadcn/state.json` and component manifests, but there is no pro
 
 **How To Solve**
 
-Create a v1 lockfile service as the source of truth for installed registry components. Keep `.shadcn/state.json.managedDependencies` unchanged for compatibility, but move reproducibility, sync, doctor, update planning, and uninstall ownership into lockfile records. This task references locale/manifest ownership but leaves detailed locale key semantics to Task 2.
+Create a v1 lockfile service as the source of truth for installed registry components. Keep `.shadcn/state.json.managedDependencies` unchanged for compatibility, but move reproducibility, sync, doctor, update planning, and uninstall ownership into lockfile records. This task references locale/manifest ownership but leaves detailed locale key semantics to the separate v1 locale/manifest source-of-truth specification.
 
 **What To Do**
 
 - [ ] Add `shadcn.lock` with `lockfileVersion: 1`, registry entries, installed components, component versions, source manifest hash, installed files, pubspec dependency ownership, post-install notes, and optional locale key ownership placeholders.
-- [ ] Update `add` to write one lockfile record after successful transaction commit.
+- [ ] Update `add` to write the lockfile record inside the same install transaction as files, manifests, state, aliases, and pubspec changes; transaction commit must not complete until the lockfile write succeeds.
 - [ ] Update `remove` to delete files and pubspec dependencies based on lock ownership.
 - [ ] Update `sync` to read the lockfile and reinstall exactly locked namespace/component/version records.
 - [ ] Update `doctor` to check lockfile records: files exist, dependencies exist, component manifest exists, required post-install notes remain visible, and source hashes are available.
@@ -326,7 +326,8 @@ Create a v1 lockfile service as the source of truth for installed registry compo
 - Two registries with the same component ID must produce separate lock records.
 - Missing version in old manifests should be stored as `null` or `unknown`, not guessed.
 - Source manifest hash should be computed from the fetched `components.json` body.
-- Locale key ownership must be represented as fields reserved for Task 2, without implementing locale merge behavior here.
+- Locale key ownership must be represented as fields reserved for the separate v1 locale/manifest source-of-truth specification, without implementing locale merge behavior here.
+- If a lockfile write fails, the transaction must restore component files, pubspec, state, aliases, and manifests so the project is not installed without ownership records.
 - `.shadcn/state.json.managedDependencies` must continue to be saved exactly as current behavior expects.
 
 **Files likely touched**
@@ -592,7 +593,7 @@ Add install-time collision checks using registry namespace, component ID, and ex
 - [ ] Detect duplicate qualified install target ownership, duplicate asset ownership, duplicate post-install namespace identifiers, and reserved locale namespace placeholders.
 - [ ] Warn or fail before writes; fail for any collision that would overwrite owned files or keys.
 - [ ] Document convention: registry-owned keys should use `<registryId>.<componentId>.<key>`.
-- [ ] Leave detailed locale key collision semantics to Task 2, but reserve lockfile fields needed by that task.
+- [ ] Leave detailed locale key collision semantics to the separate v1 locale/manifest source-of-truth specification, but reserve lockfile fields needed by that work.
 
 **Edge Cases To Resolve**
 
@@ -635,7 +636,7 @@ Add install-time collision checks using registry namespace, component ID, and ex
 10. Task 11: post-install tracking.
 11. Task 12: reject unsupported config patches.
 12. Task 13: namespace collision policy.
-13. Task 6: derived capability cleanup can run after Task 3 or in parallel with Tasks 10-13 because it is mostly display/orchestration policy.
+13. Task 6: derived capability cleanup.
 
 ## Verification Gates
 
@@ -646,10 +647,10 @@ Add install-time collision checks using registry namespace, component ID, and ex
   - `dart test test/cli_integration_test.dart --concurrency=1 --reporter=expanded`
   - `dart test`
 
-## Locale And Manifest Source-Of-Truth Note For Task 2
+## Locale And Manifest Source-Of-Truth Note
 
 This plan intentionally references locale and manifest ownership only at boundaries:
 
 - Task 7 reserves lockfile fields for locale key ownership.
 - Task 13 reserves namespace collision hooks for locale key namespaces.
-- Task 2 must define detailed locale source-of-truth, ARB/JSON behavior, `l10n.yaml` resolution, optional locale warnings, and locale update/remove semantics before any locale merge implementation is added.
+- The separate v1 locale/manifest source-of-truth specification must define detailed locale source-of-truth, ARB/JSON behavior, `l10n.yaml` resolution, optional locale warnings, and locale update/remove semantics before any locale merge implementation is added.
