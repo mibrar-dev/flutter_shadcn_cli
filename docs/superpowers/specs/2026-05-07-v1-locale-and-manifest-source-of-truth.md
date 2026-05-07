@@ -50,7 +50,7 @@ The registry directory may declare:
 
 `paths.componentManifests` is a registry-relative template. It must contain exactly one `{id}` token. The CLI replaces `{id}` with the normalized component id after validating that the id matches `^[a-z0-9][a-z0-9_-]{0,63}$`.
 
-When `paths.componentManifests` is absent, the default probe path is `components/{id}.json`.
+When `paths.componentManifests` is absent, the registry does not advertise per-component manifests. The CLI records registry-level negative manifest support for that registry/source hash and falls back to `components.json` or complete `index.json` without probing guessed manifest paths.
 
 All manifest paths use the existing v1 resolver rules: no leading slash, no `..`, no backslash, no `?`, no `#`, no empty segments, and no absolute URLs inside registry-relative path fields.
 
@@ -196,7 +196,7 @@ When `l10n.yaml` exists, the CLI uses `arb-dir` as the locale destination direct
 Locale selection is deterministic:
 
 1. Project supported locales from existing files in `arb-dir`, `l10n.yaml` metadata when available, and Flutter `supportedLocales` only when it can be read from generated localization metadata.
-2. Config override from `.shadcn/config.json` under `locale.supportedLocales`.
+2. Configured supported locales from `.shadcn/config.json` under `locale.supportedLocales`.
 3. Registry default locale from the component manifest `locale.defaultLocale`.
 
 There is no silent all-locale install. If no selected locales can be derived, the CLI installs only the registry default locale. If the registry default locale is absent, install fails and asks the user to configure `.shadcn/config.json.locale.supportedLocales`.
@@ -256,7 +256,22 @@ Each entry records:
 
 `manifestSupport` is `positive`, `negative`, or `unknown`.
 
-Positive cache means at least one per-component manifest resolved successfully for the registry/source hash. Negative cache means at least one component was requested, the per-component manifest path returned a definitive not-found result, and fallback to `components.json` or `index.json` succeeded or produced a complete not-found answer.
+Positive cache means the registry advertises `paths.componentManifests` and at least one per-component manifest resolved successfully for the registry/source hash. Negative cache means the registry does not advertise `paths.componentManifests`, or the registry explicitly declares manifest support disabled in validated directory metadata. A single component manifest 404 is not registry-level negative support because registries may be mixed during migration.
+
+Component-level manifest misses are cached separately inside the same entry:
+
+```json
+{
+  "componentManifestMisses": {
+    "button": {
+      "checkedAt": "2026-05-07T00:00:00Z",
+      "status": "notFound"
+    }
+  }
+}
+```
+
+A component-level miss skips the manifest probe only for that component id and source hash. It does not prevent other component ids in the same registry from using per-component manifests.
 
 ### Invalidation
 
@@ -278,9 +293,9 @@ The CLI must ignore a capability cache entry when any of these values changes:
 
 Offline mode never probes the network. It may use cached per-component manifests only when manifest support is positive and the specific component manifest body is cached.
 
-If manifest support is negative, offline mode uses cached `components.json` or cached `index.json` according to fallback order. If the required fallback cache is missing, offline mode fails with a clear cache-missing error.
+If registry-level manifest support is negative, offline mode uses cached `components.json` or cached `index.json` according to fallback order. If the required fallback cache is missing, offline mode fails with a clear cache-missing error.
 
-If manifest support is unknown in offline mode, the CLI checks cached per-component manifest bodies first. If no cached per-component manifest exists, it uses cached `components.json`; if that is absent, cached `index.json`; if all are absent or incomplete, it fails. It must not mark the registry negative while offline.
+If manifest support is unknown in offline mode, the CLI checks cached per-component manifest bodies first only when `paths.componentManifests` is advertised. If no cached per-component manifest exists, it uses cached `components.json`; if that is absent, cached `index.json`; if all are absent or incomplete, it fails. It must not mark the registry or component negative while offline.
 
 ### Force Refresh Behavior
 
@@ -329,7 +344,7 @@ When the installed manifest is missing, `remove` may use the current registry ma
 
 ### `dry-run`
 
-`dry-run` follows the same source-of-truth order and prints which source would be used: per-component manifest, `components.json`, or `index.json`. It reports selected locales, skipped optional locales, required-locale failures, cache hits, and cache misses. It performs no writes and does not update capability cache unless the command explicitly uses `--refresh`.
+`dry-run` follows the same source-of-truth order and prints which source would be used: per-component manifest, `components.json`, or `index.json`. It reports selected locales, skipped optional locales, required-locale failures, cache hits, and cache misses. It performs no project writes and does not persist capability-cache changes.
 
 ### `list`
 
@@ -341,11 +356,13 @@ When the installed manifest is missing, `remove` may use the current registry ma
 
 ### `info`
 
-`info @namespace/component` resolves the component and loads the per-component manifest first unless the registry has negative manifest support. It then falls back to `components.json` and complete `index.json`. It prints the manifest source, component version, files, dependencies, shared groups, platform metadata, locale resources, and hashes.
+`info @namespace/component` resolves the component and loads the per-component manifest first unless the registry has registry-level negative manifest support or a component-level miss for that component id and source hash. It then falls back to `components.json` and complete `index.json`. It prints the manifest source, component version, files, dependencies, shared groups, platform metadata, locale resources, and hashes.
 
-### `add`, `info`, And `dry-run` Cache Side Effects
+### `add` And `info` Cache Side Effects
 
-Successful per-component manifest fetch sets manifest support positive for the registry/source hash. A definitive not-found response for a requested per-component manifest sets support negative only after fallback succeeds or after fallback proves the component does not exist. Transient network failures do not set negative support.
+Successful per-component manifest fetch sets manifest support positive for the registry/source hash. A definitive not-found response for a requested per-component manifest records a component-level miss only after fallback succeeds or after fallback proves the component does not exist. Transient network failures do not set registry-level negative support or component-level misses.
+
+`dry-run` uses the same resolver and may read network/cache data, but it does not write registry capability cache entries or component-level misses. With `--refresh`, `dry-run` bypasses stale cache for planning output but still discards capability-cache mutations after the command.
 
 ## What To Do
 
@@ -366,16 +383,18 @@ Successful per-component manifest fetch sets manifest support positive for the r
 | Edge case | Resolution |
 | --- | --- |
 | Per-component manifest exists and conflicts with `components.json` | Use per-component manifest. Report conflict only in `doctor`; install proceeds from manifest. |
-| Per-component manifest returns 404 | Fall back to `components.json`; if component exists there, set negative manifest support for the registry/source hash. |
+| Registry does not advertise `paths.componentManifests` | Record registry-level negative manifest support for the source hash and fall back without probing guessed paths. |
+| Per-component manifest returns 404 for one component | Fall back to `components.json`; if component exists there, record a component-level miss for that component id and source hash only. |
 | Per-component manifest fetch fails with timeout or 5xx | Do not set negative support. Use cached manifest if valid; otherwise fall back only if cache rules allow. |
-| Registry has negative manifest support | Skip per-component manifest probes until invalidation or `--refresh`. |
+| Registry has registry-level negative manifest support | Skip all per-component manifest probes until invalidation or `--refresh`. |
+| Registry has a component-level manifest miss | Skip the per-component manifest probe only for that component id and source hash. |
 | Registry source hash changes | Ignore old capability cache and probe manifests again. |
-| `components.json` missing and manifest support negative | Use `index.json` only if the entry has complete install metadata; otherwise fail. |
+| `components.json` missing and registry-level manifest support is negative | Use `index.json` only if the entry has complete install metadata; otherwise fail. |
 | `index.json` has only search metadata | Fail install with "index.json entry for <component> lacks install metadata; cannot install without per-component manifest or components.json." |
 | Unqualified component exists in two enabled registries | Fail and require `@namespace/component`. |
 | Qualified component does not exist in target registry but exists elsewhere | Fail for the requested namespace and suggest the matching qualified address only if known from cached discovery. |
 | Offline with cached per-component manifest | Use cached manifest and validate hashes where present. |
-| Offline with negative manifest support and cached `components.json` | Use cached `components.json`. |
+| Offline with registry-level negative manifest support and cached `components.json` | Use cached `components.json`. |
 | Offline with unknown manifest support and no cached manifest | Try cached `components.json`, then cached complete `index.json`; do not update capability cache. |
 | `--refresh` with stale negative cache | Clear negative cache before probing. |
 | Missing `l10n.yaml` and component has locale resources | Fail with the `flutter_shadcn locale init` error before writing files. |
@@ -402,7 +421,8 @@ Successful per-component manifest fetch sets manifest support positive for the r
 - Unit test fallback order: manifest wins over `components.json`, `components.json` wins over complete `index.json`.
 - Unit test incomplete `index.json` install failure.
 - Unit test positive manifest support cache prevents fallback-first behavior.
-- Unit test negative manifest support skips later probes for same namespace/source hash.
+- Unit test registry-level negative manifest support skips later probes for same namespace/source hash only when `paths.componentManifests` is absent.
+- Unit test component-level manifest miss skips only the same component id and still probes a different component id in the same registry.
 - Unit test invalidation on ETag, `baseUrl`, `componentManifests`, and `componentsPath` changes.
 - Unit test offline behavior for positive, negative, and unknown manifest support.
 - Unit test `--refresh` clears negative cache and probes again.
@@ -410,7 +430,7 @@ Successful per-component manifest fetch sets manifest support positive for the r
 - Unit test missing `l10n.yaml` fails for locale-aware components.
 - Unit test `flutter_shadcn locale init` creates default `l10n.yaml` and `lib/l10n/`.
 - Unit test existing `l10n.yaml` is not overwritten.
-- Unit test locale selection precedence: project, config override, registry default.
+- Unit test locale selection precedence: project, configured supported locales, registry default.
 - Unit test no silent all-locale install.
 - Unit test required and optional locale warning/error matrix.
 - Unit test ARB metadata preservation and malformed ARB rejection.
