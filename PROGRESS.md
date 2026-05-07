@@ -213,3 +213,16 @@ Date: 2026-02-22
   - confirm HTTP clients are injected/closed correctly
   - reduce repeated config/directory reads inside a single command execution
 - After all verification gates pass, delete and recreate `doc/` and `README.md` with current-only user/developer/reference documentation.
+
+## v1 gap remediation progress (2026-05-07)
+
+- Completed Task 5 qualified installed identity:
+  - component manifests now use `.shadcn/components/<namespace>/<componentId>.json`
+  - manifests store `namespace`, `componentId`, and canonical `qualifiedId`
+  - legacy bare manifests are migrated when rewritten
+  - removing a component only removes the current namespace manifest
+  - remove-all preserves other namespace manifests plus config/state
+  - audit reads selected-namespace manifests while retaining legacy manifest compatibility
+  - manifest-only installed records can still be removed
+  - explicit local registry overrides are honored before registry-directory loading
+  - installed discovery includes current namespace manifests so aggregate manifests do not clear freshly-written records

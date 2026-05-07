@@ -406,6 +406,16 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     }
 
     final configEntry = config.registryConfig(namespace);
+    final earlyOverrideSource = _sourceOverrideForNamespace(
+      namespace: namespace,
+      configEntry: configEntry,
+      directoryEntry: null,
+    );
+    if (earlyOverrideSource != null) {
+      _sources[namespace] = earlyOverrideSource;
+      return earlyOverrideSource;
+    }
+
     RegistryDirectoryEntry? directoryEntry;
     try {
       final directory = await _loadDirectory();

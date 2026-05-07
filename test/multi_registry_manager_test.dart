@@ -153,6 +153,58 @@ void main() {
       );
     });
 
+    test('same component id from two registries keeps separate manifests',
+        () async {
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        _localRegistryEntry(
+          namespace: 'shadcn',
+          baseUrl: 'https://example.com/shadcn/',
+        ),
+        _localRegistryEntry(
+          namespace: 'alt',
+          baseUrl: 'https://example.com/alt/',
+        ),
+      ]);
+      final current = await ShadcnConfig.load(appRoot.path);
+      await ShadcnConfig.save(
+        appRoot.path,
+        current.copyWith(registriesPath: registriesPath),
+      );
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: true,
+        logger: CliLogger(),
+        directoryPath: registriesPath,
+      );
+
+      await manager.runAdd(['@shadcn/button', '@alt/button']);
+
+      final shadcnManifest = File(
+        p.join(appRoot.path, '.shadcn', 'components', 'shadcn', 'button.json'),
+      );
+      final altManifest = File(
+        p.join(appRoot.path, '.shadcn', 'components', 'alt', 'button.json'),
+      );
+      expect(shadcnManifest.existsSync(), isTrue);
+      expect(altManifest.existsSync(), isTrue);
+
+      final shadcn =
+          jsonDecode(shadcnManifest.readAsStringSync()) as Map<String, dynamic>;
+      final alt =
+          jsonDecode(altManifest.readAsStringSync()) as Map<String, dynamic>;
+      expect(shadcn['namespace'], 'shadcn');
+      expect(shadcn['componentId'], 'button');
+      expect(shadcn['qualifiedId'], '@shadcn/button');
+      expect(alt['namespace'], 'alt');
+      expect(alt['componentId'], 'button');
+      expect(alt['qualifiedId'], '@alt/button');
+      expect(
+        File(p.join(appRoot.path, '.shadcn', 'components', 'button.json'))
+            .existsSync(),
+        isFalse,
+      );
+    });
+
     test('qualified namespace:component installs from selected registry',
         () async {
       final manager = MultiRegistryManager(
@@ -1103,5 +1155,22 @@ Map<String, dynamic> _inlineRegistryEntry({
       'version': 1,
       'actions': actions,
     },
+  };
+}
+
+Map<String, dynamic> _localRegistryEntry({
+  required String namespace,
+  required String baseUrl,
+}) {
+  return {
+    'id': '${namespace}_entry',
+    'displayName': namespace,
+    'maintainers': ['team'],
+    'repo': 'https://example.com/repo',
+    'license': 'MIT',
+    'minCliVersion': '0.1.0',
+    'baseUrl': baseUrl,
+    'paths': {'componentsJson': 'registry/components.json'},
+    'install': {'namespace': namespace, 'root': 'lib/ui/$namespace'},
   };
 }

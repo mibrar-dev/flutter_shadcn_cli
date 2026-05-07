@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:convert';
 import 'dart:io';
 
@@ -6,6 +7,8 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/exit_codes.dart';
+import 'package:flutter_shadcn_cli/src/application/services/command_health/audit_command.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
@@ -125,6 +128,407 @@ void main() {
       );
       expect(File(p.join(installDir, 'meta.json')).existsSync(), isFalse);
       expect(File(p.join(installDir, 'README.md')).existsSync(), isFalse);
+    });
+
+    test('upgrades legacy bare component manifest to namespaced manifest',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          registries: {
+            'shadcn': RegistryConfigEntry(
+              installPath: 'lib/ui/shadcn',
+              sharedPath: 'lib/ui/shadcn/shared',
+              includeReadme: true,
+              includeMeta: true,
+              includePreview: true,
+              enabled: true,
+            ),
+          },
+        ),
+      );
+      _writePubspec(targetRoot);
+      final legacyManifest = File(
+        p.join(targetRoot.path, '.shadcn', 'components', 'button.json'),
+      );
+      legacyManifest.parent.createSync(recursive: true);
+      legacyManifest.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert({
+          'schemaVersion': 1,
+          'id': 'button',
+          'installedAt': '2026-01-02T03:04:05.000Z',
+        }),
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        stateNamespace: 'shadcn',
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('button');
+
+      final nextManifest = File(
+        p.join(
+          targetRoot.path,
+          '.shadcn',
+          'components',
+          'shadcn',
+          'button.json',
+        ),
+      );
+      expect(nextManifest.existsSync(), isTrue);
+      expect(legacyManifest.existsSync(), isFalse);
+      final data =
+          jsonDecode(nextManifest.readAsStringSync()) as Map<String, dynamic>;
+      expect(data['namespace'], 'shadcn');
+      expect(data['componentId'], 'button');
+      expect(data['qualifiedId'], '@shadcn/button');
+      expect(data['installedAt'], '2026-01-02T03:04:05.000Z');
+    });
+
+    test('remove keeps other namespace manifest with same component id',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          registries: {
+            'shadcn': RegistryConfigEntry(
+              installPath: 'lib/ui/shadcn',
+              sharedPath: 'lib/ui/shadcn/shared',
+              includeReadme: true,
+              includeMeta: true,
+              includePreview: true,
+              enabled: true,
+            ),
+            'alt': RegistryConfigEntry(
+              installPath: 'lib/ui/alt',
+              sharedPath: 'lib/ui/alt/shared',
+              includeMeta: true,
+              enabled: true,
+            ),
+          },
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final shadcnInstaller = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        stateNamespace: 'shadcn',
+        registryNamespace: 'shadcn',
+        installPathOverride: 'lib/ui/shadcn',
+        sharedPathOverride: 'lib/ui/shadcn/shared',
+      );
+      final altInstaller = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        stateNamespace: 'alt',
+        registryNamespace: 'alt',
+        installPathOverride: 'lib/ui/alt',
+        sharedPathOverride: 'lib/ui/alt/shared',
+      );
+
+      await shadcnInstaller.addComponent('button');
+      await altInstaller.addComponent('button');
+      await shadcnInstaller.removeComponent('button', force: true);
+
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            '.shadcn',
+            'components',
+            'shadcn',
+            'button.json',
+          ),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            '.shadcn',
+            'components',
+            'alt',
+            'button.json',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('remove all keeps other namespace manifests and config state',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          registries: {
+            'shadcn': RegistryConfigEntry(
+              installPath: 'lib/ui/shadcn',
+              sharedPath: 'lib/ui/shadcn/shared',
+              includeMeta: true,
+              enabled: true,
+            ),
+            'alt': RegistryConfigEntry(
+              installPath: 'lib/ui/alt',
+              sharedPath: 'lib/ui/alt/shared',
+              includeMeta: true,
+              enabled: true,
+            ),
+          },
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final shadcnInstaller = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        stateNamespace: 'shadcn',
+        registryNamespace: 'shadcn',
+        installPathOverride: 'lib/ui/shadcn',
+        sharedPathOverride: 'lib/ui/shadcn/shared',
+      );
+      final altInstaller = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        stateNamespace: 'alt',
+        registryNamespace: 'alt',
+        installPathOverride: 'lib/ui/alt',
+        sharedPathOverride: 'lib/ui/alt/shared',
+      );
+
+      await shadcnInstaller.addComponent('button');
+      await altInstaller.addComponent('button');
+      await shadcnInstaller.removeAllComponents();
+
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            '.shadcn',
+            'components',
+            'shadcn',
+            'button.json',
+          ),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            '.shadcn',
+            'components',
+            'alt',
+            'button.json',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(targetRoot.path, '.shadcn', 'config.json')).existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(targetRoot.path, '.shadcn', 'state.json')).existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync(),
+        contains('skeletonizer:'),
+      );
+      final state = await ShadcnState.load(targetRoot.path);
+      expect(state.managedDependencies, contains('skeletonizer'));
+    });
+
+    test('audit reads namespaced component manifests', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          registries: {
+            'shadcn': RegistryConfigEntry(
+              installPath: 'lib/ui/shadcn',
+              sharedPath: 'lib/ui/shadcn/shared',
+              includeReadme: true,
+              includeMeta: true,
+              includePreview: true,
+              enabled: true,
+            ),
+          },
+        ),
+      );
+      _writePubspec(targetRoot);
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        stateNamespace: 'shadcn',
+        registryNamespace: 'shadcn',
+      );
+      await installer.addComponent('button');
+
+      final printed = <String>[];
+      final exitCode = await runZoned(
+        () async => runAuditCommand(
+          registry: registry,
+          targetDir: targetRoot.path,
+          config: await ShadcnConfig.load(targetRoot.path),
+          jsonOutput: true,
+          logger: CliLogger(),
+        ),
+        zoneSpecification: ZoneSpecification(
+          print: (_, __, ___, line) => printed.add(line),
+        ),
+      );
+
+      expect(exitCode, ExitCodes.success);
+      final payload = jsonDecode(printed.join('\n')) as Map<String, dynamic>;
+      final data = payload['data'] as Map<String, dynamic>;
+      expect(data['installed'], contains('button'));
+    });
+
+    test('audit uses selected namespace instead of default namespace',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          registries: {
+            'shadcn': RegistryConfigEntry(
+              installPath: 'lib/ui/shadcn',
+              sharedPath: 'lib/ui/shadcn/shared',
+              includeReadme: true,
+              includeMeta: true,
+              includePreview: true,
+              enabled: true,
+            ),
+            'alt': RegistryConfigEntry(
+              installPath: 'lib/ui/alt',
+              sharedPath: 'lib/ui/alt/shared',
+              includeReadme: true,
+              includeMeta: true,
+              includePreview: true,
+              enabled: true,
+            ),
+          },
+        ),
+      );
+      _writePubspec(targetRoot);
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final altInstaller = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        stateNamespace: 'alt',
+        registryNamespace: 'alt',
+        installPathOverride: 'lib/ui/alt',
+        sharedPathOverride: 'lib/ui/alt/shared',
+      );
+      await altInstaller.addComponent('button');
+
+      final printed = <String>[];
+      final exitCode = await runZoned(
+        () async => runAuditCommand(
+          registry: registry,
+          targetDir: targetRoot.path,
+          config: await ShadcnConfig.load(targetRoot.path),
+          registryNamespace: 'alt',
+          jsonOutput: true,
+          logger: CliLogger(),
+        ),
+        zoneSpecification: ZoneSpecification(
+          print: (_, __, ___, line) => printed.add(line),
+        ),
+      );
+
+      expect(exitCode, ExitCodes.success);
+      final payload = jsonDecode(printed.join('\n')) as Map<String, dynamic>;
+      final data = payload['data'] as Map<String, dynamic>;
+      expect(data['installed'], ['button']);
+    });
+
+    test('remove cleans up manifest-only namespaced install', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          registries: {
+            'shadcn': RegistryConfigEntry(
+              installPath: 'lib/ui/shadcn',
+              sharedPath: 'lib/ui/shadcn/shared',
+              includeMeta: true,
+              enabled: true,
+            ),
+          },
+        ),
+      );
+      _writePubspec(targetRoot);
+      final manifest = File(
+        p.join(
+          targetRoot.path,
+          '.shadcn',
+          'components',
+          'shadcn',
+          'button.json',
+        ),
+      );
+      manifest.parent.createSync(recursive: true);
+      manifest.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert({
+          'schemaVersion': 1,
+          'id': 'button',
+          'namespace': 'shadcn',
+          'componentId': 'button',
+          'qualifiedId': '@shadcn/button',
+        }),
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        stateNamespace: 'shadcn',
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.removeComponent('button', force: true);
+
+      expect(manifest.existsSync(), isFalse);
     });
 
     test('registry excludeFiles=preview excludes preview and preview_state',
@@ -601,7 +1005,8 @@ void main() {
       );
     });
 
-    test('applies theme artifact manifest and updates config theme id', () async {
+    test('applies theme artifact manifest and updates config theme id',
+        () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -671,7 +1076,8 @@ void main() {
       );
       final manifestData =
           jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
-      final files = (manifestData['files'] as List).cast<Map<String, dynamic>>();
+      final files =
+          (manifestData['files'] as List).cast<Map<String, dynamic>>();
       files[0] = {
         ...files[0],
         'sha256': '0' * 64,

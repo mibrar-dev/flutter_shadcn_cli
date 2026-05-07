@@ -12,6 +12,7 @@ Future<int> runAuditCommandCli({
   required Registry? registry,
   required String targetDir,
   required ShadcnConfig config,
+  String? registryNamespace,
   required CliLogger logger,
 }) async {
   if (command['help'] == true) {
@@ -30,6 +31,7 @@ Future<int> runAuditCommandCli({
     registry: registry,
     targetDir: targetDir,
     config: config,
+    registryNamespace: registryNamespace,
     jsonOutput: command['json'] == true,
     logger: logger,
   );

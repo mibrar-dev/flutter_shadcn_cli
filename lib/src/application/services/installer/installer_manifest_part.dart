@@ -46,40 +46,75 @@ extension InstallerManifestPart on Installer {
         .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
   }
 
-  Directory _componentManifestDirectory() {
-    return Directory(_resolveProjectPath(p.join('.shadcn', 'components')));
+  String _componentManifestNamespace() {
+    final config = _cachedConfig ?? const ShadcnConfig();
+    return stateNamespace ??
+        registryNamespace ??
+        config.effectiveDefaultNamespace;
+  }
+
+  Directory _componentNamespaceManifestDirectory([String? namespace]) {
+    return Directory(
+      _resolveProjectPath(
+        p.join('.shadcn', 'components',
+            namespace ?? _componentManifestNamespace()),
+      ),
+    );
   }
 
   File _componentManifestFile(String componentId) {
+    return File(
+      _resolveProjectPath(
+        p.join(
+          '.shadcn',
+          'components',
+          _componentManifestNamespace(),
+          '$componentId.json',
+        ),
+      ),
+    );
+  }
+
+  File _legacyComponentManifestFile(String componentId) {
     return File(
       _resolveProjectPath(p.join('.shadcn', 'components', '$componentId.json')),
     );
   }
 
   Future<void> _writeComponentManifest(Component component) async {
-    final dir = _componentManifestDirectory();
+    final dir = _componentNamespaceManifestDirectory();
     if (!await dir.exists()) {
       await dir.create(recursive: true);
     }
     final file = _componentManifestFile(component.id);
+    final legacyFile = _legacyComponentManifestFile(component.id);
     String? installedAt;
-    if (await file.exists()) {
+    for (final candidate in [file, legacyFile]) {
+      if (!await candidate.exists()) {
+        continue;
+      }
       try {
-        final content = await file.readAsString();
+        final content = await candidate.readAsString();
         final data = jsonDecode(content);
         if (data is Map<String, dynamic>) {
           final value = data['installedAt']?.toString();
           if (value != null && value.isNotEmpty) {
             installedAt = value;
+            break;
           }
         }
       } catch (_) {
         installedAt = null;
       }
     }
+    final qualified = QualifiedComponentId(
+      namespace: _componentManifestNamespace(),
+      componentId: component.id,
+    );
     final payload = {
       'schemaVersion': 1,
       'id': component.id,
+      ...qualified.toStorageFields(),
       'name': component.name,
       'version': component.version,
       'tags': component.tags,
@@ -91,6 +126,9 @@ extension InstallerManifestPart on Installer {
     };
     await file
         .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
+    if (await legacyFile.exists()) {
+      await legacyFile.delete();
+    }
   }
 
   Future<void> _removeComponentManifest(String componentId) async {
@@ -98,10 +136,14 @@ extension InstallerManifestPart on Installer {
     if (await file.exists()) {
       await file.delete();
     }
+    final legacyFile = _legacyComponentManifestFile(componentId);
+    if (await legacyFile.exists()) {
+      await legacyFile.delete();
+    }
   }
 
   Future<void> _clearComponentManifests() async {
-    final dir = _componentManifestDirectory();
+    final dir = _componentNamespaceManifestDirectory();
     if (await dir.exists()) {
       await dir.delete(recursive: true);
     }
@@ -219,13 +261,16 @@ extension InstallerManifestPart on Installer {
     await _ensureConfigLoaded();
     final config = _cachedConfig ?? const ShadcnConfig();
     final namespace = stateNamespace ?? config.effectiveDefaultNamespace;
-    final installed = await _installedComponentIds();
-    final required = _collectRequiredDependencies(installed);
-    final managed = <String>{...required.keys, ..._coreInitDependencies};
     final existingState = await ShadcnState.load(
       targetDir,
       defaultNamespace: namespace,
     );
+    final installed = await _installedComponentIds();
+    final required = _collectRequiredDependencies(installed);
+    final baseManaged = <String>{...required.keys, ..._coreInitDependencies};
+    final managed = installed.isEmpty && _hasOtherNamespaceComponentManifests()
+        ? <String>{...(existingState.managedDependencies ?? baseManaged)}
+        : baseManaged;
     final mergedRegistries = Map<String, RegistryStateEntry>.from(
         existingState.registries ?? const {});
     mergedRegistries[namespace] = RegistryStateEntry(

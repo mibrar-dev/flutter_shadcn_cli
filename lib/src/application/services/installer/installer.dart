@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/dto/qualified_component_id.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
@@ -56,6 +57,7 @@ class Installer {
   bool _initFilesEnsured = false;
   bool _deferAliases = false;
   bool _deferDependencyUpdates = false;
+  bool _suppressDependencySync = false;
   final Map<String, dynamic> _pendingDependencies = {};
   final Set<String> _pendingAssets = {};
   final List<FontEntry> _pendingFonts = [];
@@ -266,6 +268,7 @@ class Installer {
       }
       try {
         await _writeComponentManifest(component);
+        _installedComponentCache?.add(component.id);
       } catch (e) {
         if (e is ResolverV1Exception) {
           rethrow;
@@ -281,10 +284,9 @@ class Installer {
       if (!_deferComponentManifest) {
         await _updateState();
       }
-      if (!_deferDependencyUpdates) {
+      if (!_deferDependencyUpdates && !_suppressDependencySync) {
         await _syncDependenciesWithInstalled();
       }
-      _installedComponentCache?.add(component.id);
     } catch (e, st) {
       if (!completer.isCompleted) {
         completer.completeError(e, st);

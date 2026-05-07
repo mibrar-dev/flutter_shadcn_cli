@@ -89,12 +89,21 @@ void main() {
       );
 
       final manifestFile = File(
-        p.join(appRoot.path, '.shadcn', 'components', 'button.json'),
+        p.join(
+          appRoot.path,
+          '.shadcn',
+          'components',
+          'shadcn',
+          'button.json',
+        ),
       );
       expect(manifestFile.existsSync(), isTrue);
       final manifestData =
           jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
       expect(manifestData['id'], 'button');
+      expect(manifestData['namespace'], 'shadcn');
+      expect(manifestData['componentId'], 'button');
+      expect(manifestData['qualifiedId'], '@shadcn/button');
       expect(manifestData['version'], '1.0.0');
       expect(manifestData['tags'], contains('core'));
 
@@ -205,7 +214,8 @@ void main() {
       expect(jsonDecode(registriesResult.stdout), isA<Map<String, dynamic>>());
     });
 
-    test('list uses registries directory manifest paths without persisted config',
+    test(
+        'list uses registries directory manifest paths without persisted config',
         () async {
       final manifestRegistry =
           Directory(p.join(tempRoot.path, 'manifest_registry', 'registry'))
@@ -912,8 +922,7 @@ void main() {
       );
     });
 
-    test(
-        'init without flags uses persisted local registry mode from config',
+    test('init without flags uses persisted local registry mode from config',
         () async {
       final fixture = jsonDecode(
         File(
@@ -1025,7 +1034,8 @@ void main() {
         Map<String, dynamic>.from(fixture)
           ..['paths'] = {
             'componentsJson': 'components.json',
-            'themeConverterDart': 'https://example.com/tool/theme_converter.dart',
+            'themeConverterDart':
+                'https://example.com/tool/theme_converter.dart',
           },
       ]);
 
@@ -1233,7 +1243,8 @@ void main() {
             .existsSync(),
         isFalse,
       );
-      final pubspec = File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
+      final pubspec =
+          File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
       expect(pubspec, contains('assets/fonts/typography_fonts.otf'));
       expect(pubspec, isNot(contains('assets/theme/typography_fonts.dart')));
     });

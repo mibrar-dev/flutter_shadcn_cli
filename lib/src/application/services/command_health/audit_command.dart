@@ -11,6 +11,7 @@ Future<int> runAuditCommand({
   required Registry registry,
   required String targetDir,
   required ShadcnConfig config,
+  String? registryNamespace,
   required bool jsonOutput,
   required CliLogger logger,
 }) async {
@@ -20,17 +21,28 @@ Future<int> runAuditCommand({
   final defaults = (registry.data['defaults'] as Map?)
           ?.map((key, value) => MapEntry(key.toString(), value.toString())) ??
       const <String, String>{};
-  final installPath =
-      config.installPath ?? defaults['installPath'] ?? 'lib/ui/shadcn';
-  final sharedPath =
-      config.sharedPath ?? defaults['sharedPath'] ?? 'lib/ui/shadcn/shared';
+  final selectedNamespace =
+      registryNamespace ?? config.effectiveDefaultNamespace;
+  final registryConfig = config.registryConfig(selectedNamespace);
+  final installPath = registryConfig?.installPath ??
+      config.installPath ??
+      defaults['installPath'] ??
+      'lib/ui/shadcn';
+  final sharedPath = registryConfig?.sharedPath ??
+      config.sharedPath ??
+      defaults['sharedPath'] ??
+      'lib/ui/shadcn/shared';
   final aliases = config.pathAliases ?? const <String, String>{};
   final resolvedInstallPath = _expandAliasPath(installPath, aliases);
   final resolvedSharedPath = _expandAliasPath(sharedPath, aliases);
   final installPathOnDisk = _ensureLibPrefix(resolvedInstallPath);
   final sharedPathOnDisk = _ensureLibPrefix(resolvedSharedPath);
 
-  final manifests = await _loadComponentManifests(targetDir, installPathOnDisk);
+  final manifests = await _loadComponentManifests(
+    targetDir,
+    installPathOnDisk,
+    namespace: selectedNamespace,
+  );
   final installedIds = manifests.keys.toList()..sort();
 
   final missingRegistry = <String>[];
@@ -189,26 +201,18 @@ Future<int> runAuditCommand({
 
 Future<Map<String, Map<String, dynamic>>> _loadComponentManifests(
   String targetDir,
-  String installPath,
-) async {
+  String installPath, {
+  required String namespace,
+}) async {
   final manifests = <String, Map<String, dynamic>>{};
   final manifestDir = Directory(p.join(targetDir, '.shadcn', 'components'));
   if (manifestDir.existsSync()) {
-    for (final entity in manifestDir.listSync()) {
-      if (entity is! File || !entity.path.endsWith('.json')) {
-        continue;
-      }
-      try {
-        final data = jsonDecode(entity.readAsStringSync());
-        if (data is Map<String, dynamic>) {
-          final id = data['id']?.toString();
-          if (id != null && id.isNotEmpty) {
-            manifests[id] = data;
-          }
-        }
-      } catch (_) {
-        continue;
-      }
+    for (final entity in manifestDir.listSync(recursive: true)) {
+      _addComponentManifest(
+        manifests,
+        entity,
+        namespace: namespace,
+      );
     }
     return manifests;
   }
@@ -239,6 +243,34 @@ Future<Map<String, Map<String, dynamic>>> _loadComponentManifests(
     return manifests;
   }
   return manifests;
+}
+
+void _addComponentManifest(
+  Map<String, Map<String, dynamic>> manifests,
+  FileSystemEntity entity, {
+  required String namespace,
+}) {
+  if (entity is! File || !entity.path.endsWith('.json')) {
+    return;
+  }
+  try {
+    final data = jsonDecode(entity.readAsStringSync());
+    if (data is! Map<String, dynamic>) {
+      return;
+    }
+    final manifestNamespace = data['namespace']?.toString();
+    if (manifestNamespace != null &&
+        manifestNamespace.isNotEmpty &&
+        manifestNamespace != namespace) {
+      return;
+    }
+    final id = data['componentId']?.toString() ?? data['id']?.toString();
+    if (id != null && id.isNotEmpty) {
+      manifests[id] = data;
+    }
+  } catch (_) {
+    return;
+  }
 }
 
 String _resolveComponentDestination(

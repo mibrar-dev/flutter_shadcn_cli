@@ -43,7 +43,7 @@ extension InstallerRemovePart on Installer {
       await _updateComponentManifest();
       await _updateState();
     }
-    if (!_deferDependencyUpdates) {
+    if (!_deferDependencyUpdates && !_suppressDependencySync) {
       await _syncDependenciesWithInstalled();
     }
   }
@@ -53,11 +53,14 @@ extension InstallerRemovePart on Installer {
     await _ensureConfigLoaded();
     final managedDeps = await _loadManagedDependencies();
     final installed = await _installedComponentIds();
+    final preserveOtherNamespaces = _hasOtherNamespaceComponentManifests();
     if (installed.isEmpty) {
       logger.info('No installed components to remove.');
       await _removeAllInstallArtifacts();
       _installedComponentCache = null;
-      if (!_deferDependencyUpdates) {
+      if (!_deferDependencyUpdates &&
+          !_suppressDependencySync &&
+          !preserveOtherNamespaces) {
         await _syncDependenciesWithInstalled(
           installedOverride: const {},
           managedOverride: managedDeps,
@@ -65,26 +68,34 @@ extension InstallerRemovePart on Installer {
       }
       return;
     }
-    if (!_deferDependencyUpdates) {
+    if (!_deferDependencyUpdates &&
+        !_suppressDependencySync &&
+        !preserveOtherNamespaces) {
       await _syncDependenciesWithInstalled(
         installedOverride: const {},
         managedOverride: managedDeps,
       );
     }
-    await runBulkInstall(() async {
-      for (final id in installed.toList()) {
-        await removeComponent(id, force: force);
-      }
-    });
-    await _removeAllInstallArtifacts();
-    _installedComponentCache = null;
+    final previousSuppressDependencySync = _suppressDependencySync;
+    _suppressDependencySync =
+        _suppressDependencySync || preserveOtherNamespaces;
+    try {
+      await runBulkInstall(() async {
+        for (final id in installed.toList()) {
+          await removeComponent(id, force: force);
+        }
+      });
+      await _removeAllInstallArtifacts();
+      _installedComponentCache = null;
+    } finally {
+      _suppressDependencySync = previousSuppressDependencySync;
+    }
   }
 
   Future<void> _removeAllInstallArtifacts() async {
     final config = _cachedConfig ?? const ShadcnConfig();
     final installRoot = Directory(_resolveProjectPath(_installPath(config)));
     final sharedRoot = Directory(_resolveProjectPath(_sharedPath(config)));
-    final configRoot = Directory(_resolveProjectPath('.shadcn'));
 
     if (installRoot.existsSync()) {
       await installRoot.delete(recursive: true);
@@ -92,9 +103,7 @@ extension InstallerRemovePart on Installer {
     if (sharedRoot.existsSync()) {
       await sharedRoot.delete(recursive: true);
     }
-    if (configRoot.existsSync()) {
-      await configRoot.delete(recursive: true);
-    }
+    await _clearComponentManifests();
 
     final installPath = _installPath(config);
     final parts = p.split(installPath);
@@ -124,13 +133,13 @@ extension InstallerRemovePart on Installer {
     final compositesDir = enableComposites
         ? Directory(_resolveProjectPath(p.join(installPath, 'composites')))
         : null;
+    final installed = <String>{};
+    installed.addAll(_installedIdsFromNamespaceManifests());
     if (!componentsDir.existsSync() &&
         (compositesDir == null || !compositesDir.existsSync())) {
-      _installedComponentCache = {};
+      _installedComponentCache = installed;
       return _installedComponentCache!;
     }
-
-    final installed = <String>{};
     final dirs = <Directory>[];
     if (componentsDir.existsSync()) {
       dirs.add(componentsDir);
@@ -155,6 +164,55 @@ extension InstallerRemovePart on Installer {
     }
     _installedComponentCache = installed;
     return installed;
+  }
+
+  Set<String> _installedIdsFromNamespaceManifests() {
+    final installed = <String>{};
+    final namespaceDir = _componentNamespaceManifestDirectory();
+    if (!namespaceDir.existsSync()) {
+      return installed;
+    }
+    for (final entry in namespaceDir.listSync()) {
+      if (entry is! File || !entry.path.endsWith('.json')) {
+        continue;
+      }
+      try {
+        final data = jsonDecode(entry.readAsStringSync());
+        if (data is! Map<String, dynamic>) {
+          continue;
+        }
+        final componentId =
+            data['componentId']?.toString() ?? data['id']?.toString();
+        final namespace = data['namespace']?.toString();
+        if (componentId != null &&
+            componentId.isNotEmpty &&
+            (namespace == null ||
+                namespace.isEmpty ||
+                namespace == _componentManifestNamespace())) {
+          installed.add(componentId);
+        }
+      } catch (_) {}
+    }
+    return installed;
+  }
+
+  bool _hasOtherNamespaceComponentManifests() {
+    final root =
+        Directory(_resolveProjectPath(p.join('.shadcn', 'components')));
+    if (!root.existsSync()) {
+      return false;
+    }
+    final currentNamespace = _componentManifestNamespace();
+    for (final entity in root.listSync()) {
+      if (entity is Directory && p.basename(entity.path) != currentNamespace) {
+        if (entity
+            .listSync(recursive: true)
+            .any((entry) => entry is File && entry.path.endsWith('.json'))) {
+          return true;
+        }
+      }
+    }
+    return false;
   }
 
   List<String> _dependentComponents(String id, Set<String> installed) {

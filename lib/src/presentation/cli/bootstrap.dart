@@ -327,6 +327,7 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             registry: registry,
             targetDir: targetDir,
             config: config,
+            registryNamespace: preloadedSelection?.namespace,
             logger: logger,
           ),
       'deps': () => runDepsCommandCli(

@@ -90,7 +90,9 @@ extension InstallerSharedPart on Installer {
         _pendingFonts.clear();
         await _updateFonts(pending);
       }
-      await _syncDependenciesWithInstalled();
+      if (!_suppressDependencySync) {
+        await _syncDependenciesWithInstalled();
+      }
       if (!_deferAliases) {
         await generateAliases();
       }
