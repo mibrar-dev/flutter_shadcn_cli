@@ -32,6 +32,7 @@ part 'installer_assets_update_result_part.dart';
 part 'installer_fonts_update_result_part.dart';
 part 'installer_section_range_part.dart';
 part 'installer_init_config_overrides_part.dart';
+part 'install_target_policy.dart';
 
 class Installer {
   static const int _fileCopyConcurrency = 4;

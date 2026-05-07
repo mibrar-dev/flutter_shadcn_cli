@@ -117,6 +117,12 @@ extension InstallerSharedPart on Installer {
     if (assets.isEmpty) {
       return;
     }
+    for (final asset in assets) {
+      InstallTargetPolicy.validateAssetPath(
+        namespace: registryNamespace ?? stateNamespace ?? 'shadcn',
+        assetPath: asset,
+      );
+    }
     if (!_deferDependencyUpdates) {
       await _updateAssets(assets);
       return;
@@ -127,6 +133,14 @@ extension InstallerSharedPart on Installer {
   Future<void> _queueFontUpdates(List<FontEntry> fonts) async {
     if (fonts.isEmpty) {
       return;
+    }
+    for (final font in fonts) {
+      for (final asset in font.fonts) {
+        InstallTargetPolicy.validateAssetPath(
+          namespace: registryNamespace ?? stateNamespace ?? 'shadcn',
+          assetPath: asset.asset,
+        );
+      }
     }
     if (!_deferDependencyUpdates) {
       await _updateFonts(fonts);

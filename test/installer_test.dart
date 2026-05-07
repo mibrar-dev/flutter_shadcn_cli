@@ -77,6 +77,343 @@ void main() {
       );
     });
 
+    test('rejects component file destinations outside install scope', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(tempRoot.path, 'external', 'button.dart'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('class ExternalButton {}');
+      _rewriteButtonComponent(registryRoot, (button) {
+        final files = (button['files'] as List).cast<Map<String, dynamic>>();
+        files[0] = {
+          ...files[0],
+          'source': 'external/button.dart',
+          'destination': 'lib/main.dart',
+        };
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        () => installer.addComponent('button'),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('outside allowed install scope'),
+          ),
+        ),
+      );
+      expect(File(p.join(targetRoot.path, 'lib', 'main.dart')).existsSync(),
+          isFalse);
+    });
+
+    for (final reservedPath in const [
+      'pubspec.yaml',
+      '.shadcn/state.json',
+      '.shadcn/config.json',
+    ]) {
+      test('rejects component file destination to $reservedPath', () async {
+        await _writeConfig(
+          targetRoot,
+          const ShadcnConfig(
+            installPath: 'lib/ui/shadcn',
+            sharedPath: 'lib/ui/shadcn/shared',
+            includeReadme: false,
+            includeMeta: true,
+            includePreview: false,
+          ),
+        );
+        _writePubspec(targetRoot);
+        File(p.join(tempRoot.path, 'external', 'button.dart'))
+          ..createSync(recursive: true)
+          ..writeAsStringSync('class ExternalButton {}');
+        _rewriteButtonComponent(registryRoot, (button) {
+          final files = (button['files'] as List).cast<Map<String, dynamic>>();
+          files[0] = {
+            ...files[0],
+            'source': 'external/button.dart',
+            'destination': reservedPath,
+          };
+        });
+
+        final registry = await Registry.load(
+          registryRoot: RegistryLocation.local(registryRoot.path),
+          sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+        );
+        final installer = Installer(
+          registry: registry,
+          targetDir: targetRoot.path,
+          logger: CliLogger(),
+        );
+
+        await expectLater(
+          () => installer.addComponent('button'),
+          throwsA(
+            isA<Exception>().having(
+              (error) => error.toString(),
+              'message',
+              contains('reserved project file'),
+            ),
+          ),
+        );
+      });
+    }
+
+    test('allows component file destinations inside shared root', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(tempRoot.path, 'external', 'button.dart'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('class ExternalButton {}');
+      _rewriteButtonComponent(registryRoot, (button) {
+        final files = (button['files'] as List).cast<Map<String, dynamic>>();
+        files[0] = {
+          ...files[0],
+          'source': 'external/button.dart',
+          'destination': '{sharedPath}/components/button/button.dart',
+        };
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await installer.addComponent('button');
+
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'shared',
+            'components',
+            'button',
+            'button.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('rejects component asset paths outside assets root', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _rewriteButtonComponent(registryRoot, (button) {
+        button['assets'] = ['lib/secret.txt'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        () => installer.addComponent('button'),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('Asset path must be under assets/'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects component asset paths containing control characters',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _rewriteButtonComponent(registryRoot, (button) {
+        button['assets'] = ['assets/ok.png\n    - lib/secret.txt'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        () => installer.addComponent('button'),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('control characters'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects component dependency destinations outside install scope',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(tempRoot.path, 'external', 'helper.dart'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('class ExternalHelper {}');
+      _rewriteButtonComponent(registryRoot, (button) {
+        final files = (button['files'] as List).cast<Map<String, dynamic>>();
+        files[0] = {
+          ...files[0],
+          'dependsOn': [
+            {'source': 'external/helper.dart'}
+          ],
+        };
+        files.add({
+          'source': 'external/helper.dart',
+          'destination': 'lib/main.dart',
+        });
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        () => installer.addComponent('button'),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('outside allowed install scope'),
+          ),
+        ),
+      );
+    });
+
+    test('rejects existing shared dependency destinations outside shared root',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(targetRoot.path, 'pubspec.yaml')).writeAsStringSync(
+        'name: should_not_allow_existing_reserved_target\n',
+      );
+      File(p.join(tempRoot.path, 'external', 'shared_dep.dart'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('class SharedDep {}');
+      _rewriteSharedItem(registryRoot, 'util', (shared) {
+        final files = (shared['files'] as List).cast<Map<String, dynamic>>();
+        files[0] = {
+          ...files[0],
+          'dependsOn': [
+            {'source': 'external/shared_dep.dart'}
+          ],
+        };
+        files.add({
+          'source': 'external/shared_dep.dart',
+          'destination': 'pubspec.yaml',
+        });
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        () => installer.installShared('util'),
+        throwsA(
+          isA<Exception>().having(
+            (error) => error.toString(),
+            'message',
+            contains('reserved project file'),
+          ),
+        ),
+      );
+    });
+
     test('registry includeFiles=preview installs preview and preview_state',
         () async {
       await _writeConfig(
@@ -601,7 +938,8 @@ void main() {
       );
     });
 
-    test('applies theme artifact manifest and updates config theme id', () async {
+    test('applies theme artifact manifest and updates config theme id',
+        () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -671,7 +1009,8 @@ void main() {
       );
       final manifestData =
           jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
-      final files = (manifestData['files'] as List).cast<Map<String, dynamic>>();
+      final files =
+          (manifestData['files'] as List).cast<Map<String, dynamic>>();
       files[0] = {
         ...files[0],
         'sha256': '0' * 64,
@@ -1026,6 +1365,38 @@ class ColorSchemes {
         ],
       }),
     );
+}
+
+void _rewriteButtonComponent(
+  Directory registryRoot,
+  void Function(Map<String, dynamic> button) update,
+) {
+  final componentsFile = File(p.join(registryRoot.path, 'components.json'));
+  final data =
+      jsonDecode(componentsFile.readAsStringSync()) as Map<String, dynamic>;
+  final components = (data['components'] as List).cast<Map<String, dynamic>>();
+  final button =
+      components.firstWhere((component) => component['id'] == 'button');
+  update(button);
+  componentsFile.writeAsStringSync(
+    const JsonEncoder.withIndent('  ').convert(data),
+  );
+}
+
+void _rewriteSharedItem(
+  Directory registryRoot,
+  String id,
+  void Function(Map<String, dynamic> shared) update,
+) {
+  final componentsFile = File(p.join(registryRoot.path, 'components.json'));
+  final data =
+      jsonDecode(componentsFile.readAsStringSync()) as Map<String, dynamic>;
+  final sharedItems = (data['shared'] as List).cast<Map<String, dynamic>>();
+  final shared = sharedItems.firstWhere((item) => item['id'] == id);
+  update(shared);
+  componentsFile.writeAsStringSync(
+    const JsonEncoder.withIndent('  ').convert(data),
+  );
 }
 
 void _writePubspec(Directory targetRoot, {Map<String, String>? dependencies}) {

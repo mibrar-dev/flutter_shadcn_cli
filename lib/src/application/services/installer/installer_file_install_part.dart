@@ -27,6 +27,7 @@ extension InstallerFileInstallPart on Installer {
     await _ensureConfigLoaded();
     await _installFileDependencies(component, file, availableFiles);
     final destination = _resolveComponentDestination(component, file);
+    _validateComponentFileDestination(destination);
     final patched = RegistryFile(
       source: file.source,
       destination: destination,
@@ -66,6 +67,7 @@ extension InstallerFileInstallPart on Installer {
       availableFiles,
       sharedId: sharedId,
     );
+    _validateSharedFileDestination(file.destination);
     await _installFile(file);
   }
 
@@ -100,6 +102,7 @@ extension InstallerFileInstallPart on Installer {
           RegistryFile(source: dep.source, destination: dep.source);
       final destination =
           _resolveComponentDestination(component, resolvedMapping);
+      _validateComponentFileDestination(destination);
       final target = File(destination);
       if (await target.exists()) {
         continue;
@@ -143,6 +146,7 @@ extension InstallerFileInstallPart on Installer {
       final resolvedMapping = mapping ??
           owner?.file ??
           RegistryFile(source: dep.source, destination: dep.source);
+      _validateSharedFileDestination(resolvedMapping.destination);
       final target = File(_resolveDestinationPath(resolvedMapping.destination));
       if (await target.exists()) {
         continue;
@@ -160,6 +164,8 @@ extension InstallerFileInstallPart on Installer {
       await _installComponentFile(component, mapping, availableFiles);
       return true;
     } on ResolverV1Exception {
+      rethrow;
+    } on InstallTargetPolicyException {
       rethrow;
     } catch (_) {
       return false;
@@ -191,5 +197,29 @@ extension InstallerFileInstallPart on Installer {
     }
 
     return _resolveDestinationPath(file.destination);
+  }
+
+  void _validateComponentFileDestination(String destination) {
+    final config = _cachedConfig;
+    InstallTargetPolicy.validateFileDestination(
+      projectRoot: targetDir,
+      namespace: registryNamespace ?? stateNamespace ?? 'shadcn',
+      installRoot: _installPath(config),
+      sharedRoot: _sharedPath(config),
+      destinationPath: destination,
+      kind: InstallTargetKind.componentFile,
+    );
+  }
+
+  void _validateSharedFileDestination(String destination) {
+    final config = _cachedConfig;
+    InstallTargetPolicy.validateFileDestination(
+      projectRoot: targetDir,
+      namespace: registryNamespace ?? stateNamespace ?? 'shadcn',
+      installRoot: _installPath(config),
+      sharedRoot: _sharedPath(config),
+      destinationPath: _resolveDestinationPath(destination),
+      kind: InstallTargetKind.sharedFile,
+    );
   }
 }

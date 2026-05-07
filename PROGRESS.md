@@ -165,6 +165,12 @@ Date: 2026-02-22
 
 ## Multi-registry production rewrite progress (2026-05-01)
 
+- V1 gap remediation Task 2 install scope policy (2026-05-07):
+  - added component/shared install target policy for registry file destinations
+  - rejected component writes outside the effective install/shared roots
+  - rejected registry component writes to reserved project files such as `pubspec.yaml` and `.shadcn/*.json`
+  - restricted component asset/font pubspec entries to `assets/` paths
+  - preserved existing inline init path guarding and shared-root component destinations
 - Completed command boundary cleanup:
   - removed public legacy `--registry` routing
   - kept hidden developer overrides wired into the current multi-registry source path
