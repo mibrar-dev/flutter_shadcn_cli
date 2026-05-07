@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
@@ -61,6 +62,7 @@ class Installer {
   final List<FontEntry> _pendingFonts = [];
   final Map<String, Future<void>> _componentInstallTasks = {};
   bool _deferComponentManifest = false;
+  Future<void> _lockfileWriteQueue = Future<void>.value();
   Map<String, _RegistryFileOwner>? _registryFileIndex;
   final Map<String, Set<String>> _sharedDependencyCache = {};
   ShadcnConfig? _cachedConfig;
@@ -231,6 +233,7 @@ class Installer {
       final installed = await _installedComponentIds();
       if (installed.contains(component.id)) {
         logger.detail('Skipping ${component.id} (already installed)');
+        await _writeLockfileRecord(component);
         return;
       }
 
@@ -272,6 +275,7 @@ class Installer {
         }
         logger.warn('Failed to write component manifest: $e');
       }
+      await _writeLockfileRecord(component);
       if (!_deferAliases) {
         await generateAliases();
       }

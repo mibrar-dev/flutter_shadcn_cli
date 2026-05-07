@@ -165,6 +165,14 @@ Date: 2026-02-22
 
 ## Multi-registry production rewrite progress (2026-05-01)
 
+- Completed v1 lockfile/source-of-truth foundation:
+  - added root `shadcn.lock` v1 model and repository
+  - installer writes registry/component lock records on add and sync
+  - component records include namespace, qualified ID, version, registry roots, source manifest hash, installed files, dependencies, post-install notes, and reserved locale key ownership
+  - remove prefers lockfile file ownership and clears lock records without changing existing `.shadcn/state.json.managedDependencies` behavior
+  - legacy `.shadcn/components/*.json` projects synthesize lock records when `shadcn.lock` is absent
+  - `doctor` reports lockfile presence, malformed lockfiles, and missing locked files
+  - parser accepts `@namespace/component@version` and add rejects explicit version mismatches
 - Completed command boundary cleanup:
   - removed public legacy `--registry` routing
   - kept hidden developer overrides wired into the current multi-registry source path

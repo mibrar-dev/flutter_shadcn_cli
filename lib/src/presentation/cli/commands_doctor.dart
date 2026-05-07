@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
@@ -127,6 +128,25 @@ Future<int> runDoctorCommand(
   });
 
   final platformTargets = mergePlatformTargets(config.platformTargets);
+  final lockRepository = ShadcnLockRepository(Directory.current.path);
+  ShadcnLock lock = const ShadcnLock();
+  final lockfileExists = lockRepository.file.existsSync();
+  String? lockfileError;
+  try {
+    lock = await lockRepository.loadOrSynthesize();
+  } catch (e) {
+    lockfileError = e.toString();
+  }
+  final missingLockedFiles = <String>[];
+  if (lockfileError == null) {
+    for (final component in lock.components) {
+      for (final relativePath in component.installedFiles) {
+        if (!File(p.join(Directory.current.path, relativePath)).existsSync()) {
+          missingLockedFiles.add('${component.qualifiedId}: $relativePath');
+        }
+      }
+    }
+  }
 
   final hasSchemaIssues = schemaValid == false;
   final hasConfigIssues = !installPathValid ||
@@ -189,14 +209,31 @@ Future<int> runDoctorCommand(
       details: {'aliases': invalidAliases},
     ));
   }
+  if (missingLockedFiles.isNotEmpty) {
+    errors.add(jsonError(
+      code: ExitCodeLabels.validationFailed,
+      message: 'One or more locked component files are missing.',
+      details: {'files': missingLockedFiles},
+    ));
+  }
+  if (lockfileError != null) {
+    errors.add(jsonError(
+      code: ExitCodeLabels.validationFailed,
+      message: 'Failed to parse shadcn.lock.',
+      details: {'error': lockfileError},
+    ));
+  }
 
   var doctorExitCode = ExitCodes.success;
-  if (hasSchemaIssues && hasConfigIssues) {
+  final hasLockIssues = missingLockedFiles.isNotEmpty || lockfileError != null;
+  if (hasSchemaIssues && (hasConfigIssues || hasLockIssues)) {
     doctorExitCode = ExitCodes.validationFailed;
   } else if (hasSchemaIssues) {
     doctorExitCode = ExitCodes.schemaInvalid;
   } else if (hasConfigIssues) {
     doctorExitCode = ExitCodes.configInvalid;
+  } else if (hasLockIssues) {
+    doctorExitCode = ExitCodes.validationFailed;
   }
 
   if (jsonOutput) {
@@ -247,6 +284,14 @@ Future<int> runDoctorCommand(
           'errors': schemaErrors,
         },
         'platformTargets': platformTargets,
+        'lockfile': {
+          'exists': lockfileExists,
+          'lockfileVersion': lock.lockfileVersion,
+          'registryCount': lock.registries.length,
+          'componentCount': lock.components.length,
+          'missingFiles': missingLockedFiles,
+          'error': lockfileError,
+        },
       },
       errors: errors,
       warnings: warnings,
@@ -319,6 +364,27 @@ Future<int> runDoctorCommand(
     }
     if (schemaErrors.length > 12) {
       logger.info('  ...and ${schemaErrors.length - 12} more');
+    }
+  }
+
+  print('');
+  logger.section('Lockfile');
+  kv('shadcn.lock', lockfileExists ? 'present' : 'not present');
+  kv('lockfileVersion', lock.lockfileVersion.toString());
+  kv('locked components', lock.components.length.toString());
+  if (missingLockedFiles.isEmpty) {
+    if (lockfileError == null) {
+      logger.success('  locked files are present.');
+    } else {
+      logger.error('  failed to parse shadcn.lock: $lockfileError');
+    }
+  } else {
+    logger.error('  missing locked files: ${missingLockedFiles.length}');
+    for (final file in missingLockedFiles.take(12)) {
+      logger.info('  - $file');
+    }
+    if (missingLockedFiles.length > 12) {
+      logger.info('  ...and ${missingLockedFiles.length - 12} more');
     }
   }
 

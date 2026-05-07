@@ -14,9 +14,9 @@ extension MultiRegistryAddPart on MultiRegistryManager {
     final refs =
         await _resolveAddRequests(requested, config, projectRoot: projectRoot);
 
-    final grouped = <String, List<String>>{};
+    final grouped = <String, List<AddRequest>>{};
     for (final ref in refs) {
-      grouped.putIfAbsent(ref.namespace, () => []).add(ref.componentId);
+      grouped.putIfAbsent(ref.namespace, () => []).add(ref);
     }
 
     for (final entry in grouped.entries) {
@@ -51,8 +51,9 @@ extension MultiRegistryAddPart on MultiRegistryManager {
         enableComposites: supportsComposites,
       );
       await installer.runBulkInstall(() async {
-        for (final componentId in entry.value) {
-          await installer.addComponent(componentId);
+        for (final request in entry.value) {
+          _ensureRequestedVersion(registry, request);
+          await installer.addComponent(request.componentId);
         }
       });
     }
@@ -88,6 +89,23 @@ extension MultiRegistryAddPart on MultiRegistryManager {
       }
       throw MultiRegistryException(
           e.toString().replaceFirst('Exception: ', ''));
+    }
+  }
+
+  void _ensureRequestedVersion(Registry registry, AddRequest request) {
+    final requestedVersion = request.version;
+    if (requestedVersion == null || requestedVersion.isEmpty) {
+      return;
+    }
+    final component = registry.getComponent(request.componentId);
+    if (component == null) {
+      return;
+    }
+    if (component.version != requestedVersion) {
+      throw MultiRegistryException(
+        'Component ${request.componentId} in ${request.namespace} is '
+        'version ${component.version ?? 'unknown'}, not $requestedVersion.',
+      );
     }
   }
 }

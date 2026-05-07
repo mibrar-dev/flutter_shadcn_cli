@@ -406,20 +406,10 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     }
 
     final configEntry = config.registryConfig(namespace);
-    RegistryDirectoryEntry? directoryEntry;
-    try {
-      final directory = await _loadDirectory();
-      directoryEntry = directory.registries.firstWhere(
-        (item) => item.namespace == namespace,
-      );
-    } on StateError {
-      directoryEntry = null;
-    }
-
     final overrideSource = _sourceOverrideForNamespace(
       namespace: namespace,
       configEntry: configEntry,
-      directoryEntry: directoryEntry,
+      directoryEntry: null,
     );
     if (overrideSource != null) {
       _sources[namespace] = overrideSource;
@@ -458,6 +448,16 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       );
       _sources[namespace] = source;
       return source;
+    }
+
+    RegistryDirectoryEntry? directoryEntry;
+    try {
+      final directory = await _loadDirectory();
+      directoryEntry = directory.registries.firstWhere(
+        (item) => item.namespace == namespace,
+      );
+    } on StateError {
+      directoryEntry = null;
     }
 
     if (configEntry != null &&
@@ -603,11 +603,11 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     if ((configEntry?.registryMode == 'local' || configuredPath != null) &&
         configuredPath != null &&
         configuredPath.isNotEmpty) {
-      return _resolveLocalOverridePath(configuredPath);
+      return _localOverrideSourceRoot(configuredPath);
     }
     final path = registryPathOverride?.trim();
     if (path != null && path.isNotEmpty) {
-      return _resolveLocalOverridePath(path);
+      return _localOverrideSourceRoot(path);
     }
     final url = registryUrlOverride?.trim();
     if (url != null && url.isNotEmpty) {

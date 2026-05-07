@@ -10,8 +10,9 @@ extension InstallerRemovePart on Installer {
       return;
     }
 
+    final lockRecord = await _lockfileComponentRecord(component.id);
     final installed = await _installedComponentIds();
-    if (!installed.contains(component.id)) {
+    if (!installed.contains(component.id) && lockRecord == null) {
       logger.detail('Skipping ${component.id} (not installed)');
       return;
     }
@@ -25,15 +26,32 @@ extension InstallerRemovePart on Installer {
     }
 
     logger.action('Removing ${component.name} (${component.id})');
-    for (final file in component.files) {
-      final destination = _resolveComponentDestination(component, file);
-      final targetFile = File(destination);
-      if (await targetFile.exists()) {
-        await targetFile.delete();
-        _cleanupEmptyParents(targetFile.parent, component.id);
+    if (lockRecord != null) {
+      for (final relativePath in lockRecord.installedFiles) {
+        if (await _lockfilePathOwnedByOther(
+          relativePath: relativePath,
+          componentId: component.id,
+        )) {
+          continue;
+        }
+        final targetFile = File(_resolveProjectPath(relativePath));
+        if (await targetFile.exists()) {
+          await targetFile.delete();
+          _cleanupEmptyParents(targetFile.parent, component.id);
+        }
+      }
+    } else {
+      for (final file in component.files) {
+        final destination = _resolveComponentDestination(component, file);
+        final targetFile = File(destination);
+        if (await targetFile.exists()) {
+          await targetFile.delete();
+          _cleanupEmptyParents(targetFile.parent, component.id);
+        }
       }
     }
     await _removeComponentManifest(component.id);
+    await _removeLockfileRecord(component.id);
 
     _installedComponentCache?.remove(component.id);
     if (!_deferAliases) {
@@ -94,6 +112,10 @@ extension InstallerRemovePart on Installer {
     }
     if (configRoot.existsSync()) {
       await configRoot.delete(recursive: true);
+    }
+    final lockfile = File(_resolveProjectPath('shadcn.lock'));
+    if (lockfile.existsSync()) {
+      await lockfile.delete();
     }
 
     final installPath = _installPath(config);

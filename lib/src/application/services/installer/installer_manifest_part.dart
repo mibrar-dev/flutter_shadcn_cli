@@ -93,6 +93,128 @@ extension InstallerManifestPart on Installer {
         .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
   }
 
+  Future<void> _writeLockfileRecord(Component component) async {
+    await _withLockfileWriteLock(() async {
+      await _ensureConfigLoaded();
+      final namespace = _effectiveNamespace();
+      final manifestHash = _registryManifestHash();
+      final repository = ShadcnLockRepository(targetDir);
+      final existing = await repository.loadOrSynthesize();
+      final lock = existing
+          .upsertRegistry(
+            ShadcnLockRegistry(
+              namespace: namespace,
+              registryRoot: registry.registryRoot.root,
+              sourceRoot: registry.sourceRoot.root,
+              sourceManifestHash: manifestHash,
+            ),
+          )
+          .upsertComponent(
+            ShadcnLockComponent(
+              namespace: namespace,
+              componentId: component.id,
+              qualifiedId: '@$namespace/${component.id}',
+              version: component.version,
+              registryRoot: registry.registryRoot.root,
+              sourceManifestHash: manifestHash,
+              installedFiles: _installedLockFiles(component),
+              dependencies: _componentDependencies(component),
+              postInstall: component.postInstall,
+              localeKeys: const [],
+            ),
+          );
+      await repository.save(lock);
+    });
+  }
+
+  Future<void> _removeLockfileRecord(String componentId) async {
+    await _withLockfileWriteLock(() async {
+      await _ensureConfigLoaded();
+      final repository = ShadcnLockRepository(targetDir);
+      final existing = await repository.loadOrSynthesize();
+      await repository.save(
+        existing.removeComponent(
+          namespace: _effectiveNamespace(),
+          componentId: componentId,
+        ),
+      );
+    });
+  }
+
+  Future<void> _withLockfileWriteLock(Future<void> Function() action) {
+    final next = _lockfileWriteQueue.then((_) => action());
+    _lockfileWriteQueue = next.catchError((_) {});
+    return next;
+  }
+
+  Future<ShadcnLockComponent?> _lockfileComponentRecord(
+    String componentId,
+  ) async {
+    await _ensureConfigLoaded();
+    final repository = ShadcnLockRepository(targetDir);
+    final lock = await repository.loadOrSynthesize();
+    return lock.componentFor(
+      namespace: _effectiveNamespace(),
+      componentId: componentId,
+    );
+  }
+
+  Future<bool> _lockfilePathOwnedByOther({
+    required String relativePath,
+    required String componentId,
+  }) async {
+    final repository = ShadcnLockRepository(targetDir);
+    final lock = await repository.loadOrSynthesize();
+    for (final component in lock.components) {
+      if (component.namespace != _effectiveNamespace() ||
+          component.componentId == componentId) {
+        continue;
+      }
+      if (component.installedFiles.contains(relativePath)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  String _effectiveNamespace() {
+    final config = _cachedConfig ?? const ShadcnConfig();
+    return stateNamespace ??
+        registryNamespace ??
+        config.effectiveDefaultNamespace;
+  }
+
+  String _registryManifestHash() {
+    return sha256.convert(utf8.encode(jsonEncode(registry.data))).toString();
+  }
+
+  List<String> _installedLockFiles(Component component) {
+    final root = p.normalize(p.absolute(targetDir));
+    final files = <String>[];
+    for (final file in component.files) {
+      if (!_shouldInstallFile(file.destination)) {
+        continue;
+      }
+      final destination = p.normalize(
+        _resolveComponentDestination(component, file),
+      );
+      if (destination != root && !p.isWithin(root, destination)) {
+        continue;
+      }
+      files.add(p.relative(destination, from: root));
+    }
+    files.sort();
+    return files;
+  }
+
+  Map<String, dynamic> _componentDependencies(Component component) {
+    final raw = component.pubspec['dependencies'];
+    if (raw is! Map) {
+      return const {};
+    }
+    return Map<String, dynamic>.from(raw);
+  }
+
   Future<void> _removeComponentManifest(String componentId) async {
     final file = _componentManifestFile(componentId);
     if (await file.exists()) {
@@ -113,6 +235,16 @@ extension InstallerManifestPart on Installer {
       final component = registry.getComponent(id);
       if (component != null) {
         await _writeComponentManifest(component);
+      }
+    }
+  }
+
+  Future<void> _refreshLockfileRecords() async {
+    final installed = await _installedComponentIds();
+    for (final id in installed) {
+      final component = registry.getComponent(id);
+      if (component != null) {
+        await _writeLockfileRecord(component);
       }
     }
   }
@@ -282,6 +414,7 @@ extension InstallerManifestPart on Installer {
 
     await _updateComponentManifest();
     await _refreshComponentManifests();
+    await _refreshLockfileRecords();
     await generateAliases();
     await _updateState();
     logger.success('Sync complete');

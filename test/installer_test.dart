@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
@@ -255,6 +256,91 @@ void main() {
       expect(pubspecAgain.contains('skeletonizer: ^2.1.0+1'), isTrue);
     });
 
+    test('writes lockfile record without changing managed dependencies',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('button');
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      expect(lock.lockfileVersion, 1);
+      expect(lock.registries['shadcn']?.namespace, 'shadcn');
+      expect(lock.components, hasLength(1));
+
+      final record = lock.components.single;
+      expect(record.namespace, 'shadcn');
+      expect(record.componentId, 'button');
+      expect(record.qualifiedId, '@shadcn/button');
+      expect(record.installedFiles,
+          contains('lib/ui/shadcn/components/button/button.dart'));
+      expect(record.installedFiles,
+          contains('lib/ui/shadcn/components/button/meta.json'));
+      expect(record.installedFiles,
+          isNot(contains('lib/ui/shadcn/components/button/README.md')));
+      expect(record.dependencies, {'skeletonizer': '^2.1.0+1'});
+      expect(record.sourceManifestHash, isNotEmpty);
+
+      final state = await ShadcnState.load(targetRoot.path);
+      expect(state.managedDependencies, contains('data_widget'));
+      expect(state.managedDependencies, contains('gap'));
+    });
+
+    test('remove deletes lockfile record for removed component', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('button');
+      await installer.removeComponent('button', force: true);
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      expect(lock.components, isEmpty);
+    });
+
     test('inserts dependencies when section missing', () async {
       await _writeConfig(
         targetRoot,
@@ -364,6 +450,48 @@ void main() {
       );
 
       expect(File(p.join(installDir, 'meta.json')).existsSync(), isFalse);
+    });
+
+    test('remove uses lockfile when meta tracking is disabled', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await installer.addComponent('button');
+      await installer.removeComponent('button', force: true);
+
+      final buttonFile = File(
+        p.join(
+          targetRoot.path,
+          'lib',
+          'ui',
+          'shadcn',
+          'components',
+          'button',
+          'button.dart',
+        ),
+      );
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+
+      expect(buttonFile.existsSync(), isFalse);
+      expect(lock.components, isEmpty);
     });
 
     test('installs dependencies before component', () async {
@@ -601,7 +729,8 @@ void main() {
       );
     });
 
-    test('applies theme artifact manifest and updates config theme id', () async {
+    test('applies theme artifact manifest and updates config theme id',
+        () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -671,7 +800,8 @@ void main() {
       );
       final manifestData =
           jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
-      final files = (manifestData['files'] as List).cast<Map<String, dynamic>>();
+      final files =
+          (manifestData['files'] as List).cast<Map<String, dynamic>>();
       files[0] = {
         ...files[0],
         'sha256': '0' * 64,

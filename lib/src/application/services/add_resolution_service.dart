@@ -39,6 +39,7 @@ class AddResolutionService {
           AddRequest(
             namespace: qualified.namespace,
             componentId: qualified.componentId,
+            version: qualified.version,
           ),
         );
         continue;
