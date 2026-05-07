@@ -15,7 +15,8 @@ class RegistrySchemaValidationException implements Exception {
 
   @override
   String toString() {
-    return 'components.json schema validation failed (${errors.length} issues).';
+    final details = errors.isEmpty ? '' : ' ${errors.join('; ')}';
+    return 'components.json schema validation failed (${errors.length} issues).$details';
   }
 }
 
@@ -54,6 +55,23 @@ class Registry {
       content = await registryRoot.readString(componentsPath);
     }
 
+    _verifyIntegrity(
+      content: content,
+      trustMode: trustMode,
+      trustSha256: trustSha256,
+      skipIntegrity: skipIntegrity,
+      logger: logger,
+    );
+
+    final registry = await fromContent(
+      content: content,
+      registryRoot: registryRoot,
+      sourceRoot: sourceRoot,
+      schemaPath: schemaPath,
+      skipIntegrity: skipIntegrity,
+      logger: logger,
+    );
+
     if (!offline && cachePath != null && registryRoot.isRemote) {
       try {
         final cacheFile = File(cachePath);
@@ -66,22 +84,7 @@ class Registry {
       }
     }
 
-    _verifyIntegrity(
-      content: content,
-      trustMode: trustMode,
-      trustSha256: trustSha256,
-      skipIntegrity: skipIntegrity,
-      logger: logger,
-    );
-
-    return fromContent(
-      content: content,
-      registryRoot: registryRoot,
-      sourceRoot: sourceRoot,
-      schemaPath: schemaPath,
-      skipIntegrity: skipIntegrity,
-      logger: logger,
-    );
+    return registry;
   }
 
   static Future<Registry> fromContent({
@@ -92,10 +95,22 @@ class Registry {
     bool skipIntegrity = false,
     CliLogger? logger,
   }) async {
-    final data = jsonDecode(content);
+    final Map<String, dynamic> data;
+    try {
+      final decoded = jsonDecode(content);
+      if (decoded is! Map<String, dynamic>) {
+        throw const FormatException('components.json must be a JSON object');
+      }
+      data = decoded;
+    } on FormatException catch (e) {
+      throw RegistrySchemaValidationException([
+        'components.json is not valid JSON: ${e.message}',
+      ]);
+    }
+    _assertSupportedComponentSchemaVersion(data);
     if (!skipIntegrity) {
       final schemaSource = ComponentsSchemaValidator.resolveSchemaSource(
-        data: data is Map<String, dynamic> ? data : const {},
+        data: data,
         registryRoot: registryRoot,
         schemaPathOverride: schemaPath,
       );
@@ -112,6 +127,17 @@ class Registry {
     }
 
     return Registry(data, registryRoot, sourceRoot);
+  }
+
+  static void _assertSupportedComponentSchemaVersion(
+    Map<String, dynamic> data,
+  ) {
+    final version = data['schemaVersion'];
+    if (version != null && version != 1) {
+      throw RegistrySchemaValidationException([
+        'components.json schemaVersion must be 1; received $version.',
+      ]);
+    }
   }
 
   Map<String, String> get defaults {

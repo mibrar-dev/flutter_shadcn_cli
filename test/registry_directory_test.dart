@@ -246,6 +246,49 @@ void main() {
       );
     });
 
+    test('does not cache components.json when sha256 integrity fails',
+        () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async {
+        await server.close(force: true);
+      });
+
+      server.listen((request) async {
+        request.response.statusCode = 200;
+        request.response.write(jsonEncode({'components': []}));
+        await request.response.close();
+      });
+
+      final client = RegistryDirectoryClient();
+      final entry = RegistryDirectoryEntry(
+        id: 'secure',
+        displayName: 'Secure',
+        minCliVersion: '0.2.0',
+        baseUrl: 'http://${server.address.host}:${server.port}/registry',
+        namespace: 'secure',
+        installRoot: 'lib/ui/secure',
+        paths: {'componentsJson': 'components.json'},
+        capabilities: const RegistryCapabilities(),
+        trust: const RegistryTrust(mode: 'sha256', sha256: 'deadbeef'),
+        init: null,
+        raw: const {},
+      );
+
+      await expectLater(
+        () => client.loadComponentsJson(
+          projectRoot: tempProject.path,
+          registry: entry,
+        ),
+        throwsA(isA<RegistryDirectoryException>()),
+      );
+      expect(
+        File(
+          '${tempProject.path}/.shadcn/cache/components_secure.json',
+        ).existsSync(),
+        isFalse,
+      );
+    });
+
     test('loads registries directory from local file path', () async {
       final localFile = File(
         '${tempProject.path}/local_dev/registries.json',
@@ -336,6 +379,10 @@ void main() {
         ),
         throwsA(isA<RegistryDirectoryException>()),
       );
+      expect(
+        File('${tempProject.path}/.shadcn/cache/registries.json').existsSync(),
+        isFalse,
+      );
     });
 
     test('reuses compiled registries schema for repeated local loads',
@@ -378,6 +425,91 @@ void main() {
       );
 
       expect(second.registries.single.namespace, 'local_shadcn');
+    });
+
+    test('rejects unsupported schemaVersion even with permissive schema',
+        () async {
+      final localFile = File(
+        '${tempProject.path}/local_dev/registries.json',
+      )..createSync(recursive: true);
+      localFile.writeAsStringSync(
+        jsonEncode({
+          'schemaVersion': 2,
+          'registries': [],
+        }),
+      );
+      final schemaFile = File('${tempProject.path}/registries.schema.json')
+        ..writeAsStringSync(_permissiveRegistriesSchema());
+      final client = RegistryDirectoryClient(schemaPath: schemaFile.path);
+
+      await expectLater(
+        () => client.load(
+          projectRoot: tempProject.path,
+          directoryPath: localFile.path,
+          currentCliVersion: '0.1.8',
+        ),
+        throwsA(
+          isA<RegistryDirectoryException>().having(
+            (error) => error.message,
+            'message',
+            allOf(
+              contains('schemaVersion'),
+              contains('1'),
+              contains('2'),
+            ),
+          ),
+        ),
+      );
+    });
+
+    test('does not fall back to stale cache when fresh directory is invalid',
+        () async {
+      final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
+      addTearDown(() async {
+        await server.close(force: true);
+      });
+
+      var body = jsonEncode({
+        'schemaVersion': 1,
+        'registries': [
+          {
+            'id': 'local_shadcn',
+            'displayName': 'Local Shadcn',
+            'maintainers': ['team'],
+            'repo': 'https://github.com/example/local',
+            'license': 'MIT',
+            'minCliVersion': '0.1.0',
+            'baseUrl': 'https://example.com/local/',
+            'paths': {'componentsJson': 'components.json'},
+            'install': {'namespace': 'local_shadcn', 'root': 'lib/ui/local'}
+          }
+        ]
+      });
+      server.listen((request) async {
+        request.response.statusCode = 200;
+        request.response.write(body);
+        await request.response.close();
+      });
+
+      final client = RegistryDirectoryClient();
+      final url =
+          'http://${server.address.host}:${server.port}/registries.json';
+      final first = await client.load(
+        projectRoot: tempProject.path,
+        directoryUrl: url,
+        currentCliVersion: '0.1.8',
+      );
+      expect(first.registries.single.namespace, 'local_shadcn');
+
+      body = jsonEncode({'schemaVersion': 2, 'registries': []});
+      await expectLater(
+        () => client.load(
+          projectRoot: tempProject.path,
+          directoryUrl: url,
+          currentCliVersion: '0.1.8',
+        ),
+        throwsA(isA<RegistryDirectoryException>()),
+      );
     });
 
     test('does not close injected HTTP client', () {

@@ -58,6 +58,20 @@ class RegistrySource {
         offline: offline,
         skipIntegrity: skipIntegrity,
         logger: logger,
+        validateBeforeCache: (body) async {
+          final root = RegistryLocation.remote(
+            directoryEntry!.baseUrl,
+            offline: offline,
+          );
+          await Registry.fromContent(
+            content: body,
+            registryRoot: root,
+            sourceRoot: root,
+            schemaPath: directoryEntry!.componentsSchemaPath,
+            skipIntegrity: skipIntegrity,
+            logger: logger,
+          );
+        },
       );
       final root =
           RegistryLocation.remote(directoryEntry!.baseUrl, offline: offline);

@@ -165,6 +165,12 @@ Date: 2026-02-22
 
 ## Multi-registry production rewrite progress (2026-05-01)
 
+- V1 gap remediation Task 3 manifest preflight (2026-05-07):
+  - moved remote registry cache writes after manifest validation
+  - rejected unsupported `registries.json` schemaVersion values even with permissive schema injection
+  - rejected unsupported explicit component `schemaVersion` values before installs or cache writes
+  - reported malformed `components.json` as a typed schema validation error with readable details
+  - preserved namespace init without inline actions as a no-op that does not require `components.json`
 - Completed command boundary cleanup:
   - removed public legacy `--registry` routing
   - kept hidden developer overrides wired into the current multi-registry source path

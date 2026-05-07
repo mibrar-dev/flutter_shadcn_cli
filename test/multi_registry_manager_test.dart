@@ -463,6 +463,87 @@ void main() {
       expect(generated.existsSync(), isTrue);
     });
 
+    test('namespace init without inline actions does not load components',
+        () async {
+      await ShadcnConfig.save(appRoot.path, const ShadcnConfig());
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        {
+          'id': 'no_inline',
+          'displayName': 'No Inline',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/missing-components/',
+          'paths': {'componentsJson': 'components.json'},
+          'install': {'namespace': 'noinline', 'root': 'lib/ui/noinline'},
+        },
+      ]);
+
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: true,
+        logger: CliLogger(),
+        directoryPath: registriesPath,
+      );
+
+      await manager.runNamespaceInit('noinline', assumeYes: true);
+
+      final config = await ShadcnConfig.load(appRoot.path);
+      expect(config.registryConfig('noinline'), isNotNull);
+    });
+
+    test('namespace init without inline actions skips theme component load',
+        () async {
+      await ShadcnConfig.save(appRoot.path, const ShadcnConfig());
+      final overrideBase = Directory(p.join(tempRoot.path, 'theme_no_inline'))
+        ..createSync();
+      final manifestsDir =
+          Directory(p.join(overrideBase.path, 'registry', 'manifests'))
+            ..createSync(recursive: true);
+      File(p.join(manifestsDir.path, 'theme.index.json')).writeAsStringSync(
+        jsonEncode({
+          'themes': [
+            {
+              'id': 'default',
+              'name': 'Default',
+              'files': [],
+            }
+          ],
+        }),
+      );
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        {
+          'id': 'no_inline_theme',
+          'displayName': 'No Inline Theme',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/missing-components/',
+          'paths': {
+            'componentsJson': 'components.json',
+            'themesJson': 'registry/manifests/theme.index.json',
+          },
+          'install': {'namespace': 'themeonly', 'root': 'lib/ui/themeonly'},
+          'capabilities': {'theme': true},
+        },
+      ]);
+
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: false,
+        logger: CliLogger(),
+        directoryPath: registriesPath,
+        registryPathOverride: p.join(overrideBase.path, 'registry'),
+      );
+
+      await manager.runNamespaceInit('themeonly', assumeYes: true);
+
+      final config = await ShadcnConfig.load(appRoot.path);
+      expect(config.registryConfig('themeonly'), isNotNull);
+    });
+
     test('registry path override is used for inline assets copyFiles',
         () async {
       final overrideBase = Directory(p.join(tempRoot.path, 'asset_override'))

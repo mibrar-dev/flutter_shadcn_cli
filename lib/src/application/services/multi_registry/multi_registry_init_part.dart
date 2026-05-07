@@ -46,7 +46,9 @@ extension MultiRegistryInitPart on MultiRegistryManager {
             config,
             allowDirectoryFallback: true,
           );
-    await _validateRegistryForNamespaceInit(source, projectRoot: projectRoot);
+    if (directoryEntry?.hasInlineInit != false) {
+      await _validateRegistryForNamespaceInit(source, projectRoot: projectRoot);
+    }
     if (directoryEntry != null) {
       config = await _upsertConfigFromDirectory(config, directoryEntry);
     }
@@ -137,6 +139,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
 
     if (!initEntry.hasInlineInit) {
       logger.info('No bootstrap actions defined for this registry.');
+      return;
     } else {
       logger.success(
         'Initialized ${source.namespace} (${result.filesWritten} files, ${result.dirsCreated} dirs).',
@@ -217,6 +220,10 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     RegistrySource source, {
     required String projectRoot,
   }) async {
+    final directoryEntry = source.directoryEntry;
+    if (directoryEntry != null && !directoryEntry.hasInlineInit) {
+      return;
+    }
     if (skipIntegrity) {
       logger.warn(
         'components.json validation skipped for init (${source.namespace}).',

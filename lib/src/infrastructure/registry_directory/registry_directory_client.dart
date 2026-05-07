@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'dart:isolate';
+import 'dart:async';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry_directory/registry_directory_entry.dart';
@@ -58,10 +59,16 @@ class RegistryDirectoryClient {
         metaCacheFile: cacheMeta,
         offline: offline,
         logger: logger,
+        validateBeforeCache: (body) async {
+          final decoded = jsonDecode(body) as Map<String, dynamic>;
+          await _validateSchema(decoded);
+          _assertSupportedSchemaVersion(decoded);
+        },
       );
     }
     final decoded = jsonDecode(response) as Map<String, dynamic>;
     await _validateSchema(decoded);
+    _assertSupportedSchemaVersion(decoded);
 
     final directory = RegistryDirectory.fromJson(decoded);
     if (currentCliVersion == null || currentCliVersion.trim().isEmpty) {
@@ -117,6 +124,7 @@ class RegistryDirectoryClient {
     bool offline = false,
     bool skipIntegrity = false,
     CliLogger? logger,
+    FutureOr<void> Function(String body)? validateBeforeCache,
   }) async {
     final key = _sanitizeCacheKey('components_${registry.namespace}');
     final cacheBody = _cacheFile(projectRoot, '$key.json');
@@ -129,6 +137,15 @@ class RegistryDirectoryClient {
       metaCacheFile: cacheMeta,
       offline: offline,
       logger: logger,
+      validateBeforeCache: (body) async {
+        _verifyIntegrity(
+          registry: registry,
+          body: body,
+          skipIntegrity: skipIntegrity,
+          logger: logger,
+        );
+        await validateBeforeCache?.call(body);
+      },
     );
     _verifyIntegrity(
       registry: registry,
@@ -145,6 +162,7 @@ class RegistryDirectoryClient {
     required File metaCacheFile,
     required bool offline,
     required CliLogger? logger,
+    FutureOr<void> Function(String body)? validateBeforeCache,
   }) async {
     if (offline) {
       if (!await bodyCacheFile.exists()) {
@@ -161,8 +179,9 @@ class RegistryDirectoryClient {
       headers['If-None-Match'] = etag;
     }
 
+    http.Response response;
     try {
-      final response = await _client.get(url, headers: headers);
+      response = await _client.get(url, headers: headers);
       if (response.statusCode == 304) {
         if (!await bodyCacheFile.exists()) {
           throw RegistryDirectoryException(
@@ -176,13 +195,6 @@ class RegistryDirectoryClient {
           'Failed to fetch ${url.toString()} (${response.statusCode})',
         );
       }
-      await _writeCache(
-        bodyCacheFile: bodyCacheFile,
-        metaCacheFile: metaCacheFile,
-        body: response.body,
-        etag: response.headers['etag'],
-      );
-      return response.body;
     } catch (e) {
       if (await bodyCacheFile.exists()) {
         logger?.warn(
@@ -192,6 +204,19 @@ class RegistryDirectoryClient {
       }
       rethrow;
     }
+
+    try {
+      await validateBeforeCache?.call(response.body);
+    } catch (_) {
+      rethrow;
+    }
+    await _writeCache(
+      bodyCacheFile: bodyCacheFile,
+      metaCacheFile: metaCacheFile,
+      body: response.body,
+      etag: response.headers['etag'],
+    );
+    return response.body;
   }
 
   Future<void> _validateSchema(Map<String, dynamic> directoryJson) async {
@@ -201,6 +226,15 @@ class RegistryDirectoryClient {
       final errors = result.errors.map((e) => e.toString()).join('; ');
       throw RegistryDirectoryException(
           'registries.json schema invalid: $errors');
+    }
+  }
+
+  void _assertSupportedSchemaVersion(Map<String, dynamic> directoryJson) {
+    final version = directoryJson['schemaVersion'];
+    if (version != 1) {
+      throw RegistryDirectoryException(
+        'registries.json schemaVersion must be 1; received ${version ?? 'missing'}.',
+      );
     }
   }
 
