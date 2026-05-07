@@ -213,3 +213,12 @@ Date: 2026-02-22
   - confirm HTTP clients are injected/closed correctly
   - reduce repeated config/directory reads inside a single command execution
 - After all verification gates pass, delete and recreate `doc/` and `README.md` with current-only user/developer/reference documentation.
+
+## v1 gap remediation progress (2026-05-07)
+
+- Completed Task 6 derived install capabilities:
+  - install behavior no longer trusts hand-authored shared/composite capability flags
+  - component shared declarations install from manifest data even when advertised capabilities are stale
+  - theme preset availability now derives from `themesPath` instead of `capabilityTheme`
+  - explicit theme `--apply-file` / `--apply-url` flows are not blocked by preset metadata
+  - registry capability fields remain available for config/listing metadata

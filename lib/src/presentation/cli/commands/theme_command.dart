@@ -32,14 +32,7 @@ Future<int> runThemeCommand({
       advanced: advanced,
     );
   }
-  if (registrySupportsTheme == false) {
-    print('This registry does not provide theme presets.');
-    return ExitCodes.success;
-  }
   final refresh = themeCommand['refresh'] == true;
-  if (themeCommand['list'] == true) {
-    return _runThemeAction(() => activeInstaller.listThemes(refresh: refresh));
-  }
   final applyFile = themeCommand['apply-file'] as String?;
   final applyUrl = themeCommand['apply-url'] as String?;
   if (applyFile != null || applyUrl != null) {
@@ -54,6 +47,13 @@ Future<int> runThemeCommand({
     if (applyUrl != null) {
       return _runThemeAction(() => activeInstaller.applyThemeFromUrl(applyUrl));
     }
+  }
+  if (registrySupportsTheme == false) {
+    print('This registry does not provide theme presets.');
+    return ExitCodes.success;
+  }
+  if (themeCommand['list'] == true) {
+    return _runThemeAction(() => activeInstaller.listThemes(refresh: refresh));
   }
   final applyOption = themeCommand['apply'] as String?;
   final rest = [...themeCommand.rest];

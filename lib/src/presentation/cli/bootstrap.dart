@@ -207,9 +207,8 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             registryBaseUrlOverride: preloadedSelection?.sourceRoot.root,
             themesPathOverride: preloadedSelection?.themesPath,
             themesSchemaPathOverride: preloadedSelection?.themesSchemaPath,
-            enableSharedGroups:
-                preloadedSelection?.capabilitySharedGroups ?? true,
-            enableComposites: preloadedSelection?.capabilityComposites ?? true,
+            enableSharedGroups: true,
+            enableComposites: true,
           );
 
     final command = argResults.command!;
@@ -237,7 +236,8 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             themeCommand: command,
             rootArgs: argResults,
             installer: installer,
-            registrySupportsTheme: preloadedSelection?.capabilityTheme,
+            registrySupportsTheme:
+                preloadedSelection?.themesPath?.trim().isNotEmpty == true,
           ),
       'add': () => runAddCommand(
             addCommand: command,

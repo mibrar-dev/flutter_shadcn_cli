@@ -177,6 +177,58 @@ void main() {
       );
     });
 
+    test('manifest shared declarations install despite stale false capability',
+        () async {
+      _writeSimpleRegistry(registryBaseA, marker: 'A', withShared: true);
+      final current = await ShadcnConfig.load(appRoot.path);
+      await ShadcnConfig.save(
+        appRoot.path,
+        current.withRegistry(
+          'shadcn',
+          current.registryConfig('shadcn')!.copyWith(
+                capabilitySharedGroups: false,
+              ),
+        ),
+      );
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        {
+          'id': 'shadcn_entry',
+          'displayName': 'Shadcn',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/shadcn/',
+          'paths': {'componentsJson': 'registry/components.json'},
+          'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
+          'capabilities': {'sharedGroups': false},
+        }
+      ]);
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: true,
+        logger: CliLogger(),
+        directoryPath: registriesPath,
+      );
+
+      await manager.runAdd(['@shadcn/button']);
+
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'shared',
+            'tokens',
+            'tokens.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
     test('configureDefaultRegistryLocal persists local registry settings',
         () async {
       final registriesPath = _writeRegistriesFile(tempRoot, [
@@ -987,7 +1039,11 @@ void main() {
   });
 }
 
-void _writeSimpleRegistry(Directory baseDir, {required String marker}) {
+void _writeSimpleRegistry(
+  Directory baseDir, {
+  required String marker,
+  bool withShared = false,
+}) {
   final registryRoot = Directory(p.join(baseDir.path, 'registry'))
     ..createSync(recursive: true);
   final componentDir = Directory(
@@ -995,10 +1051,17 @@ void _writeSimpleRegistry(Directory baseDir, {required String marker}) {
   )..createSync(recursive: true);
   File(p.join(componentDir.path, 'button.dart'))
       .writeAsStringSync('class Button$marker {}');
+  if (withShared) {
+    final sharedDir = Directory(
+      p.join(baseDir.path, 'registry', 'shared', 'tokens'),
+    )..createSync(recursive: true);
+    File(p.join(sharedDir.path, 'tokens.dart'))
+        .writeAsStringSync('class Tokens$marker {}');
+  }
   File(p.join(registryRoot.path, 'components.schema.json'))
       .writeAsStringSync(_allowAnySchemaJson());
   File(p.join(registryRoot.path, 'components.json')).writeAsStringSync(
-    _componentsJson(marker: marker),
+    _componentsJson(marker: marker, withShared: withShared),
   );
 }
 
@@ -1025,7 +1088,10 @@ String _allowAnySchemaJson() {
   });
 }
 
-String _componentsJson({required String marker}) {
+String _componentsJson({
+  required String marker,
+  bool withShared = false,
+}) {
   return jsonEncode({
     'schemaVersion': 1,
     'name': 'registry_$marker',
@@ -1034,7 +1100,20 @@ String _componentsJson({required String marker}) {
       'installPath': 'lib/ui/$marker',
       'sharedPath': 'lib/ui/$marker/shared',
     },
-    'shared': [],
+    'shared': withShared
+        ? [
+            {
+              'id': 'tokens',
+              'name': 'Tokens',
+              'files': [
+                {
+                  'source': 'registry/shared/tokens/tokens.dart',
+                  'destination': '{sharedPath}/tokens/tokens.dart',
+                }
+              ],
+            }
+          ]
+        : [],
     'components': [
       {
         'id': 'button',
@@ -1047,7 +1126,7 @@ String _componentsJson({required String marker}) {
             'destination': 'components/button/button.dart',
           }
         ],
-        'shared': [],
+        'shared': withShared ? ['tokens'] : [],
         'dependsOn': [],
         'pubspec': {
           'dependencies': {},

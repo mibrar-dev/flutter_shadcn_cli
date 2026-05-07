@@ -234,9 +234,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     required bool assumeYes,
   }) async {
     try {
-      final supportsTheme = registryEntry.capabilities.theme;
       final themesPath = registryEntry.themesPath?.trim();
-      if (!supportsTheme || themesPath == null || themesPath.isEmpty) {
+      if (themesPath == null || themesPath.isEmpty) {
         return;
       }
 
@@ -294,8 +293,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
         registryBaseUrlOverride: themeRegistryBaseUrl,
         themesPathOverride: themesPath,
         themesSchemaPathOverride: registryEntry.themesSchemaPath,
-        enableSharedGroups: registryEntry.capabilities.sharedGroups,
-        enableComposites: registryEntry.capabilities.composites,
+        enableSharedGroups: true,
+        enableComposites: true,
       );
       await installer.applyThemeById(selected.id);
     } catch (e) {
