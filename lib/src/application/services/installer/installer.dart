@@ -10,6 +10,7 @@ import 'package:flutter_shadcn_cli/src/application/services/installer/installer_
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_remove_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_entry.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_assets_update_result.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dependency_update_result.dart';

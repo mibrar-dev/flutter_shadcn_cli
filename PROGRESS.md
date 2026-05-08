@@ -268,3 +268,7 @@ Date: 2026-02-22
   - expanded `README.md` from a command stub into a current v1 overview
   - updated getting-started, component, registry, config/state, inline-init, and registry-directory docs for manifest-first installs, per-component locale merging, init/assets split, and lockfile state
   - regenerated generated command reference pages from command metadata
+- Completed installer remove service extraction:
+  - added `InstallerRemoveService` for component removal, bulk uninstall, artifact cleanup, installed-component discovery, dependent checks, and empty parent cleanup
+  - shrank `installer_remove_part.dart` to installer-bound delegation and the remaining installed-component cache compatibility wrapper
+  - preserved lockfile/state managed dependency removal behavior through the existing installer callbacks
