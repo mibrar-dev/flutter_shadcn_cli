@@ -110,21 +110,26 @@ extension InstallerManifestPart on Installer {
             ),
           )
           .upsertComponent(
-            ShadcnLockComponent(
-              namespace: namespace,
-              componentId: component.id,
-              qualifiedId: '@$namespace/${component.id}',
-              version: component.version,
-              registryRoot: registry.registryRoot.root,
-              sourceManifestHash: manifestHash,
-              installedFiles: _installedLockFiles(component),
-              dependencies: _componentDependencies(component),
-              postInstall: component.postInstall,
-              localeKeys: const [],
-            ),
+            _pendingLockfileRecord(component, namespace, manifestHash),
           );
       await repository.save(lock);
     });
+  }
+
+  Future<void> _preflightNamespaceCollisions(Component component) async {
+    await _ensureConfigLoaded();
+    final namespace = _effectiveNamespace();
+    final repository = ShadcnLockRepository(targetDir);
+    final lock = await repository.loadOrSynthesize();
+    const NamespaceCollisionPolicy().checkPendingInstall(
+      lock: lock,
+      pending: _pendingLockfileRecord(
+        component,
+        namespace,
+        _registryManifestHash(),
+      ),
+      defaultNamespace: namespace,
+    );
   }
 
   Future<void> _removeLockfileRecord(String componentId) async {
@@ -186,6 +191,30 @@ extension InstallerManifestPart on Installer {
 
   String _registryManifestHash() {
     return sha256.convert(utf8.encode(jsonEncode(registry.data))).toString();
+  }
+
+  ShadcnLockComponent _pendingLockfileRecord(
+    Component component,
+    String namespace,
+    String manifestHash,
+  ) {
+    return ShadcnLockComponent(
+      namespace: namespace,
+      componentId: component.id,
+      qualifiedId: '@$namespace/${component.id}',
+      version: component.version,
+      registryRoot: registry.registryRoot.root,
+      sourceManifestHash: manifestHash,
+      installedFiles: _installedLockFiles(component),
+      dependencies: _componentDependencies(component),
+      postInstall: component.postInstall,
+      localeKeys: const [],
+      assetPaths: component.assets,
+      manifestKeys: component.manifestKeys,
+      postInstallNamespaces: component.postInstallNamespaces,
+      localeNamespaces: component.localeNamespaces,
+      sharedFiles: const [],
+    );
   }
 
   List<String> _installedLockFiles(Component component) {

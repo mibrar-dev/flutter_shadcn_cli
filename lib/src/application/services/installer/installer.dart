@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
 import 'package:flutter_shadcn_cli/src/application/services/registry_dependency_graph.dart';
@@ -242,10 +243,12 @@ class Installer {
       final installed = await _installedComponentIds();
       if (installed.contains(component.id)) {
         logger.detail('Skipping ${component.id} (already installed)');
+        await _preflightNamespaceCollisions(component);
         await _writeLockfileRecord(component);
         return;
       }
 
+      await _preflightNamespaceCollisions(component);
       logger.action('Installing ${component.name} (${component.id})');
       _installingComponentIds.add(component.id);
       if (installDependencies) {

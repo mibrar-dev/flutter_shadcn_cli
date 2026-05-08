@@ -219,6 +219,11 @@ Date: 2026-02-22
   - `add`, `add --all`, init shared installs, and dry-run now fail on cycles before install writes
   - cycle errors report the concrete path; missing dependencies use a separate typed failure
   - optional file dependencies are excluded from hard cycle detection
+- Completed GAP-25 namespace collision detection:
+  - added install-time namespace collision policy for pending lockfile ownership records
+  - component installs now fail before writes when another qualified component owns the same generated target, asset path, manifest key, post-install namespace, locale namespace, or locale key
+  - lockfile records reserve asset path, manifest key, post-install namespace, locale namespace, and shared-file ownership fields for v1 compatibility
+  - reinstalling the same qualified component updates its own ownership record without colliding with itself
 
 ## Verified gates (multi-registry rewrite)
 

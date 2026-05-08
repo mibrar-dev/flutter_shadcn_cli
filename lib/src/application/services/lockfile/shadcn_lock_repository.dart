@@ -84,6 +84,11 @@ class ShadcnLockRepository {
               dependencies: const {},
               postInstall: const [],
               localeKeys: const [],
+              assetPaths: const [],
+              manifestKeys: const [],
+              postInstallNamespaces: const [],
+              localeNamespaces: const [],
+              sharedFiles: const [],
             ),
           );
     }
@@ -248,6 +253,11 @@ class ShadcnLockComponent {
   final Map<String, dynamic> dependencies;
   final List<String> postInstall;
   final List<String> localeKeys;
+  final List<String> assetPaths;
+  final List<String> manifestKeys;
+  final List<String> postInstallNamespaces;
+  final List<String> localeNamespaces;
+  final List<String> sharedFiles;
 
   const ShadcnLockComponent({
     required this.namespace,
@@ -260,6 +270,11 @@ class ShadcnLockComponent {
     required this.dependencies,
     required this.postInstall,
     this.localeKeys = const [],
+    this.assetPaths = const [],
+    this.manifestKeys = const [],
+    this.postInstallNamespaces = const [],
+    this.localeNamespaces = const [],
+    this.sharedFiles = const [],
   });
 
   factory ShadcnLockComponent.fromJson(Map<String, dynamic> json) {
@@ -276,6 +291,11 @@ class ShadcnLockComponent {
           : const {},
       postInstall: _stringList(json['postInstall']),
       localeKeys: _stringList(json['localeKeys']),
+      assetPaths: _stringList(json['assetPaths']),
+      manifestKeys: _stringList(json['manifestKeys']),
+      postInstallNamespaces: _stringList(json['postInstallNamespaces']),
+      localeNamespaces: _stringList(json['localeNamespaces']),
+      sharedFiles: _stringList(json['sharedFiles']),
     );
   }
 
@@ -293,6 +313,11 @@ class ShadcnLockComponent {
       ),
       'postInstall': postInstall,
       'localeKeys': localeKeys.toList()..sort(),
+      'assetPaths': assetPaths.toList()..sort(),
+      'manifestKeys': manifestKeys.toList()..sort(),
+      'postInstallNamespaces': postInstallNamespaces.toList()..sort(),
+      'localeNamespaces': localeNamespaces.toList()..sort(),
+      'sharedFiles': sharedFiles.toList()..sort(),
     };
   }
 }

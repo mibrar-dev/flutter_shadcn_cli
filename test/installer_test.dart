@@ -308,6 +308,203 @@ void main() {
       expect(state.managedDependencies, contains('gap'));
     });
 
+    test('fails before writes when another component owns generated target',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: false,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _writeRawLock(
+        targetRoot,
+        components: [
+          _rawLockComponent(
+            namespace: 'other',
+            componentId: 'card',
+            installedFiles: [
+              'lib/ui/shadcn/components/button/button.dart',
+            ],
+          ),
+        ],
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('Namespace collision') &&
+                error
+                    .toString()
+                    .contains('lib/ui/shadcn/components/button/button.dart') &&
+                error.toString().contains('@other/card') &&
+                error.toString().contains('@shadcn/button'),
+          ),
+        ),
+      );
+
+      expect(
+        File(p.join(
+          targetRoot.path,
+          'lib/ui/shadcn/components/button/button.dart',
+        )).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('fails when manifest namespace ownership collides', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button = components
+            .cast<Map<String, dynamic>>()
+            .firstWhere((component) => component['id'] == 'button');
+        button['assets'] = ['assets/fonts/shared.ttf'];
+        button['manifestKeys'] = ['shared.button.label'];
+        button['postInstallNamespaces'] = ['shared.bootstrap'];
+        button['localeNamespaces'] = ['shared'];
+      });
+      _writeRawLock(
+        targetRoot,
+        components: [
+          _rawLockComponent(
+            namespace: 'other',
+            componentId: 'card',
+            assetPaths: ['assets/fonts/shared.ttf'],
+            manifestKeys: ['shared.button.label'],
+            postInstallNamespaces: ['shared.bootstrap'],
+            localeNamespaces: ['shared'],
+          ),
+        ],
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('Namespace collision') &&
+                error.toString().contains('assets/fonts/shared.ttf') &&
+                error.toString().contains('shared.button.label') &&
+                error.toString().contains('shared.bootstrap') &&
+                error.toString().contains('shared'),
+          ),
+        ),
+      );
+    });
+
+    test('reinstalling same qualified component updates ownership record',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button = components
+            .cast<Map<String, dynamic>>()
+            .firstWhere((component) => component['id'] == 'button');
+        button['assets'] = ['assets/fonts/shared.ttf'];
+        button['manifestKeys'] = ['shadcn.button.label'];
+        button['postInstallNamespaces'] = ['shadcn.button.bootstrap'];
+        button['localeNamespaces'] = ['shadcn.button'];
+      });
+      _writeRawLock(
+        targetRoot,
+        components: [
+          _rawLockComponent(
+            namespace: 'shadcn',
+            componentId: 'button',
+            installedFiles: [
+              'lib/ui/shadcn/components/button/button.dart',
+              'lib/ui/shadcn/components/button/meta.json',
+            ],
+            assetPaths: ['assets/fonts/shared.ttf'],
+            manifestKeys: ['shadcn.button.label'],
+            postInstallNamespaces: ['shadcn.button.bootstrap'],
+            localeNamespaces: ['shadcn.button'],
+          ),
+        ],
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('button');
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      final record = lock.componentFor(
+        namespace: 'shadcn',
+        componentId: 'button',
+      );
+      expect(record, isNotNull);
+      expect(record!.installedFiles,
+          contains('lib/ui/shadcn/components/button/button.dart'));
+      expect(record.assetPaths, ['assets/fonts/shared.ttf']);
+      expect(record.manifestKeys, ['shadcn.button.label']);
+      expect(record.postInstallNamespaces, ['shadcn.button.bootstrap']);
+      expect(record.localeNamespaces, ['shadcn.button']);
+    });
+
     test('remove deletes lockfile record for removed component', () async {
       await _writeConfig(
         targetRoot,
@@ -1332,6 +1529,59 @@ void _mutateRegistryJson(
   final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
   mutate(json);
   file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(json));
+}
+
+void _writeRawLock(
+  Directory targetRoot, {
+  required List<Map<String, dynamic>> components,
+}) {
+  File(p.join(targetRoot.path, 'shadcn.lock')).writeAsStringSync(
+    const JsonEncoder.withIndent('  ').convert({
+      'lockfileVersion': 1,
+      'registries': {
+        'shadcn': {
+          'namespace': 'shadcn',
+          'registryRoot': '/tmp/shadcn',
+          'sourceRoot': '/tmp/shadcn',
+          'sourceManifestHash': 'hash',
+        },
+        'other': {
+          'namespace': 'other',
+          'registryRoot': '/tmp/other',
+          'sourceRoot': '/tmp/other',
+          'sourceManifestHash': 'hash',
+        },
+      },
+      'components': components,
+    }),
+  );
+}
+
+Map<String, dynamic> _rawLockComponent({
+  required String namespace,
+  required String componentId,
+  List<String> installedFiles = const [],
+  List<String> assetPaths = const [],
+  List<String> manifestKeys = const [],
+  List<String> postInstallNamespaces = const [],
+  List<String> localeNamespaces = const [],
+}) {
+  return {
+    'namespace': namespace,
+    'componentId': componentId,
+    'qualifiedId': '@$namespace/$componentId',
+    'version': '1.0.0',
+    'registryRoot': '/tmp/$namespace',
+    'sourceManifestHash': 'hash',
+    'installedFiles': installedFiles,
+    'dependencies': {},
+    'postInstall': [],
+    'localeKeys': [],
+    'assetPaths': assetPaths,
+    'manifestKeys': manifestKeys,
+    'postInstallNamespaces': postInstallNamespaces,
+    'localeNamespaces': localeNamespaces,
+  };
 }
 
 void _writePubspec(Directory targetRoot, {Map<String, String>? dependencies}) {

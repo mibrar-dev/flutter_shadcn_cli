@@ -15,6 +15,9 @@ class Component {
   final List<FontEntry> fonts;
   final Map<String, dynamic> pubspec;
   final List<String> postInstall;
+  final List<String> manifestKeys;
+  final List<String> postInstallNamespaces;
+  final List<String> localeNamespaces;
   final Map<String, PlatformEntry> platform;
 
   Component.fromJson(Map<String, dynamic> json)
@@ -34,9 +37,19 @@ class Component {
             .toList(),
         pubspec = json['pubspec'] ?? {},
         postInstall = List<String>.from(json['postInstall'] ?? []),
+        manifestKeys = _stringList(json['manifestKeys']),
+        postInstallNamespaces = _stringList(json['postInstallNamespaces']),
+        localeNamespaces = _stringList(json['localeNamespaces']),
         platform = (json['platform'] as Map<String, dynamic>? ?? const {})
             .map((key, value) => MapEntry(
                   key,
                   PlatformEntry.fromJson(value as Map<String, dynamic>),
                 ));
+}
+
+List<String> _stringList(Object? value) {
+  if (value is! List) {
+    return const [];
+  }
+  return value.map((entry) => entry.toString()).toList();
 }
