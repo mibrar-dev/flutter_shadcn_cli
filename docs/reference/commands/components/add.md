@@ -32,8 +32,6 @@ flutter_shadcn add @shadcn/button
 ## Notes
 
 Use namespaced addresses when multiple registries provide the same component.
-Registry-owned manifest keys should use `<registryId>.<componentId>.<key>` so
-future generated symbols, metadata keys, and locale namespaces remain unique.
 
 ## See Also
 

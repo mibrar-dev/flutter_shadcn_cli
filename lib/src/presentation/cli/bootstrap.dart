@@ -21,6 +21,7 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/commands/feedback_comman
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/info_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/init_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/install_skill_command.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/commands/locale_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/list_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/project_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/remove_command.dart';
@@ -49,8 +50,9 @@ Future<void> runCliBootstrap(List<String> arguments) async {
   final homeDirectory = _userHomeDirectory();
   if (homeDirectory != null && homeDirectory.isNotEmpty) {
     try {
-      await ResetSnapshotStore(homeDirectory: homeDirectory)
-          .pruneExpiredSnapshots();
+      await ResetSnapshotStore(
+        homeDirectory: homeDirectory,
+      ).pruneExpiredSnapshots();
     } catch (_) {}
   }
   final parser = buildCliParser();
@@ -90,10 +92,14 @@ Future<void> runCliBootstrap(List<String> arguments) async {
   final registriesPath =
       optionalStringOption(argResults, 'registries-path')?.trim() ??
           config.registriesPath?.trim();
-  final registryPathOverride =
-      optionalStringOption(argResults, 'registry-path')?.trim();
-  final registryUrlOverride =
-      optionalStringOption(argResults, 'registry-url')?.trim();
+  final registryPathOverride = optionalStringOption(
+    argResults,
+    'registry-path',
+  )?.trim();
+  final registryUrlOverride = optionalStringOption(
+    argResults,
+    'registry-url',
+  )?.trim();
   if ((registryPathOverride?.isNotEmpty ?? false) &&
       (registryUrlOverride?.isNotEmpty ?? false)) {
     stderr.writeln(
@@ -168,8 +174,9 @@ Future<void> runCliBootstrap(List<String> arguments) async {
       return;
     }
 
-    final commandNamespaceOverride =
-        resolveCommandNamespaceOverride(argResults);
+    final commandNamespaceOverride = resolveCommandNamespaceOverride(
+      argResults,
+    );
     Registry? registry;
     RegistrySelection? preloadedSelection;
     try {
@@ -233,20 +240,17 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             multiRegistry: multiRegistry,
             defaultNamespace: config.effectiveDefaultNamespace,
           ),
+      'locale': () => runLocaleCommand(command: command, targetDir: targetDir),
       'theme': () => runThemeCommand(
             themeCommand: command,
             rootArgs: argResults,
             installer: installer,
             registrySupportsTheme: preloadedSelection?.capabilityTheme,
           ),
-      'add': () => runAddCommand(
-            addCommand: command,
-            multiRegistry: multiRegistry,
-          ),
-      'dry-run': () => runDryRunCommand(
-            dryRunCommand: command,
-            installer: installer,
-          ),
+      'add': () =>
+          runAddCommand(addCommand: command, multiRegistry: multiRegistry),
+      'dry-run': () =>
+          runDryRunCommand(dryRunCommand: command, installer: installer),
       'remove': () => runRemoveCommand(
             removeCommand: command,
             installer: installer,
@@ -353,10 +357,7 @@ Future<void> runCliBootstrap(List<String> arguments) async {
         config = platformResult.config;
         return platformResult.exitCode;
       },
-      'sync': () => runSyncCommand(
-            command: command,
-            installer: installer,
-          ),
+      'sync': () => runSyncCommand(command: command, installer: installer),
       'list': () => runListCommand(
             listCommand: command,
             multiRegistry: multiRegistry,
@@ -373,8 +374,12 @@ Future<void> runCliBootstrap(List<String> arguments) async {
             logger: logger,
           ),
       'install-skill': () async {
-        final selection =
-            resolveRegistrySelection(argResults, roots, config, offline);
+        final selection = resolveRegistrySelection(
+          argResults,
+          roots,
+          config,
+          offline,
+        );
         final defaultSkillsUrl = config.registryUrl?.isNotEmpty == true
             ? config.registryUrl!
             : selection.sourceRoot.root;
@@ -388,14 +393,8 @@ Future<void> runCliBootstrap(List<String> arguments) async {
           logger: logger,
         );
       },
-      'version': () => runVersionCommand(
-            command: command,
-            logger: logger,
-          ),
-      'upgrade': () => runUpgradeCommand(
-            command: command,
-            logger: logger,
-          ),
+      'version': () => runVersionCommand(command: command, logger: logger),
+      'upgrade': () => runUpgradeCommand(command: command, logger: logger),
       'feedback': () => runFeedbackCommand(
             command: command,
             rootArgs: argResults,
@@ -514,8 +513,9 @@ Future<List<Map<String, dynamic>>> _selectProjectRefreshGroups(
   if (description != null && description.isNotEmpty) {
     stdout.writeln(description);
   }
-  stdout
-      .writeln('Select groups (comma-separated numbers, Enter for defaults):');
+  stdout.writeln(
+    'Select groups (comma-separated numbers, Enter for defaults):',
+  );
   for (var i = 0; i < groups.length; i++) {
     final group = groups[i];
     final suffix = group['default'] == false ? '' : ' [default]';

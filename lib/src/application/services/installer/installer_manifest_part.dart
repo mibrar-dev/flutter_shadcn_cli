@@ -27,7 +27,7 @@ extension InstallerManifestPart on Installer {
       }
       componentMeta[id] = {
         'version': component.version,
-        'tags': component.tags
+        'tags': component.tags,
       };
     }
     final payload = {
@@ -42,8 +42,9 @@ extension InstallerManifestPart on Installer {
     if (!await manifestFile.parent.exists()) {
       await manifestFile.parent.create(recursive: true);
     }
-    await manifestFile
-        .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
+    await manifestFile.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(payload),
+    );
   }
 
   Directory _componentManifestDirectory() {
@@ -56,7 +57,10 @@ extension InstallerManifestPart on Installer {
     );
   }
 
-  Future<void> _writeComponentManifest(Component component) async {
+  Future<void> _writeComponentManifest(
+    Component component, {
+    List<Map<String, dynamic>> localeResourcesInstalled = const [],
+  }) async {
     final dir = _componentManifestDirectory();
     if (!await dir.exists()) {
       await dir.create(recursive: true);
@@ -87,10 +91,20 @@ extension InstallerManifestPart on Installer {
       'shared': component.shared.toList()..sort(),
       'dependsOn': component.dependsOn.toList()..sort(),
       'files': component.files.map((f) => f.source).toList()..sort(),
+      if (localeResourcesInstalled.isNotEmpty)
+        'locale': {
+          'resourcesInstalled': localeResourcesInstalled,
+          'selectionSource': 'registryDefault',
+        },
+      if (registryNamespace != null) 'registryNamespace': registryNamespace,
+      if (registryBaseUrlOverride != null)
+        'registrySource': registryBaseUrlOverride,
+      'manifestSource': 'componentsJson',
       'registryRoot': registry.registryRoot.root,
     };
-    await file
-        .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
+    await file.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(payload),
+    );
   }
 
   Future<void> _writeLockfileRecord(Component component) async {
@@ -372,7 +386,8 @@ extension InstallerManifestPart on Installer {
       defaultNamespace: namespace,
     );
     final mergedRegistries = Map<String, RegistryStateEntry>.from(
-        existingState.registries ?? const {});
+      existingState.registries ?? const {},
+    );
     mergedRegistries[namespace] = RegistryStateEntry(
       installPath: _installPath(config),
       sharedPath: _sharedPath(config),

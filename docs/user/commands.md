@@ -33,13 +33,13 @@ What it does:
 - creates or updates `.shadcn/config.json`
 - creates or updates `.shadcn/state.json`
 - runs inline registry bootstrap actions
-- may copy shared files, create directories, update `pubspec.yaml`, and install assets
+- may copy shared files, create directories, update `pubspec.yaml`, and apply required theme scaffolding
 
 Options:
 
 - `--yes`, `-y`: run non-interactively and accept defaults.
 
-Use `init shadcn` when you want a specific namespace. Without a namespace, the current default namespace is used.
+Use `init shadcn` when you want a specific namespace. Without a namespace, the current default namespace is used. Non-interactive `init --yes` runs required bootstrap actions only; optional fonts, icons, and assets are installed separately with `assets`.
 
 ## `add`
 
@@ -197,6 +197,22 @@ Options:
 - `--list`: show that assets are provided by inline registry actions.
 
 Assets are not installed through old component fallback IDs. The selected registry must provide matching inline actions.
+
+## `locale`
+
+Creates local Flutter localization files used by component locale resources.
+
+```bash
+flutter_shadcn locale init
+```
+
+What it does:
+
+- creates `l10n.yaml`
+- creates `lib/l10n/`
+- creates `lib/l10n/app_en.arb`
+
+Component installs merge registry-provided locale entries into the app ARB file without overwriting existing app keys. Component removal only removes locale keys that were added by that component and are not owned by another installed component.
 
 ## `theme`
 

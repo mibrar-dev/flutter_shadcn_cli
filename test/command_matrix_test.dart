@@ -255,6 +255,7 @@ const List<String> _documentedCliCommands = <String>[
   'info',
   'init',
   'list',
+  'locale',
   'platform',
   'registries',
   'remove',

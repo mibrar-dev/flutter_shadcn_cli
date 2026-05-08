@@ -308,7 +308,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     required bool assumeYes,
   }) async {
     if (assumeYes) {
-      return true;
+      return false;
     }
     final label = action['promptLabel']?.toString().trim();
     if (label == null || label.isEmpty) {
@@ -336,7 +336,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       return const [];
     }
     if (assumeYes) {
-      return groups.where((group) => group['default'] != false).toList();
+      return groups.where((group) => group['required'] == true).toList();
     }
     final label = action['promptLabel']?.toString().trim();
     final description = action['promptDescription']?.toString().trim();

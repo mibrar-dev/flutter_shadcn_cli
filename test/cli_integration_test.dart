@@ -118,6 +118,21 @@ void main() {
           isTrue);
     });
 
+    test('locale init creates l10n.yaml and local ARB folder', () async {
+      await cli.main(['locale', 'init']);
+
+      final l10nFile = File(p.join(appRoot.path, 'l10n.yaml'));
+      expect(l10nFile.existsSync(), isTrue);
+      expect(l10nFile.readAsStringSync(), contains('arb-dir: lib/l10n'));
+      expect(
+        File(p.join(appRoot.path, 'lib', 'l10n', 'app_en.arb')).existsSync(),
+        isTrue,
+      );
+
+      await cli.main(['locale', 'init']);
+      expect(exitCode, ExitCodes.configInvalid);
+    });
+
     test('doctor runs without crashing', () async {
       await cli.main([
         '--advanced',
@@ -205,7 +220,8 @@ void main() {
       expect(jsonDecode(registriesResult.stdout), isA<Map<String, dynamic>>());
     });
 
-    test('list uses registries directory manifest paths without persisted config',
+    test(
+        'list uses registries directory manifest paths without persisted config',
         () async {
       final manifestRegistry =
           Directory(p.join(tempRoot.path, 'manifest_registry', 'registry'))
@@ -912,8 +928,7 @@ void main() {
       );
     });
 
-    test(
-        'init without flags uses persisted local registry mode from config',
+    test('init without flags uses persisted local registry mode from config',
         () async {
       final fixture = jsonDecode(
         File(
@@ -1025,7 +1040,8 @@ void main() {
         Map<String, dynamic>.from(fixture)
           ..['paths'] = {
             'componentsJson': 'components.json',
-            'themeConverterDart': 'https://example.com/tool/theme_converter.dart',
+            'themeConverterDart':
+                'https://example.com/tool/theme_converter.dart',
           },
       ]);
 
@@ -1226,15 +1242,16 @@ void main() {
       expect(
         File(p.join(appRoot.path, 'assets', 'fonts', 'typography_fonts.otf'))
             .existsSync(),
-        isTrue,
+        isFalse,
       );
       expect(
         File(p.join(appRoot.path, 'assets', 'theme', 'typography_fonts.dart'))
             .existsSync(),
         isFalse,
       );
-      final pubspec = File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
-      expect(pubspec, contains('assets/fonts/typography_fonts.otf'));
+      final pubspec =
+          File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('assets/fonts/typography_fonts.otf')));
       expect(pubspec, isNot(contains('assets/theme/typography_fonts.dart')));
     });
 

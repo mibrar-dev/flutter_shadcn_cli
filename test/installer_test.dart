@@ -78,6 +78,101 @@ void main() {
       );
     });
 
+    test('merges locale resources into app ARB and tracks owned keys',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(targetRoot.path, 'l10n.yaml')).writeAsStringSync('''
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+''');
+      Directory(p.join(targetRoot.path, 'lib', 'l10n'))
+          .createSync(recursive: true);
+      File(p.join(targetRoot.path, 'lib', 'l10n', 'app_en.arb'))
+          .writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert({
+          '@@locale': 'en',
+          'buttonSave': 'Keep existing',
+        }),
+      );
+      Directory(p.join(registryRoot.path, 'locales'))
+          .createSync(recursive: true);
+      File(p.join(registryRoot.path, 'locales', 'shadcn_en.arb'))
+          .writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert({
+          'buttonSave': 'Save',
+          'buttonCancel': 'Cancel',
+          '@buttonCancel': {'description': 'Cancel action label'},
+        }),
+      );
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['locale'] = {
+          'defaultLocale': 'en',
+          'required': ['en'],
+          'resources': [
+            {
+              'locale': 'en',
+              'format': 'arb',
+              'source': 'registry/locales/shadcn_en.arb',
+              'required': true,
+            }
+          ],
+        };
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await installer.addComponent('button');
+
+      final appArb = jsonDecode(
+        File(p.join(targetRoot.path, 'lib', 'l10n', 'app_en.arb'))
+            .readAsStringSync(),
+      ) as Map<String, dynamic>;
+      expect(appArb['buttonSave'], 'Keep existing');
+      expect(appArb['buttonCancel'], 'Cancel');
+      expect(appArb['@buttonCancel'], {'description': 'Cancel action label'});
+
+      final manifest = jsonDecode(
+        File(p.join(targetRoot.path, '.shadcn', 'components', 'button.json'))
+            .readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final resources =
+          ((manifest['locale'] as Map)['resourcesInstalled'] as List)
+              .cast<Map<String, dynamic>>();
+      expect(resources.single['destination'], 'lib/l10n/app_en.arb');
+      expect(resources.single['addedKeys'], contains('buttonCancel'));
+      expect(resources.single['addedKeys'], isNot(contains('buttonSave')));
+
+      await installer.removeComponent('button', force: true);
+
+      final afterRemove = jsonDecode(
+        File(p.join(targetRoot.path, 'lib', 'l10n', 'app_en.arb'))
+            .readAsStringSync(),
+      ) as Map<String, dynamic>;
+      expect(afterRemove['buttonSave'], 'Keep existing');
+      expect(afterRemove.containsKey('buttonCancel'), isFalse);
+    });
+
     test('registry includeFiles=preview installs preview and preview_state',
         () async {
       await _writeConfig(

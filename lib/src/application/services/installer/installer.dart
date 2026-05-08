@@ -18,6 +18,7 @@ import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_preset_load
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/state.dart';
 import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
 
 part 'installer_theme_part.dart';
 part 'installer_config_part.dart';
@@ -36,6 +37,7 @@ part 'installer_assets_update_result_part.dart';
 part 'installer_fonts_update_result_part.dart';
 part 'installer_section_range_part.dart';
 part 'installer_init_config_overrides_part.dart';
+part 'installer_locale_part.dart';
 
 class Installer {
   static const int _fileCopyConcurrency = 4;
@@ -215,10 +217,7 @@ class Installer {
 
     final stack = ancestry ?? <String>{};
     if (stack.contains(component.id)) {
-      throw RegistryDependencyCycleException([
-        ...stack,
-        component.id,
-      ]);
+      throw RegistryDependencyCycleException([...stack, component.id]);
     }
     stack.add(component.id);
 
@@ -270,6 +269,7 @@ class Installer {
 
       await _installComponentFiles(component);
       await _applyPlatformInstructions(component);
+      final installedLocaleResources = await _installLocaleResources(component);
 
       if (component.pubspec.isNotEmpty) {
         final deps = component.pubspec['dependencies'] as Map<String, dynamic>;
@@ -285,7 +285,10 @@ class Installer {
         _reportPostInstall(component);
       }
       try {
-        await _writeComponentManifest(component);
+        await _writeComponentManifest(
+          component,
+          localeResourcesInstalled: installedLocaleResources,
+        );
       } catch (e) {
         if (e is ResolverV1Exception) {
           rethrow;
@@ -293,6 +296,7 @@ class Installer {
         logger.warn('Failed to write component manifest: $e');
       }
       await _writeLockfileRecord(component);
+      _installedComponentCache?.add(component.id);
       if (!_deferAliases) {
         await generateAliases();
       }
@@ -305,7 +309,6 @@ class Installer {
       if (!_deferDependencyUpdates) {
         await _syncDependenciesWithInstalled();
       }
-      _installedComponentCache?.add(component.id);
     } catch (e, st) {
       if (!completer.isCompleted) {
         completer.completeError(e, st);

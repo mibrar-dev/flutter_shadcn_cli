@@ -19,6 +19,7 @@ Generated from CLI command metadata. Do not edit these files by hand.
 - [`flutter_shadcn sync`](./project/sync.md) - Sync paths and theme from .shadcn/config.json.
 - [`flutter_shadcn project`](./project/project.md) - Project repair and cleanup commands.
 - [`flutter_shadcn assets`](./project/assets.md) - Install font and icon assets.
+- [`flutter_shadcn locale`](./project/locale.md) - Create local Flutter localization files.
 - [`flutter_shadcn theme`](./project/theme.md) - Manage registry theme presets.
 - [`flutter_shadcn platform`](./project/platform.md) - Configure platform target paths.
 

@@ -306,7 +306,8 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
       ),
       CliCommandMeta(
         id: 'default',
-        description: 'Set or show the default registry namespace and source mode.',
+        description:
+            'Set or show the default registry namespace and source mode.',
         sortOrder: 30,
         usage: 'flutter_shadcn default [namespace] [--local | --remote]',
         arguments: [
@@ -391,6 +392,25 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           'flutter_shadcn assets --icons --typography',
         ],
         seeAlso: ['init', 'theme'],
+      ),
+      CliCommandMeta(
+        id: 'locale',
+        description: 'Create local Flutter localization files.',
+        sortOrder: 55,
+        usage: 'flutter_shadcn locale <command>',
+        arguments: [
+          CliArgumentMeta(
+            '<command>',
+            true,
+            'Locale command to run. Currently supported: init.',
+          ),
+        ],
+        examples: [
+          'flutter_shadcn locale init',
+        ],
+        notes:
+            '`locale init` creates `l10n.yaml` and `lib/l10n/app_en.arb` so component locale resources can merge into app-local ARB files.',
+        seeAlso: ['init', 'add'],
       ),
       CliCommandMeta(
         id: 'theme',

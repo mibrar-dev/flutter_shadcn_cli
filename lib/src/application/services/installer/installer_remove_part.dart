@@ -30,6 +30,7 @@ extension InstallerRemovePart on Installer {
     }
 
     logger.action('Removing ${component.name} (${component.id})');
+    await _removeLocaleResources(component.id);
     if (lockRecord != null) {
       for (final relativePath in lockRecord.installedFiles) {
         if (await _lockfilePathOwnedByOther(
@@ -147,8 +148,9 @@ extension InstallerRemovePart on Installer {
       return _installedComponentCache!;
     }
     final installPath = _installPath(_cachedConfig);
-    final componentsDir =
-        Directory(_resolveProjectPath(p.join(installPath, 'components')));
+    final componentsDir = Directory(
+      _resolveProjectPath(p.join(installPath, 'components')),
+    );
     final compositesDir = enableComposites
         ? Directory(_resolveProjectPath(p.join(installPath, 'composites')))
         : null;
