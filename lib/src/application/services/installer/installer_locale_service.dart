@@ -1,51 +1,32 @@
-part of 'installer.dart';
+import 'dart:convert';
+import 'dart:io';
 
-class _InstalledLocaleResource {
-  const _InstalledLocaleResource({
-    required this.locale,
-    required this.format,
-    required this.source,
-    required this.destination,
-    required this.required,
-    required this.addedKeys,
-    this.sha256,
-  });
+import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
+import 'package:flutter_shadcn_cli/src/logger.dart';
+import 'package:flutter_shadcn_cli/src/registry.dart';
+import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
 
-  final String locale;
-  final String format;
-  final String source;
-  final String destination;
-  final bool required;
-  final List<String> addedKeys;
-  final String? sha256;
+class InstallerLocaleService {
+  InstallerLocaleService({
+    required this.registry,
+    required this.targetDir,
+    required this.logger,
+    InstallerManifestService? manifestService,
+  }) : _manifestService = manifestService ??
+            InstallerManifestService(
+              targetDir: targetDir,
+              registry: registry,
+            );
 
-  Map<String, dynamic> toJson() {
-    return {
-      'locale': locale,
-      'format': format,
-      'source': source,
-      'destination': destination,
-      'required': required,
-      'addedKeys': addedKeys,
-      if (sha256 != null) 'sha256': sha256,
-    };
-  }
-}
+  final Registry registry;
+  final String targetDir;
+  final CliLogger logger;
+  final InstallerManifestService _manifestService;
 
-class _L10nConfig {
-  const _L10nConfig({
-    required this.arbDir,
-    required this.templateArbFile,
-    required this.outputLocalizationFile,
-  });
-
-  final String arbDir;
-  final String templateArbFile;
-  final String outputLocalizationFile;
-}
-
-extension InstallerLocalePart on Installer {
-  Future<List<Map<String, dynamic>>> _installLocaleResources(
+  Future<List<Map<String, dynamic>>> installLocaleResources(
     Component component,
   ) async {
     final locale = component.locale;
@@ -79,6 +60,43 @@ extension InstallerLocalePart on Installer {
     return installed.map((entry) => entry.toJson()).toList();
   }
 
+  Future<void> removeLocaleResources(String componentId) async {
+    final manifestFile = _manifestService.componentManifestFile(componentId);
+    if (!manifestFile.existsSync()) {
+      return;
+    }
+    final manifest = _readJsonObjectFile(
+      manifestFile,
+      'Component manifest ${manifestFile.path}',
+    );
+    final locale = manifest['locale'];
+    if (locale is! Map) {
+      return;
+    }
+    final resources = locale['resourcesInstalled'];
+    if (resources is! List) {
+      return;
+    }
+    final ownedElsewhere = await _localeKeysOwnedByOtherComponents(componentId);
+    for (final item in resources) {
+      if (item is! Map) {
+        continue;
+      }
+      final destination = item['destination']?.toString();
+      final format = item['format']?.toString().toLowerCase();
+      if (destination == null || destination.isEmpty) {
+        continue;
+      }
+      if (format == 'arb' || format == 'json') {
+        await _removeOwnedArbKeys(
+          destination: destination,
+          keys: _localeStringList(item['addedKeys']),
+          ownedElsewhere: ownedElsewhere[destination] ?? const <String>{},
+        );
+      }
+    }
+  }
+
   _L10nConfig _loadL10nConfig() {
     final file = File(_resolveProjectPath('l10n.yaml'));
     if (!file.existsSync()) {
@@ -105,10 +123,7 @@ extension InstallerLocalePart on Installer {
     if (outputLocalizationFile == null || outputLocalizationFile.isEmpty) {
       throw Exception('l10n.yaml must define output-localization-file.');
     }
-    ProjectPathGuard.resolveSafeWritePath(
-      projectRoot: targetDir,
-      destinationRelativePath: arbDir,
-    );
+    _resolveProjectPath(arbDir);
     return _L10nConfig(
       arbDir: arbDir,
       templateArbFile: templateArbFile,
@@ -180,67 +195,11 @@ extension InstallerLocalePart on Installer {
     );
   }
 
-  Map<String, dynamic> _readJsonObjectFile(File file, String label) {
-    final decoded = jsonDecode(file.readAsStringSync());
-    if (decoded is! Map) {
-      throw Exception('$label must contain a JSON object.');
-    }
-    return decoded.map((key, value) => MapEntry(key.toString(), value));
-  }
-
-  String _arbFileForLocale(String templateArbFile, String locale) {
-    final normalizedLocale = locale.replaceAll('-', '_');
-    final extension = p.extension(templateArbFile);
-    final stem = p.basenameWithoutExtension(templateArbFile);
-    final match = RegExp(
-      r'^(.*)_([A-Za-z]{2,3}(?:_[A-Za-z0-9]+)*)$',
-    ).firstMatch(stem);
-    final prefix = match == null ? stem : match.group(1)!;
-    return '${prefix}_$normalizedLocale${extension.isEmpty ? '.arb' : extension}';
-  }
-
-  Future<void> _removeLocaleResources(String componentId) async {
-    final manifestFile = _componentManifestFile(componentId);
-    if (!manifestFile.existsSync()) {
-      return;
-    }
-    final manifest = _readJsonObjectFile(
-      manifestFile,
-      'Component manifest ${manifestFile.path}',
-    );
-    final locale = manifest['locale'];
-    if (locale is! Map) {
-      return;
-    }
-    final resources = locale['resourcesInstalled'];
-    if (resources is! List) {
-      return;
-    }
-    final ownedElsewhere = await _localeKeysOwnedByOtherComponents(componentId);
-    for (final item in resources) {
-      if (item is! Map) {
-        continue;
-      }
-      final destination = item['destination']?.toString();
-      final format = item['format']?.toString().toLowerCase();
-      if (destination == null || destination.isEmpty) {
-        continue;
-      }
-      if (format == 'arb' || format == 'json') {
-        await _removeOwnedArbKeys(
-          destination: destination,
-          keys: _localeStringList(item['addedKeys']),
-          ownedElsewhere: ownedElsewhere[destination] ?? const <String>{},
-        );
-      }
-    }
-  }
-
   Future<Map<String, Set<String>>> _localeKeysOwnedByOtherComponents(
     String componentId,
   ) async {
     final result = <String, Set<String>>{};
-    final dir = _componentManifestDirectory();
+    final dir = _manifestService.componentManifestDirectory();
     if (!dir.existsSync()) {
       return result;
     }
@@ -305,10 +264,80 @@ extension InstallerLocalePart on Installer {
     }
   }
 
+  Map<String, dynamic> _readJsonObjectFile(File file, String label) {
+    final decoded = jsonDecode(file.readAsStringSync());
+    if (decoded is! Map) {
+      throw Exception('$label must contain a JSON object.');
+    }
+    return decoded.map((key, value) => MapEntry(key.toString(), value));
+  }
+
+  String _arbFileForLocale(String templateArbFile, String locale) {
+    final normalizedLocale = locale.replaceAll('-', '_');
+    final extension = p.extension(templateArbFile);
+    final stem = p.basenameWithoutExtension(templateArbFile);
+    final match = RegExp(
+      r'^(.*)_([A-Za-z]{2,3}(?:_[A-Za-z0-9]+)*)$',
+    ).firstMatch(stem);
+    final prefix = match == null ? stem : match.group(1)!;
+    return '${prefix}_$normalizedLocale${extension.isEmpty ? '.arb' : extension}';
+  }
+
   List<String> _localeStringList(dynamic value) {
     if (value is! List) {
       return const [];
     }
     return value.map((entry) => entry.toString()).toList();
   }
+
+  String _resolveProjectPath(String relativePath) {
+    return ProjectPathGuard.resolveSafeWritePath(
+      projectRoot: targetDir,
+      destinationRelativePath: relativePath,
+    );
+  }
+}
+
+class _InstalledLocaleResource {
+  const _InstalledLocaleResource({
+    required this.locale,
+    required this.format,
+    required this.source,
+    required this.destination,
+    required this.required,
+    required this.addedKeys,
+    this.sha256,
+  });
+
+  final String locale;
+  final String format;
+  final String source;
+  final String destination;
+  final bool required;
+  final List<String> addedKeys;
+  final String? sha256;
+
+  Map<String, dynamic> toJson() {
+    return {
+      'locale': locale,
+      'format': format,
+      'source': source,
+      'destination': destination,
+      'required': required,
+      'addedKeys': addedKeys,
+      if (sha256 != null) 'sha256': sha256,
+    };
+  }
+}
+
+class _L10nConfig {
+  const _L10nConfig({
+    required this.arbDir,
+    required this.templateArbFile,
+    required this.outputLocalizationFile,
+  });
+
+  final String arbDir;
+  final String templateArbFile;
+  final String outputLocalizationFile;
 }

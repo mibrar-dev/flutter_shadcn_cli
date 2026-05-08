@@ -16,14 +16,6 @@ extension InstallerManifestPart on Installer {
     );
   }
 
-  Directory _componentManifestDirectory() {
-    return _manifestService.componentManifestDirectory();
-  }
-
-  File _componentManifestFile(String componentId) {
-    return _manifestService.componentManifestFile(componentId);
-  }
-
   Future<void> _writeComponentManifest(
     Component component, {
     List<Map<String, dynamic>> localeResourcesInstalled = const [],

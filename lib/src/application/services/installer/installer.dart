@@ -9,6 +9,7 @@ import 'package:flutter_shadcn_cli/src/application/services/installer/init_confi
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_locale_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_entry.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_assets_update_result.dart';
@@ -30,7 +31,6 @@ import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_preset_load
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/state.dart';
 import 'package:path/path.dart' as p;
-import 'package:yaml/yaml.dart';
 
 part 'installer_theme_part.dart';
 part 'installer_config_part.dart';
@@ -41,7 +41,6 @@ part 'installer_manifest_part.dart';
 part 'installer_file_install_part.dart';
 part 'installer_platform_alias_part.dart';
 part 'installer_pubspec_part.dart';
-part 'installer_locale_part.dart';
 
 class Installer {
   static const int _fileCopyConcurrency = 4;
@@ -79,6 +78,12 @@ class Installer {
   final InstallerFileSelectionPolicy _fileSelectionPolicy;
   final InstallerManifestService _manifestService;
   final InstallerFileWriterService _fileWriter;
+  late final InstallerLocaleService _localeService = InstallerLocaleService(
+    registry: registry,
+    targetDir: targetDir,
+    logger: logger,
+    manifestService: _manifestService,
+  );
 
   Installer({
     required this.registry,
@@ -306,7 +311,8 @@ class Installer {
 
       await _installComponentFiles(component);
       await _applyPlatformInstructions(component);
-      final installedLocaleResources = await _installLocaleResources(component);
+      final installedLocaleResources =
+          await _localeService.installLocaleResources(component);
 
       if (component.pubspec.isNotEmpty) {
         final deps = component.pubspec['dependencies'] as Map<String, dynamic>;

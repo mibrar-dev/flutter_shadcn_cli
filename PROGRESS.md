@@ -268,3 +268,7 @@ Date: 2026-02-22
   - expanded `README.md` from a command stub into a current v1 overview
   - updated getting-started, component, registry, config/state, inline-init, and registry-directory docs for manifest-first installs, per-component locale merging, init/assets split, and lockfile state
   - regenerated generated command reference pages from command metadata
+- Completed optional installer locale service cleanup:
+  - extracted locale resource merge/removal behavior from the installer part file into `InstallerLocaleService`
+  - kept component-local JSON/ARB resources merging only missing keys into project ARB files
+  - added a direct service test for preserving existing project keys while tracking added component keys

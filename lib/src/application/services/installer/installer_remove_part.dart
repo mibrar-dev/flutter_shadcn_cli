@@ -30,7 +30,7 @@ extension InstallerRemovePart on Installer {
     }
 
     logger.action('Removing ${component.name} (${component.id})');
-    await _removeLocaleResources(component.id);
+    await _localeService.removeLocaleResources(component.id);
     if (lockRecord != null) {
       for (final relativePath in lockRecord.installedFiles) {
         if (await _lockfilePathOwnedByOther(
