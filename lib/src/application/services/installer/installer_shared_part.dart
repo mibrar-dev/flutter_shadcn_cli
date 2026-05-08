@@ -16,9 +16,14 @@ extension InstallerSharedPart on Installer {
     }
     final sharedItem = sharedMatches.first;
 
-    if (_installedSharedCache.contains(resolvedId) ||
-        _installingSharedIds.contains(resolvedId)) {
+    if (_installedSharedCache.contains(resolvedId)) {
       return;
+    }
+    if (_installingSharedIds.contains(resolvedId)) {
+      throw RegistryDependencyCycleException([
+        'shared:$resolvedId',
+        'shared:$resolvedId',
+      ]);
     }
 
     _installingSharedIds.add(resolvedId);
@@ -26,7 +31,10 @@ extension InstallerSharedPart on Installer {
       final sharedDeps = await _loadSharedDependencies(resolvedId);
       for (final depId in sharedDeps) {
         if (depId == resolvedId) {
-          continue;
+          throw RegistryDependencyCycleException([
+            'shared:$resolvedId',
+            'shared:$resolvedId',
+          ]);
         }
         await installShared(depId);
       }

@@ -6,10 +6,20 @@ extension InstallerDryRunPart on Installer {
     bool includeDependencies = true,
   }) async {
     await _ensureConfigLoaded();
+    final graphService = RegistryDependencyGraph(registry);
+    await graphService.validateComponentInstall(
+      componentIds.where((id) => registry.getComponent(id) != null),
+      includeDependencies: includeDependencies,
+      allowMissing: true,
+    );
     final requested = componentIds.toList();
     final missing = <String>[];
     final resolved = <String, Component>{};
-    final dependencyGraph = <String, List<String>>{};
+    final dependencyGraph = await graphService.componentDependencyGraph(
+      componentIds.where((id) => registry.getComponent(id) != null),
+      includeDependencies: includeDependencies,
+      allowMissing: true,
+    );
 
     void visit(Component component, Set<String> stack) {
       if (resolved.containsKey(component.id)) {
@@ -20,7 +30,6 @@ extension InstallerDryRunPart on Installer {
       }
       stack.add(component.id);
       resolved[component.id] = component;
-      dependencyGraph[component.id] = component.dependsOn;
       if (includeDependencies) {
         for (final depId in component.dependsOn) {
           final dep = registry.getComponent(depId);
@@ -170,8 +179,9 @@ extension InstallerDryRunPart on Installer {
         if (deps.isEmpty) {
           componentLines.add(component.id);
         } else {
-          componentLines
-              .add('${component.id}  ↳ dependsOn: ${deps.join(', ')}');
+          componentLines.add(
+            '${component.id}  ↳ dependsOn: ${deps.join(', ')}',
+          );
         }
       }
       section('Components to install', componentLines);

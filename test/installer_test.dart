@@ -485,6 +485,103 @@ void main() {
       );
     });
 
+    test('fails before writes when component dependency graph has a cycle',
+        () async {
+      _writePubspec(targetRoot);
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button =
+            components.cast<Map<String, dynamic>>().firstWhere((entry) {
+          return entry['id'] == 'button';
+        });
+        button['dependsOn'] = ['dialog'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+        skipIntegrity: true,
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('dependency cycle') &&
+                error.toString().contains('button -> dialog -> button'),
+          ),
+        ),
+      );
+
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'button',
+            'button.dart',
+          ),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        Directory(p.join(targetRoot.path, '.shadcn')).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('dry-run fails when component dependency graph has a cycle', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: true,
+        ),
+      );
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button =
+            components.cast<Map<String, dynamic>>().firstWhere((entry) {
+          return entry['id'] == 'button';
+        });
+        button['dependsOn'] = ['dialog'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+        skipIntegrity: true,
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.buildDryRunPlan(['button']),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('dependency cycle') &&
+                error.toString().contains('button -> dialog -> button'),
+          ),
+        ),
+      );
+    });
+
     test('skips meta.json when includeMeta is false', () async {
       await _writeConfig(
         targetRoot,
@@ -1225,6 +1322,16 @@ class ColorSchemes {
         ],
       }),
     );
+}
+
+void _mutateRegistryJson(
+  Directory registryRoot,
+  void Function(Map<String, dynamic> json) mutate,
+) {
+  final file = File(p.join(registryRoot.path, 'components.json'));
+  final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+  mutate(json);
+  file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(json));
 }
 
 void _writePubspec(Directory targetRoot, {Map<String, String>? dependencies}) {

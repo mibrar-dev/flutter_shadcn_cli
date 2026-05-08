@@ -214,6 +214,11 @@ Date: 2026-02-22
 - Completed nullable `copyWith` field clearing:
   - `ShadcnConfig.copyWith` and `RegistryConfigEntry.copyWith` now distinguish omitted arguments from explicit `null`
   - registry URL/path/base URL, include/exclude filters, and aliases can be cleared
+- Completed v1 dependency graph cycle detection:
+  - added registry graph preflight for component, shared, and file dependency ownership edges
+  - `add`, `add --all`, init shared installs, and dry-run now fail on cycles before install writes
+  - cycle errors report the concrete path; missing dependencies use a separate typed failure
+  - optional file dependencies are excluded from hard cycle detection
 
 ## Verified gates (multi-registry rewrite)
 

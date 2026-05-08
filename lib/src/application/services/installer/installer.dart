@@ -6,6 +6,7 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
+import 'package:flutter_shadcn_cli/src/application/services/registry_dependency_graph.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
@@ -129,6 +130,7 @@ class Installer {
     }
 
     final coreShared = _coreSharedIdsForInit();
+    await RegistryDependencyGraph(registry).validateSharedInstall(coreShared);
     final sharedToInstall = (await _resolveSharedDependencyClosure(
       coreShared.toSet(),
     ))
@@ -151,10 +153,7 @@ class Installer {
     for (final sharedId in sharedList) {
       await installShared(sharedId);
     }
-    await _updateDependencies({
-      'data_widget': '^0.0.2',
-      'gap': '^3.0.1',
-    });
+    await _updateDependencies({'data_widget': '^0.0.2', 'gap': '^3.0.1'});
     if (themePreset != null && themePreset.isNotEmpty) {
       await applyThemeById(themePreset);
     } else if (!effectiveSkipPrompts) {
@@ -198,18 +197,27 @@ class Installer {
     bool installDependencies = true,
     Set<String>? ancestry,
   }) async {
-    await ensureInitFiles(allowPrompts: false);
-    await _ensureConfigLoaded();
     final component = registry.getComponent(name);
     if (component == null) {
       logger.warn('Component "$name" not found');
       return;
     }
 
+    if (installDependencies && ancestry == null) {
+      await RegistryDependencyGraph(
+        registry,
+      ).validateComponentInstall([component.id]);
+    }
+
+    await ensureInitFiles(allowPrompts: false);
+    await _ensureConfigLoaded();
+
     final stack = ancestry ?? <String>{};
     if (stack.contains(component.id)) {
-      logger.detail('Skipping ${component.id} (dependency cycle)');
-      return;
+      throw RegistryDependencyCycleException([
+        ...stack,
+        component.id,
+      ]);
     }
     stack.add(component.id);
 
@@ -316,6 +324,7 @@ class Installer {
     if (ids.isEmpty) {
       return;
     }
+    await RegistryDependencyGraph(registry).validateComponentInstall(ids);
 
     var index = 0;
     Future<void> worker() async {
@@ -329,18 +338,18 @@ class Installer {
     }
 
     final workerCount = concurrency.clamp(1, ids.length);
-    await Future.wait(
-      List.generate(workerCount, (_) => worker()),
-    );
+    await Future.wait(List.generate(workerCount, (_) => worker()));
   }
 }
 
 final _classRegex = RegExp(
-    r'^\s*(abstract\s+)?class\s+([A-Z]\w*)(\s*<[^>{}]+>)?',
-    multiLine: true);
+  r'^\s*(abstract\s+)?class\s+([A-Z]\w*)(\s*<[^>{}]+>)?',
+  multiLine: true,
+);
 
 final _partRegex = RegExp(r'''part\s+['"]([^'"]+)['"];''');
 
-final _importDirectiveRegex =
-    RegExp(r'''^\s*(import|export|part)\s+['"]([^'"]+)['"]''');
+final _importDirectiveRegex = RegExp(
+  r'''^\s*(import|export|part)\s+['"]([^'"]+)['"]''',
+);
 final _partOfDirectiveRegex = RegExp(r'^\s*part\s+of\b');
