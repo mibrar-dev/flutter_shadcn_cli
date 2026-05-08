@@ -143,10 +143,10 @@ class Installer {
     logger.section('Installing core shared modules');
     var totalFiles = 0;
     for (final sharedId in sharedList) {
-      final shared = registry.shared.firstWhere(
-        (s) => s.id == sharedId,
-        orElse: () => throw Exception('Shared module $sharedId not found'),
-      );
+      final shared = registry.getSharedItem(sharedId);
+      if (shared == null) {
+        throw Exception('Shared module $sharedId not found');
+      }
       logger.detail('  • $sharedId (${shared.files.length} files)');
       totalFiles += shared.files.length;
     }

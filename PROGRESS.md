@@ -234,9 +234,11 @@ Date: 2026-02-22
 
 ## Remaining multi-registry rewrite work
 
-- Performance pass:
-  - cache a component lookup map per registry instance
-  - cache compiled JSON schema validators per schema path/source
-  - confirm HTTP clients are injected/closed correctly
-  - reduce repeated config/directory reads inside a single command execution
+- Completed performance pass:
+  - component lookup map cache per registry instance was already present and remains covered
+  - added shared item parsing/lookup cache per registry instance
+  - kept compiled component schema validator cache and added direct generic schema validator cache coverage
+  - confirmed injected HTTP clients are not closed by schema validation
+  - cached project root/config inside a `MultiRegistryManager` command lifecycle
+  - batched unqualified add resolution so each enabled registry is loaded once per add request group
 - After all verification gates pass, delete and recreate `doc/` and `README.md` with current-only user/developer/reference documentation.

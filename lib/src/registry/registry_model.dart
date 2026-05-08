@@ -25,6 +25,8 @@ class Registry {
   final RegistryLocation sourceRoot;
   List<Component>? _componentsCache;
   Map<String, Component>? _componentLookupCache;
+  List<SharedItem>? _sharedCache;
+  Map<String, SharedItem>? _sharedLookupCache;
 
   Registry(this.data, this.registryRoot, this.sourceRoot);
 
@@ -119,11 +121,17 @@ class Registry {
   }
 
   List<SharedItem> get shared {
+    final cached = _sharedCache;
+    if (cached != null) {
+      return cached;
+    }
     final raw = data['shared'];
     if (raw is! List) {
-      return [];
+      _sharedCache = const [];
+      return _sharedCache!;
     }
-    return raw.map((e) => SharedItem.fromJson(e)).toList();
+    _sharedCache = List.unmodifiable(raw.map((e) => SharedItem.fromJson(e)));
+    return _sharedCache!;
   }
 
   List<Component> get components {
@@ -153,6 +161,20 @@ class Registry {
       lookup.putIfAbsent(component.id, () => component);
       lookup.putIfAbsent(component.id.toLowerCase(), () => component);
       lookup.putIfAbsent(component.name.toLowerCase(), () => component);
+    }
+    return lookup;
+  }
+
+  SharedItem? getSharedItem(String id) {
+    final lookup = _sharedLookupCache ??= _buildSharedLookup();
+    return lookup[id] ?? lookup[id.toLowerCase()];
+  }
+
+  Map<String, SharedItem> _buildSharedLookup() {
+    final lookup = <String, SharedItem>{};
+    for (final item in shared) {
+      lookup.putIfAbsent(item.id, () => item);
+      lookup.putIfAbsent(item.id.toLowerCase(), () => item);
     }
     return lookup;
   }

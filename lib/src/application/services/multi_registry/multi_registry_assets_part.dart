@@ -7,8 +7,8 @@ extension MultiRegistryAssetsPart on MultiRegistryManager {
     required bool installTypography,
     required bool installAll,
   }) async {
-    final projectRoot = findProjectRootFrom(targetDir);
-    var config = await ShadcnConfig.load(projectRoot);
+    final projectRoot = _projectRoot;
+    final config = await _loadProjectConfig();
     late final RegistryDirectoryEntry entry;
     try {
       final directory = await _loadDirectory();
@@ -46,7 +46,7 @@ extension MultiRegistryAssetsPart on MultiRegistryManager {
       actions: selectedActions,
       logger: logger,
     );
-    await ShadcnConfig.save(projectRoot, nextConfig);
+    await _saveProjectConfig(nextConfig);
     final category = _inlineAssetCategory(
       installIcons: installIcons,
       installTypography: installTypography,
@@ -67,7 +67,7 @@ extension MultiRegistryAssetsPart on MultiRegistryManager {
     required bool removeTypography,
     required bool removeAll,
   }) async {
-    final projectRoot = findProjectRootFrom(targetDir);
+    final projectRoot = _projectRoot;
     final journal = await InlineActionJournal.load(projectRoot);
     if (removeAll) {
       final snapshot = journal.takeAll(namespace);

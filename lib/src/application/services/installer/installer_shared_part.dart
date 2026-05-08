@@ -4,8 +4,8 @@ extension InstallerSharedPart on Installer {
   Future<void> installShared(String id) async {
     await _ensureConfigLoaded();
     final resolvedId = _normalizeSharedId(id);
-    final sharedMatches = registry.shared.where((s) => s.id == resolvedId);
-    if (sharedMatches.isEmpty) {
+    final sharedItem = registry.getSharedItem(resolvedId);
+    if (sharedItem == null) {
       final fallbackComponent = registry.getComponent(resolvedId);
       if (fallbackComponent != null) {
         await addComponent(resolvedId);
@@ -14,7 +14,6 @@ extension InstallerSharedPart on Installer {
       logger.warn('Shared item "$id" not found');
       return;
     }
-    final sharedItem = sharedMatches.first;
 
     if (_installedSharedCache.contains(resolvedId)) {
       return;
@@ -151,9 +150,7 @@ extension InstallerSharedPart on Installer {
       'form_control',
       'form_value_supplier',
     ];
-    final hasColorScheme =
-        registry.shared.any((shared) => shared.id == 'color_scheme');
-    if (hasColorScheme) {
+    if (registry.getSharedItem('color_scheme') != null) {
       ids.add('color_scheme');
     }
     return ids;
@@ -197,14 +194,13 @@ extension InstallerSharedPart on Installer {
       return cached;
     }
 
-    final matches = registry.shared.where((s) => s.id == sharedId);
-    if (matches.isEmpty) {
+    final sharedItem = registry.getSharedItem(sharedId);
+    if (sharedItem == null) {
       _sharedDependencyCache[sharedId] = {};
       return {};
     }
 
     final deps = <String>{};
-    final sharedItem = matches.first;
     for (final file in sharedItem.files) {
       if (!file.source.endsWith('.dart')) {
         continue;

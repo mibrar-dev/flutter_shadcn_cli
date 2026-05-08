@@ -19,8 +19,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
   Future<DiscoveryRegistryTarget> resolveDiscoveryTarget({
     String? namespace,
   }) async {
-    final projectRoot = findProjectRootFrom(targetDir);
-    final config = await ShadcnConfig.load(projectRoot);
+    final projectRoot = _projectRoot;
+    final config = await _loadProjectConfig();
     final resolvedNamespace = namespace?.trim().isNotEmpty == true
         ? namespace!.trim()
         : config.effectiveDefaultNamespace;
@@ -150,8 +150,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
   }
 
   Future<List<RegistrySummary>> listRegistries() async {
-    final projectRoot = findProjectRootFrom(targetDir);
-    final config = await ShadcnConfig.load(projectRoot);
+    final config = await _loadProjectConfig();
     final summaries = <String, RegistrySummary>{};
 
     final defaultNamespace = config.effectiveDefaultNamespace;
@@ -215,8 +214,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       throw MultiRegistryException('Registry namespace cannot be empty.');
     }
 
-    final projectRoot = findProjectRootFrom(targetDir);
-    var config = await ShadcnConfig.load(projectRoot);
+    var config = await _loadProjectConfig();
     var entry = config.registryConfig(trimmed);
 
     if (entry == null) {
@@ -243,7 +241,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       installPath: entry.installPath ?? config.installPath,
       sharedPath: entry.sharedPath ?? config.sharedPath,
     );
-    await ShadcnConfig.save(projectRoot, config);
+    await _saveProjectConfig(config);
     return config;
   }
 
@@ -265,8 +263,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       throw MultiRegistryException('Registry path cannot be empty.');
     }
 
-    final projectRoot = findProjectRootFrom(targetDir);
-    var config = await ShadcnConfig.load(projectRoot);
+    final projectRoot = _projectRoot;
+    var config = await _loadProjectConfig();
     final directory = await directoryClient.load(
       projectRoot: projectRoot,
       directoryPath: trimmedRegistriesPath,
@@ -299,7 +297,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
           installPath: localEntry.installPath ?? config.installPath,
           sharedPath: localEntry.sharedPath ?? config.sharedPath,
         );
-    await ShadcnConfig.save(projectRoot, config);
+    await _saveProjectConfig(config);
     return config;
   }
 
@@ -309,8 +307,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       throw MultiRegistryException('Registry namespace cannot be empty.');
     }
 
-    final projectRoot = findProjectRootFrom(targetDir);
-    var config = await ShadcnConfig.load(projectRoot);
+    final projectRoot = _projectRoot;
+    var config = await _loadProjectConfig();
     final directory = await directoryClient.load(
       projectRoot: projectRoot,
       directoryUrl: defaultRegistriesDirectoryUrl,
@@ -345,7 +343,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
           installPath: remoteEntry.installPath ?? config.installPath,
           sharedPath: remoteEntry.sharedPath ?? config.sharedPath,
         );
-    await ShadcnConfig.save(projectRoot, config);
+    await _saveProjectConfig(config);
     return config;
   }
 
@@ -601,12 +599,6 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     required RegistryDirectoryEntry entry,
     required RegistryConfigEntry? configEntry,
   }) {
-    final configuredPath = configEntry?.registryPath?.trim();
-    if ((configEntry?.registryMode == 'local' || configuredPath != null) &&
-        configuredPath != null &&
-        configuredPath.isNotEmpty) {
-      return _localOverrideSourceRoot(configuredPath);
-    }
     final path = registryPathOverride?.trim();
     if (path != null && path.isNotEmpty) {
       return _localOverrideSourceRoot(path);
@@ -614,6 +606,12 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     final url = registryUrlOverride?.trim();
     if (url != null && url.isNotEmpty) {
       return url;
+    }
+    final configuredPath = configEntry?.registryPath?.trim();
+    if ((configEntry?.registryMode == 'local' || configuredPath != null) &&
+        configuredPath != null &&
+        configuredPath.isNotEmpty) {
+      return _localOverrideSourceRoot(configuredPath);
     }
     return configEntry?.baseUrl ?? configEntry?.registryUrl ?? entry.baseUrl;
   }
@@ -631,7 +629,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     if (p.isAbsolute(trimmed)) {
       return p.normalize(trimmed);
     }
-    return p.normalize(p.join(findProjectRootFrom(targetDir), trimmed));
+    return p.normalize(p.join(_projectRoot, trimmed));
   }
 
   String? _pathForLocalOverride({
@@ -761,7 +759,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       return _directoryCache!;
     }
     _directoryCache = await directoryClient.load(
-      projectRoot: targetDir,
+      projectRoot: _projectRoot,
       directoryUrl: directoryUrl,
       directoryPath: directoryPath,
       offline: offline,

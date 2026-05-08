@@ -6,7 +6,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     if (trimmed.isEmpty) {
       return false;
     }
-    final config = await ShadcnConfig.load(targetDir);
+    final config = await _loadProjectConfig();
     final byConfig = config.registryConfig(trimmed);
     if (byConfig != null) {
       return true;
@@ -19,8 +19,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     String namespace, {
     bool assumeYes = false,
   }) async {
-    final projectRoot = findProjectRootFrom(targetDir);
-    var config = await ShadcnConfig.load(projectRoot);
+    final projectRoot = _projectRoot;
+    var config = await _loadProjectConfig();
     RegistryDirectoryEntry? directoryEntry;
     try {
       final directory = await _loadDirectory();
@@ -63,7 +63,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       capabilities: directoryEntry?.capabilities,
       assumeYes: assumeYes,
     );
-    await ShadcnConfig.save(projectRoot, config);
+    await _saveProjectConfig(config);
 
     if (directoryEntry == null) {
       logger.info('No bootstrap actions defined for this registry.');
