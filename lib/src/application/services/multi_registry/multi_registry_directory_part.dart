@@ -406,10 +406,22 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     }
 
     final configEntry = config.registryConfig(namespace);
+    RegistryDirectoryEntry? directoryEntry;
+    try {
+      final directory = await _loadDirectory();
+      directoryEntry = directory.registries.firstWhere(
+        (item) => item.namespace == namespace,
+      );
+    } on StateError {
+      directoryEntry = null;
+    } catch (_) {
+      directoryEntry = null;
+    }
+
     final overrideSource = _sourceOverrideForNamespace(
       namespace: namespace,
       configEntry: configEntry,
-      directoryEntry: null,
+      directoryEntry: directoryEntry,
     );
     if (overrideSource != null) {
       _sources[namespace] = overrideSource;
@@ -448,16 +460,6 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       );
       _sources[namespace] = source;
       return source;
-    }
-
-    RegistryDirectoryEntry? directoryEntry;
-    try {
-      final directory = await _loadDirectory();
-      directoryEntry = directory.registries.firstWhere(
-        (item) => item.namespace == namespace,
-      );
-    } on StateError {
-      directoryEntry = null;
     }
 
     if (configEntry != null &&
