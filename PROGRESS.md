@@ -168,6 +168,10 @@ Date: 2026-02-22
   - added `InstallerConfigResolver` for registry defaults, namespace-specific config paths, explicit path overrides, and alias expansion
   - kept interactive init prompting inside the installer config part
   - added direct resolver coverage for defaults, namespace overrides, and alias-expanded explicit overrides
+- Completed installer file selection policy extraction:
+  - added `InstallerFileSelectionPolicy` for README/meta/preview optional file decisions
+  - preserved command override, registry config, top-level config, and default precedence
+  - added direct policy coverage for file-kind aliases, namespace overrides, explicit include/exclude overrides, and default behavior
 - Final dead-code sweep + docs updates for the refactored command structure
   - Completed in this pass:
     - Removed temporary refactor utility file: `tool_check_shared.dart`
