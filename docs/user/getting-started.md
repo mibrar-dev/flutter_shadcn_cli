@@ -1,6 +1,6 @@
 # Getting Started
 
-`flutter_shadcn` installs Flutter UI components from one or more registries into your project. It keeps project configuration in `.shadcn/config.json`, install state in `.shadcn/state.json`, and component manifests in `.shadcn/components/`.
+`flutter_shadcn` installs Flutter UI components from one or more registries into your project. It keeps project configuration in `.shadcn/config.json`, install state in `.shadcn/state.json`, component install manifests in `.shadcn/components/`, and v1 registry source records in `shadcn.lock`.
 
 ## Install
 
@@ -26,6 +26,18 @@ To initialize a specific registry namespace:
 flutter_shadcn init shadcn --yes
 ```
 
+Non-interactive `init --yes` installs only the required bootstrap surface for the selected registry. Optional fonts, icons, and asset packs are installed explicitly with `flutter_shadcn assets`.
+
+## Initialize Localization
+
+Locale-aware components require Flutter localization files in the app before their locale resources can be merged:
+
+```bash
+flutter_shadcn locale init
+```
+
+This creates `l10n.yaml`, `lib/l10n/`, and `lib/l10n/app_en.arb` when they do not already exist. Component installs then merge only the locale resources published by the installed component into the app ARB files.
+
 ## Add Your First Component
 
 Install a component from the default registry:
@@ -41,6 +53,8 @@ flutter_shadcn add @shadcn/button
 ```
 
 Use the namespaced form whenever two enabled registries provide the same component name.
+
+During install, the CLI reads the resolved registry manifest source for the component, installs declared files and dependencies, merges component-local locale resources when present, writes `.shadcn/components/<component>.json`, and updates `shadcn.lock`.
 
 ## Find Components
 

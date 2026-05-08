@@ -241,4 +241,7 @@ Date: 2026-02-22
   - confirmed injected HTTP clients are not closed by schema validation
   - cached project root/config inside a `MultiRegistryManager` command lifecycle
   - batched unqualified add resolution so each enabled registry is loaded once per add request group
-- After all verification gates pass, delete and recreate `doc/` and `README.md` with current-only user/developer/reference documentation.
+- Completed docs/README rewrite:
+  - expanded `README.md` from a command stub into a current v1 overview
+  - updated getting-started, component, registry, config/state, inline-init, and registry-directory docs for manifest-first installs, per-component locale merging, init/assets split, and lockfile state
+  - regenerated generated command reference pages from command metadata

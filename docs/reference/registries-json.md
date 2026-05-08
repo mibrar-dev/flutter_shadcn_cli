@@ -105,6 +105,26 @@ Registry paths are relative to `baseUrl`. The CLI rejects paths that are absolut
 
 For `copyFiles` init actions, files are treated as relative to the action `base` when `base` and `destBase` are present. The official registry uses paths relative to that base, so the CLI maps those paths without requiring the base prefix inside each file entry.
 
+## Component Manifest Source of Truth
+
+For v1 component installs, resolved component manifest data is the source of truth for files, dependencies, shared groups, locale resources, ownership keys, and lockfile records.
+
+Registries should publish per-component manifest sources when they can. The CLI prefers those per-component sources for install-time data. If a registry does not publish per-component manifest sources, the CLI falls back to the registry's configured `components.json` and then to index metadata where that registry exposes it.
+
+The missing per-component manifest result is cached per registry during resolution. A registry that does not provide that source is not repeatedly probed for the same missing path in later lookups in the same command flow.
+
+## Locale Resources
+
+Components can declare locale resources in their component manifest. Resource files are component-local, so a project installs only the locale keys for components it actually uses.
+
+Supported resource payloads are JSON objects in `json` or `arb` format. During `add`, the CLI merges resource keys into the app ARB file selected by `l10n.yaml`. Existing app keys are preserved. During `remove`, the CLI deletes only keys that were added by the removed component and are not owned by another installed component.
+
+Users can create the required Flutter localization files with:
+
+```bash
+flutter_shadcn locale init
+```
+
 ## Theme Artifacts
 
 Each registry owns its theme format and generation pipeline. Conversion should happen at registry publish time. The CLI consumes only pre-generated, hash-verified theme artifacts.

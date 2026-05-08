@@ -31,7 +31,7 @@ flutter_shadcn add @shadcn/button
 
 ## Notes
 
-Use namespaced addresses when multiple registries provide the same component.
+Use namespaced addresses when multiple registries provide the same component. The installer uses resolved registry manifest data as the source of truth and merges only the installed component locale resources into app ARB files.
 
 ## See Also
 

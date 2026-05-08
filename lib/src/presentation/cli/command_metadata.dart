@@ -105,7 +105,7 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           'flutter_shadcn add @shadcn/button',
         ],
         notes:
-            'Use namespaced addresses when multiple registries provide the same component.',
+            'Use namespaced addresses when multiple registries provide the same component. The installer uses resolved registry manifest data as the source of truth and merges only the installed component locale resources into app ARB files.',
         seeAlso: ['list', 'search', 'info', 'remove'],
       ),
       CliCommandMeta(
@@ -284,6 +284,8 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           'flutter_shadcn init',
           'flutter_shadcn init shadcn --yes',
         ],
+        notes:
+            '`init` runs inline registry bootstrap actions from `registries.json`. Non-interactive `init --yes` installs the required project surface only; optional fonts, icons, and asset packs are installed with `assets`.',
         seeAlso: ['registries', 'default', 'sync'],
       ),
       CliCommandMeta(
@@ -391,6 +393,8 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           'flutter_shadcn assets --list',
           'flutter_shadcn assets --icons --typography',
         ],
+        notes:
+            'Assets are registry-provided inline actions. Use this command for optional fonts, icons, and asset packs after `init`.',
         seeAlso: ['init', 'theme'],
       ),
       CliCommandMeta(

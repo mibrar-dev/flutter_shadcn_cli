@@ -27,6 +27,10 @@ flutter_shadcn init
 flutter_shadcn init shadcn --yes
 ```
 
+## Notes
+
+`init` runs inline registry bootstrap actions from `registries.json`. Non-interactive `init --yes` installs the required project surface only; optional fonts, icons, and asset packs are installed with `assets`.
+
 ## See Also
 
 - [`flutter_shadcn registries`](registries.md)

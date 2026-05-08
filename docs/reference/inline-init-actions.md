@@ -1,6 +1,8 @@
 # Inline Init Actions Reference
 
-Inline init actions live in `registries.json` under `registries[].init.actions`. They let a registry bootstrap directories, shared files, assets, fonts, dependencies, and user-facing messages during `flutter_shadcn init`.
+Inline init actions live in `registries.json` under `registries[].init.actions`. They let a registry bootstrap required directories, shared files, dependencies, and user-facing messages during `flutter_shadcn init`.
+
+Public `init --yes` should install only the required project surface for the selected registry. Optional fonts, icons, and asset packs should be exposed as separate asset actions and installed through `flutter_shadcn assets`.
 
 The engine supports these action types:
 
