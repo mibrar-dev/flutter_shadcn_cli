@@ -3,20 +3,11 @@ part of 'installer.dart';
 extension InstallerFileInstallPart on Installer {
   Future<void> _installFile(RegistryFile file) async {
     await _ensureConfigLoaded();
-    final destFile = File(_resolveDestinationPath(file.destination));
-
-    if (!await destFile.parent.exists()) {
-      await destFile.parent.create(recursive: true);
-    }
-
-    if (!_shouldInstallFile(file.destination)) {
-      logger.detail('Skipping optional ${file.destination}');
-      return;
-    }
-
-    logger.detail('Writing ${destFile.path}');
-    final bytes = await registry.readSourceBytes(file.source);
-    await destFile.writeAsBytes(bytes, flush: true);
+    await _fileWriter.writeRegistryFile(
+      file: file,
+      destinationPath: _resolveDestinationPath(file.destination),
+      shouldInstall: _shouldInstallFile(file.destination),
+    );
   }
 
   Future<void> _installComponentFile(

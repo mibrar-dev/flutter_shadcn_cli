@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
@@ -73,6 +74,7 @@ class Installer {
   final Map<String, Set<String>> _sharedDependencyCache = {};
   ShadcnConfig? _cachedConfig;
   final InstallerManifestService _manifestService;
+  final InstallerFileWriterService _fileWriter;
 
   Installer({
     required this.registry,
@@ -90,6 +92,7 @@ class Installer {
     this.enableSharedGroups = true,
     this.enableComposites = true,
     InstallerManifestService? manifestService,
+    InstallerFileWriterService? fileWriter,
   })  : logger = logger ?? CliLogger(),
         _manifestService = manifestService ??
             InstallerManifestService(
@@ -97,6 +100,11 @@ class Installer {
               registry: registry,
               registryNamespace: registryNamespace,
               registryBaseUrlOverride: registryBaseUrlOverride,
+            ),
+        _fileWriter = fileWriter ??
+            InstallerFileWriterService(
+              registry: registry,
+              logger: logger ?? CliLogger(),
             );
 
   Future<void> init({

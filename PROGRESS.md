@@ -160,6 +160,10 @@ Date: 2026-02-22
   - added `InstallerManifestService` for aggregate `components.json` and per-component `.shadcn/components/*.json` persistence
   - kept installer orchestration and lockfile collision behavior unchanged
   - added direct service coverage for aggregate writes, per-component locale manifest payloads, timestamp preservation, and manifest clearing
+- Completed installer file writer service extraction:
+  - added `InstallerFileWriterService` for registry byte reads, parent directory creation, optional skip logging, and destination writes
+  - kept component/shared dependency traversal and destination mapping in the installer part for now
+  - added direct service coverage for writing registry bytes and skipping optional files without source reads
 - Final dead-code sweep + docs updates for the refactored command structure
   - Completed in this pass:
     - Removed temporary refactor utility file: `tool_check_shared.dart`
