@@ -10,7 +10,16 @@ The engine supports these action types:
 - `mergePubspec`
 - `message`
 
+`init.version` must be `1`. Future action types are rejected until the
+registry directory schema increments `init.version` and this CLI explicitly
+implements that version.
+
 All destination paths are project-relative and pass through the same path guard used by installer writes. Absolute paths, traversal, and symlink escapes are rejected.
+
+Arbitrary config or source-code patch actions are out of scope for inline init.
+The CLI rejects `configPatches`, `patches`, `mainDartPatch`, and generic
+`modifyFile` actions before any init file write occurs. Use the supported
+platform sections in component manifests and `mergePubspec` for pubspec changes.
 
 ## `message`
 

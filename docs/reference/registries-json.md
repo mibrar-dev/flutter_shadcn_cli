@@ -117,6 +117,12 @@ When a registry supports themes, its published theme data should resolve to arti
 
 Supported actions are documented in [inline-init-actions.md](inline-init-actions.md).
 
+Registries cannot publish arbitrary config or code patches through inline init.
+Fields such as `configPatches`, `patches`, `mainDartPatch`, and generic
+`modifyFile` actions are rejected during schema/preflight validation before any
+file write. Platform-specific component manifest sections and `mergePubspec`
+remain the supported extension points for platform and pubspec changes.
+
 ## Validation Behavior
 
 Public install, init, and add flows fail when the registry directory or registry manifests do not match their schema. Developer-only integrity bypass is documented in [../developer/integrity-and-schema-validation.md](../developer/integrity-and-schema-validation.md).

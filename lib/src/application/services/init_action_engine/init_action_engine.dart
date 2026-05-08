@@ -25,6 +25,20 @@ typedef InitActionGroupSelector = Future<List<Map<String, dynamic>>> Function(
   List<Map<String, dynamic>> groups,
 );
 
+const Set<String> _supportedActionTypes = {
+  'ensureDirs',
+  'copyFiles',
+  'copyDir',
+  'mergePubspec',
+  'message',
+};
+
+const Set<String> _unsupportedPatchFields = {
+  'configPatches',
+  'patches',
+  'mainDartPatch',
+};
+
 class InitActionEngine {
   final http.Client _client;
   final bool _ownsClient;
@@ -47,7 +61,7 @@ class InitActionEngine {
     InitActionGroupSelector? groupSelector,
   }) async {
     final init = registry.init;
-    if (init == null || !registry.hasInlineInit) {
+    if (init == null) {
       const message = 'No bootstrap actions defined for this registry.';
       logger?.info(message);
       return const InitExecutionResult(
@@ -55,6 +69,14 @@ class InitActionEngine {
         filesWritten: 0,
         messages: [message],
         record: InitExecutionRecord.empty,
+      );
+    }
+
+    final version = init['version'];
+    if (version != 1) {
+      throw InitActionEngineException(
+        'Unsupported registry.init.version: $version. '
+        'This CLI supports init.version 1 only.',
       );
     }
 
@@ -95,6 +117,7 @@ class InitActionEngine {
         record: InitExecutionRecord.empty,
       );
     }
+    _preflightActions(actions);
 
     var dirsCreated = 0;
     var filesWritten = 0;
@@ -188,6 +211,31 @@ class InitActionEngine {
         pubspecDelta: pubspecDelta,
       ),
     );
+  }
+
+  void _preflightActions(List<Map<String, dynamic>> actions) {
+    for (var index = 0; index < actions.length; index++) {
+      final action = actions[index];
+      final type = action['type']?.toString();
+      if (type == null || type.isEmpty) {
+        throw InitActionEngineException('init action missing "type"');
+      }
+      if (!_supportedActionTypes.contains(type)) {
+        throw InitActionEngineException(
+          'Unsupported init action type: $type',
+        );
+      }
+
+      for (final field in _unsupportedPatchFields) {
+        if (action.containsKey(field)) {
+          throw InitActionEngineException(
+            'Unsupported init action field "$field" in action '
+            '${index + 1} ($type): arbitrary config/code patches are out '
+            'of scope for inline init actions.',
+          );
+        }
+      }
+    }
   }
 
   Future<InitRollbackResult> rollbackRecordedChanges({

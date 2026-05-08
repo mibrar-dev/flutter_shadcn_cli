@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/registry.dart';
+import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
@@ -277,5 +278,119 @@ void main() {
     );
 
     expect(registry.data['name'], 'invalid_registry');
+  });
+
+  test('registries schema rejects unsupported init patch declarations',
+      () async {
+    for (final unsupportedField in [
+      'configPatches',
+      'patches',
+      'mainDartPatch',
+    ]) {
+      final fixtureDir = await Directory.systemTemp.createTemp(
+        'registries_schema_unsupported_patch_test_',
+      );
+      addTearDown(() => fixtureDir.delete(recursive: true));
+      final registriesFile = File(p.join(fixtureDir.path, 'registries.json'));
+      await registriesFile.writeAsString(
+        jsonEncode({
+          'schemaVersion': 1,
+          'registries': [
+            {
+              'id': 'patchy',
+              'displayName': 'Patchy',
+              'maintainers': ['team'],
+              'repo': 'https://github.com/example/patchy',
+              'license': 'MIT',
+              'minCliVersion': '0.1.0',
+              'baseUrl': 'https://example.com/registry/',
+              'paths': {'componentsJson': 'components.json'},
+              'install': {'namespace': 'patchy', 'root': 'lib/ui/patchy'},
+              'init': {
+                'version': 1,
+                'actions': [
+                  {
+                    'type': 'message',
+                    'lines': ['never accepted'],
+                    unsupportedField: [
+                      {'path': 'lib/main.dart'}
+                    ],
+                  }
+                ],
+              },
+            }
+          ],
+        }),
+      );
+
+      final client = RegistryDirectoryClient();
+      await expectLater(
+        () => client.load(
+          projectRoot: fixtureDir.path,
+          directoryPath: registriesFile.path,
+          currentCliVersion: '0.1.8',
+        ),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error is RegistryDirectoryException &&
+                error.toString().contains('registries.json schema invalid'),
+          ),
+        ),
+        reason: unsupportedField,
+      );
+    }
+  });
+
+  test('registries schema rejects unsupported modifyFile init action',
+      () async {
+    final fixtureDir = await Directory.systemTemp.createTemp(
+      'registries_schema_unsupported_action_test_',
+    );
+    addTearDown(() => fixtureDir.delete(recursive: true));
+    final registriesFile = File(p.join(fixtureDir.path, 'registries.json'));
+    await registriesFile.writeAsString(
+      jsonEncode({
+        'schemaVersion': 1,
+        'registries': [
+          {
+            'id': 'patchy',
+            'displayName': 'Patchy',
+            'maintainers': ['team'],
+            'repo': 'https://github.com/example/patchy',
+            'license': 'MIT',
+            'minCliVersion': '0.1.0',
+            'baseUrl': 'https://example.com/registry/',
+            'paths': {'componentsJson': 'components.json'},
+            'install': {'namespace': 'patchy', 'root': 'lib/ui/patchy'},
+            'init': {
+              'version': 1,
+              'actions': [
+                {
+                  'type': 'modifyFile',
+                  'path': 'lib/main.dart',
+                }
+              ],
+            },
+          }
+        ],
+      }),
+    );
+
+    final client = RegistryDirectoryClient();
+    await expectLater(
+      () => client.load(
+        projectRoot: fixtureDir.path,
+        directoryPath: registriesFile.path,
+        currentCliVersion: '0.1.8',
+      ),
+      throwsA(
+        predicate(
+          (Object error) =>
+              error is RegistryDirectoryException &&
+              error.toString().contains('registries.json schema invalid'),
+        ),
+      ),
+    );
   });
 }

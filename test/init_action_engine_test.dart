@@ -187,6 +187,153 @@ void main() {
       expect(pubspec, isNot(contains('foo: ^1.0.0')));
     });
 
+    test('preflight rejects unsupported patch declarations before writes',
+        () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'ensureDirs',
+              'dirs': ['lib/generated_before_rejection'],
+            },
+            {
+              'type': 'message',
+              'lines': ['never reached'],
+              'configPatches': [
+                {'path': 'analysis_options.yaml'}
+              ],
+            },
+            {
+              'type': 'mergePubspec',
+              'dependencies': {'gap': '^3.0.1'},
+            },
+          ],
+        ),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error is InitActionEngineException &&
+                error.toString().contains('configPatches') &&
+                error.toString().contains('out of scope'),
+          ),
+        ),
+      );
+
+      expect(
+        Directory(
+          p.join(projectRoot.path, 'lib/generated_before_rejection'),
+        ).existsSync(),
+        isFalse,
+      );
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('gap: ^3.0.1')));
+    });
+
+    test('preflight rejects unsupported action types before writes', () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'ensureDirs',
+              'dirs': ['lib/generated_before_unknown_type'],
+            },
+            {
+              'type': 'modifyFile',
+              'path': 'lib/main.dart',
+              'patch': 'unsupported',
+            },
+          ],
+        ),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error is InitActionEngineException &&
+                error.toString().contains('Unsupported init action type') &&
+                error.toString().contains('modifyFile'),
+          ),
+        ),
+      );
+
+      expect(
+        Directory(
+          p.join(projectRoot.path, 'lib/generated_before_unknown_type'),
+        ).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('preflight allows compatibility metadata that does not patch files',
+        () async {
+      final engine = InitActionEngine();
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'message',
+            'lines': ['metadata accepted'],
+            'publisherMetadata': {'source': 'fixture'},
+          },
+          {
+            'type': 'mergePubspec',
+            'dependencies': {'gap': '^3.0.1'},
+          },
+        ],
+      );
+
+      expect(result.messages, contains('metadata accepted'));
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, contains('gap: ^3.0.1'));
+    });
+
+    test('executeRegistryInit rejects unsupported init versions', () async {
+      final engine = InitActionEngine();
+      final entry = RegistryDirectoryEntry(
+        id: 'future',
+        displayName: 'Future',
+        minCliVersion: '0.1.0',
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        namespace: 'future',
+        installRoot: 'lib/ui/future',
+        paths: const {'componentsJson': 'components.json'},
+        capabilities: const RegistryCapabilities(),
+        trust: const RegistryTrust(mode: 'none'),
+        init: {
+          'version': 2,
+          'actions': [
+            {'type': 'modifyFile', 'path': 'lib/main.dart'}
+          ],
+        },
+        raw: const {},
+      );
+
+      await expectLater(
+        engine.executeRegistryInit(
+          projectRoot: projectRoot.path,
+          registry: entry,
+        ),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error is InitActionEngineException &&
+                error.toString().contains('Unsupported registry.init.version') &&
+                error.toString().contains('2'),
+          ),
+        ),
+      );
+    });
+
     test('rolls back recorded inline changes', () async {
       final entry = await _loadFixtureEntry(
         baseUrl: 'http://${server.address.host}:${server.port}/',

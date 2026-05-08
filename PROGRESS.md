@@ -218,6 +218,10 @@ Date: 2026-02-22
   - added registry graph preflight for component, shared, and file dependency ownership edges
   - `add`, `add --all`, init shared installs, and dry-run now fail on cycles before install writes
   - cycle errors report the concrete path; missing dependencies use a separate typed failure
+- Completed GAP-24 unsupported patch rejection:
+  - registry init preflight now rejects unsupported patch fields and unknown action types before any write
+  - unsupported `init.version` values fail explicitly instead of being skipped as missing inline init
+  - registries schema and docs now state arbitrary config/code patches are out of scope while keeping platform sections and `mergePubspec` supported
   - optional file dependencies are excluded from hard cycle detection
 
 ## Verified gates (multi-registry rewrite)

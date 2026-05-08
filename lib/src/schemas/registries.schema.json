@@ -211,6 +211,28 @@
       },
       "allOf": [
         {
+          "description": "Arbitrary config/code patch declarations are intentionally unsupported by init.version 1.",
+          "not": {
+            "anyOf": [
+              {
+                "required": [
+                  "configPatches"
+                ]
+              },
+              {
+                "required": [
+                  "patches"
+                ]
+              },
+              {
+                "required": [
+                  "mainDartPatch"
+                ]
+              }
+            ]
+          }
+        },
+        {
           "if": {
             "properties": {
               "mode": {
