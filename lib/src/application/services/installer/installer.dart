@@ -4,10 +4,18 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_plan.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/init_config_overrides.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_entry.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_assets_update_result.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dependency_update_result.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_fonts_update_result.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_registry_file_owner.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_section_range.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
@@ -33,14 +41,6 @@ part 'installer_manifest_part.dart';
 part 'installer_file_install_part.dart';
 part 'installer_platform_alias_part.dart';
 part 'installer_pubspec_part.dart';
-part 'installer_dry_run_plan_part.dart';
-part 'installer_registry_file_owner_part.dart';
-part 'installer_alias_entry_part.dart';
-part 'installer_dependency_update_result_part.dart';
-part 'installer_assets_update_result_part.dart';
-part 'installer_fonts_update_result_part.dart';
-part 'installer_section_range_part.dart';
-part 'installer_init_config_overrides_part.dart';
 part 'installer_locale_part.dart';
 
 class Installer {
@@ -72,7 +72,7 @@ class Installer {
   final Map<String, Future<void>> _componentInstallTasks = {};
   bool _deferComponentManifest = false;
   Future<void> _lockfileWriteQueue = Future<void>.value();
-  Map<String, _RegistryFileOwner>? _registryFileIndex;
+  Map<String, InstallerRegistryFileOwner>? _registryFileIndex;
   final Map<String, Set<String>> _sharedDependencyCache = {};
   ShadcnConfig? _cachedConfig;
   final InstallerConfigResolver _configResolver;

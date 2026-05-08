@@ -1,5 +1,3 @@
-part of 'installer.dart';
-
 class InitConfigOverrides {
   final String? installPath;
   final String? sharedPath;

@@ -1,4 +1,4 @@
-part of 'installer.dart';
+import 'package:flutter_shadcn_cli/src/registry.dart';
 
 class DryRunPlan {
   final List<String> requested;
@@ -35,7 +35,7 @@ class DryRunPlan {
     return {
       'requested': requested,
       'missing': missing,
-      'components': components.map((c) => c.id).toList(),
+      'components': components.map((component) => component.id).toList(),
       'dependencyGraph': dependencyGraph,
       'shared': shared,
       'pubspecDependencies': pubspecDependencies,

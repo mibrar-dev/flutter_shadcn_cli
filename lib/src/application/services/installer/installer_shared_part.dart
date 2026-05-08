@@ -240,29 +240,31 @@ extension InstallerSharedPart on Installer {
     return path.startsWith('.');
   }
 
-  Map<String, _RegistryFileOwner> _buildRegistryFileIndex() {
+  Map<String, InstallerRegistryFileOwner> _buildRegistryFileIndex() {
     final cached = _registryFileIndex;
     if (cached != null) {
       return cached;
     }
-    final index = <String, _RegistryFileOwner>{};
+    final index = <String, InstallerRegistryFileOwner>{};
     for (final sharedItem in registry.shared) {
       for (final file in sharedItem.files) {
         final normalized = _normalizeRegistryPath(file.source);
-        index[normalized] = _RegistryFileOwner.shared(sharedItem.id, file);
+        index[normalized] =
+            InstallerRegistryFileOwner.shared(sharedItem.id, file);
       }
     }
     for (final component in registry.components) {
       for (final file in component.files) {
         final normalized = _normalizeRegistryPath(file.source);
-        index[normalized] = _RegistryFileOwner.component(component.id, file);
+        index[normalized] =
+            InstallerRegistryFileOwner.component(component.id, file);
       }
     }
     _registryFileIndex = index;
     return index;
   }
 
-  _RegistryFileOwner? _lookupRegistryFileOwner(String source) {
+  InstallerRegistryFileOwner? _lookupRegistryFileOwner(String source) {
     final normalized = _normalizeRegistryPath(source);
     return _buildRegistryFileIndex()[normalized];
   }

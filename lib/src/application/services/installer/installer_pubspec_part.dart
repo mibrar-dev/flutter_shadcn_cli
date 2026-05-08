@@ -144,12 +144,12 @@ extension InstallerPubspecPart on Installer {
     logger.success('Added font families: ${result.added.join(', ')}');
   }
 
-  _DependencyUpdateResult _applyDependencies(
+  InstallerDependencyUpdateResult _applyDependencies(
     List<String> lines,
     Map<String, dynamic> deps,
   ) {
     final plan = const PubspecChangePlanner().planAddDependencies(lines, deps);
-    return _DependencyUpdateResult(
+    return InstallerDependencyUpdateResult(
       plan.lines,
       plan.added.keys.toList()..sort(),
       plan.conflicts,
@@ -169,11 +169,12 @@ extension InstallerPubspecPart on Installer {
         'Keep the existing constraint, update it manually, or remove it before retrying.';
   }
 
-  _AssetsUpdateResult _applyAssets(List<String> lines, List<String> assets) {
+  InstallerAssetsUpdateResult _applyAssets(
+      List<String> lines, List<String> assets) {
     final normalized = assets.where((a) => a.trim().isNotEmpty).toSet().toList()
       ..sort();
     if (normalized.isEmpty) {
-      return _AssetsUpdateResult(lines, const []);
+      return InstallerAssetsUpdateResult(lines, const []);
     }
 
     final flutterRange = _findFlutterSection(lines);
@@ -183,7 +184,7 @@ extension InstallerPubspecPart on Installer {
         '  assets:',
         ...normalized.map((a) => '    - $a')
       ];
-      return _AssetsUpdateResult(
+      return InstallerAssetsUpdateResult(
           [...lines, if (lines.isNotEmpty) '', ...addedLines], normalized);
     }
 
@@ -198,7 +199,7 @@ extension InstallerPubspecPart on Installer {
         ...normalized.map((a) => '$assetItemIndent- $a'),
       ];
       final updated = [...lines]..insertAll(insertIndex, insertion);
-      return _AssetsUpdateResult(updated, normalized);
+      return InstallerAssetsUpdateResult(updated, normalized);
     }
 
     final assetsIndentCount = _leadingSpaces(lines[assetsIndex]);
@@ -221,23 +222,24 @@ extension InstallerPubspecPart on Installer {
 
     final additions = normalized.where((a) => !existing.contains(a)).toList();
     if (additions.isEmpty) {
-      return _AssetsUpdateResult(lines, const []);
+      return InstallerAssetsUpdateResult(lines, const []);
     }
     final updated = [...lines]
       ..insertAll(insertAt, additions.map((a) => '$assetItemIndent- $a'));
-    return _AssetsUpdateResult(updated, additions);
+    return InstallerAssetsUpdateResult(updated, additions);
   }
 
-  _FontsUpdateResult _applyFonts(List<String> lines, List<FontEntry> fonts) {
+  InstallerFontsUpdateResult _applyFonts(
+      List<String> lines, List<FontEntry> fonts) {
     if (fonts.isEmpty) {
-      return _FontsUpdateResult(lines, const []);
+      return InstallerFontsUpdateResult(lines, const []);
     }
 
     final flutterRange = _findFlutterSection(lines);
     if (flutterRange.start == -1) {
       final addedLines = <String>['flutter:', ..._formatFontSection(fonts, 2)];
       final addedFamilies = fonts.map((f) => f.family).toList()..sort();
-      return _FontsUpdateResult(
+      return InstallerFontsUpdateResult(
           [...lines, if (lines.isNotEmpty) '', ...addedLines], addedFamilies);
     }
 
@@ -248,7 +250,7 @@ extension InstallerPubspecPart on Installer {
       final insertion = _formatFontSection(fonts, flutterIndent + 2);
       final updated = [...lines]..insertAll(insertIndex, insertion);
       final addedFamilies = fonts.map((f) => f.family).toList()..sort();
-      return _FontsUpdateResult(updated, addedFamilies);
+      return InstallerFontsUpdateResult(updated, addedFamilies);
     }
 
     final fontsIndentCount = _leadingSpaces(lines[fontsIndex]);
@@ -267,26 +269,27 @@ extension InstallerPubspecPart on Installer {
     final additions =
         fonts.where((f) => !existingFamilies.contains(f.family)).toList();
     if (additions.isEmpty) {
-      return _FontsUpdateResult(lines, const []);
+      return InstallerFontsUpdateResult(lines, const []);
     }
 
     final insertion = _formatFontSection(additions, fontsIndentCount + 2);
     final updated = [...lines]..insertAll(fontsRange.end, insertion);
     final addedFamilies = additions.map((f) => f.family).toList()..sort();
-    return _FontsUpdateResult(updated, addedFamilies);
+    return InstallerFontsUpdateResult(updated, addedFamilies);
   }
 
-  _SectionRange _findFlutterSection(List<String> lines) {
+  InstallerSectionRange _findFlutterSection(List<String> lines) {
     for (var i = 0; i < lines.length; i++) {
       if (lines[i].trim() == 'flutter:' && _leadingSpaces(lines[i]) == 0) {
         final end = _findSectionEnd(lines, i, 0).end;
-        return _SectionRange(i, end);
+        return InstallerSectionRange(i, end);
       }
     }
-    return const _SectionRange(-1, -1);
+    return const InstallerSectionRange(-1, -1);
   }
 
-  int _findSectionLine(List<String> lines, _SectionRange range, String key) {
+  int _findSectionLine(
+      List<String> lines, InstallerSectionRange range, String key) {
     for (var i = range.start + 1; i < range.end; i++) {
       if (lines[i].trim() == key) {
         return i;
@@ -295,7 +298,8 @@ extension InstallerPubspecPart on Installer {
     return -1;
   }
 
-  _SectionRange _findSectionEnd(List<String> lines, int start, int indent) {
+  InstallerSectionRange _findSectionEnd(
+      List<String> lines, int start, int indent) {
     var end = lines.length;
     for (var i = start + 1; i < lines.length; i++) {
       final line = lines[i];
@@ -307,7 +311,7 @@ extension InstallerPubspecPart on Installer {
         break;
       }
     }
-    return _SectionRange(start, end);
+    return InstallerSectionRange(start, end);
   }
 
   List<String> _formatFontSection(List<FontEntry> fonts, int indentCount) {

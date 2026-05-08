@@ -172,7 +172,7 @@ extension InstallerPlatformAliasPart on Installer {
       return;
     }
 
-    final aliases = <String, _AliasEntry>{};
+    final aliases = <String, InstallerAliasEntry>{};
     final imports = <String>{};
     final componentDirs = <String>{};
     for (final entity in componentsDir.listSync(recursive: true)) {
@@ -221,7 +221,7 @@ extension InstallerPlatformAliasPart on Installer {
         final typeParams = match.group(3);
         final aliasName = '$prefix$className';
         aliases.putIfAbsent(
-            aliasName, () => _AliasEntry(className, typeParams));
+            aliasName, () => InstallerAliasEntry(className, typeParams));
       }
     }
 
