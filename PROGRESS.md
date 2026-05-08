@@ -172,6 +172,10 @@ Date: 2026-02-22
   - added `InstallerFileSelectionPolicy` for README/meta/preview optional file decisions
   - preserved command override, registry config, top-level config, and default precedence
   - added direct policy coverage for file-kind aliases, namespace overrides, explicit include/exclude overrides, and default behavior
+- Completed installer dry-run service extraction:
+  - added `InstallerDryRunService` for dry-run plan construction and preview rendering
+  - kept `Installer.buildDryRunPlan` and `Installer.printDryRunPlan` as compatibility wrappers
+  - preserved dependency graph validation, missing component reporting, destination mapping, manifest preview, and output structure
 - Completed installer value-object extraction:
   - moved dry-run plans, init config overrides, alias entries, pubspec update results, section ranges, and registry file ownership records out of installer `part` files into normal Dart files
   - exported `InitConfigOverrides` through the public installer compatibility barrel for existing callers

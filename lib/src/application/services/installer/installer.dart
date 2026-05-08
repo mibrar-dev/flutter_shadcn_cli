@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_plan.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/init_config_overrides.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dry_run_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
@@ -99,32 +100,36 @@ class Installer {
     InstallerFileSelectionPolicy? fileSelectionPolicy,
     InstallerManifestService? manifestService,
     InstallerFileWriterService? fileWriter,
-  })  : logger = logger ?? CliLogger(),
-        _configResolver = configResolver ??
-            InstallerConfigResolver(
-              registry: registry,
-              installPathOverride: installPathOverride,
-              sharedPathOverride: sharedPathOverride,
-              registryNamespace: registryNamespace,
-            ),
-        _fileSelectionPolicy = fileSelectionPolicy ??
-            InstallerFileSelectionPolicy(
-              includeFileKindsOverride: includeFileKindsOverride,
-              excludeFileKindsOverride: excludeFileKindsOverride,
-              registryNamespace: registryNamespace,
-            ),
-        _manifestService = manifestService ??
-            InstallerManifestService(
-              targetDir: targetDir,
-              registry: registry,
-              registryNamespace: registryNamespace,
-              registryBaseUrlOverride: registryBaseUrlOverride,
-            ),
-        _fileWriter = fileWriter ??
-            InstallerFileWriterService(
-              registry: registry,
-              logger: logger ?? CliLogger(),
-            );
+  }) : logger = logger ?? CliLogger(),
+       _configResolver =
+           configResolver ??
+           InstallerConfigResolver(
+             registry: registry,
+             installPathOverride: installPathOverride,
+             sharedPathOverride: sharedPathOverride,
+             registryNamespace: registryNamespace,
+           ),
+       _fileSelectionPolicy =
+           fileSelectionPolicy ??
+           InstallerFileSelectionPolicy(
+             includeFileKindsOverride: includeFileKindsOverride,
+             excludeFileKindsOverride: excludeFileKindsOverride,
+             registryNamespace: registryNamespace,
+           ),
+       _manifestService =
+           manifestService ??
+           InstallerManifestService(
+             targetDir: targetDir,
+             registry: registry,
+             registryNamespace: registryNamespace,
+             registryBaseUrlOverride: registryBaseUrlOverride,
+           ),
+       _fileWriter =
+           fileWriter ??
+           InstallerFileWriterService(
+             registry: registry,
+             logger: logger ?? CliLogger(),
+           );
 
   Future<void> init({
     bool skipPrompts = false,
@@ -136,8 +141,9 @@ class Installer {
       skipPrompts: skipPrompts,
       configOverrides: configOverrides,
     );
-    final hasMissingConfigValues =
-        autoReuseExistingSetup ? await _hasMissingInitConfigValues() : false;
+    final hasMissingConfigValues = autoReuseExistingSetup
+        ? await _hasMissingInitConfigValues()
+        : false;
     final effectiveSkipPrompts =
         skipPrompts || (autoReuseExistingSetup && !hasMissingConfigValues);
     if (autoReuseExistingSetup) {
@@ -173,8 +179,7 @@ class Installer {
     await RegistryDependencyGraph(registry).validateSharedInstall(coreShared);
     final sharedToInstall = (await _resolveSharedDependencyClosure(
       coreShared.toSet(),
-    ))
-      ..removeWhere((id) => id.isEmpty);
+    ))..removeWhere((id) => id.isEmpty);
     final sharedList = sharedToInstall.toList()..sort();
 
     logger.section('Installing core shared modules');
