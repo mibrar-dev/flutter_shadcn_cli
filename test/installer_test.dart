@@ -78,8 +78,7 @@ void main() {
       );
     });
 
-    test('merges locale resources into app ARB and tracks owned keys',
-        () async {
+    test('merges component-local JSON locale resources into app ARB', () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -105,9 +104,11 @@ output-localization-file: app_localizations.dart
           'buttonSave': 'Keep existing',
         }),
       );
-      Directory(p.join(registryRoot.path, 'locales'))
+      Directory(p.join(
+              registryRoot.path, 'components', 'control', 'button', 'locales'))
           .createSync(recursive: true);
-      File(p.join(registryRoot.path, 'locales', 'shadcn_en.arb'))
+      File(p.join(registryRoot.path, 'components', 'control', 'button',
+              'locales', 'en.json'))
           .writeAsStringSync(
         const JsonEncoder.withIndent('  ').convert({
           'buttonSave': 'Save',
@@ -124,8 +125,8 @@ output-localization-file: app_localizations.dart
           'resources': [
             {
               'locale': 'en',
-              'format': 'arb',
-              'source': 'registry/locales/shadcn_en.arb',
+              'format': 'json',
+              'source': 'registry/components/control/button/locales/en.json',
               'required': true,
             }
           ],

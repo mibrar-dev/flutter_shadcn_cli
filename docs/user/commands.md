@@ -212,7 +212,7 @@ What it does:
 - creates `lib/l10n/`
 - creates `lib/l10n/app_en.arb`
 
-Component installs merge registry-provided locale entries into the app ARB file without overwriting existing app keys. Component removal only removes locale keys that were added by that component and are not owned by another installed component.
+Component installs merge registry-provided, component-local locale resources into the app ARB file without overwriting existing app keys. A component can publish its own JSON or ARB locale file, and only installed components contribute entries. Component removal only removes locale keys that were added by that component and are not owned by another installed component.
 
 ## `theme`
 

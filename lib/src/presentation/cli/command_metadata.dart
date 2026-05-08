@@ -409,7 +409,7 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           'flutter_shadcn locale init',
         ],
         notes:
-            '`locale init` creates `l10n.yaml` and `lib/l10n/app_en.arb` so component locale resources can merge into app-local ARB files.',
+            '`locale init` creates `l10n.yaml` and `lib/l10n/app_en.arb` so installed components can merge their component-local locale resources into app-local ARB files.',
         seeAlso: ['init', 'add'],
       ),
       CliCommandMeta(

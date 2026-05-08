@@ -63,25 +63,14 @@ extension InstallerLocalePart on Installer {
         );
       }
       final data = await _readLocaleResource(resource);
-      if (normalizedFormat == 'arb') {
-        installed.add(
-          await _mergeArbLocaleResource(
-            config: config,
-            component: component,
-            resource: resource,
-            data: data,
-          ),
-        );
-      } else {
-        installed.add(
-          await _copyJsonLocaleResource(
-            config: config,
-            component: component,
-            resource: resource,
-            data: data,
-          ),
-        );
-      }
+      installed.add(
+        await _mergeLocaleResourceIntoArb(
+          config: config,
+          resource: resource,
+          data: data,
+          format: normalizedFormat,
+        ),
+      );
     }
 
     if (installed.isNotEmpty) {
@@ -148,18 +137,19 @@ extension InstallerLocalePart on Installer {
     return decoded.map((key, value) => MapEntry(key.toString(), value));
   }
 
-  Future<_InstalledLocaleResource> _mergeArbLocaleResource({
+  Future<_InstalledLocaleResource> _mergeLocaleResourceIntoArb({
     required _L10nConfig config,
-    required Component component,
     required ComponentLocaleResource resource,
     required Map<String, dynamic> data,
+    required String format,
   }) async {
-    final destinationName = resource.destinationName?.trim().isNotEmpty == true
-        ? resource.destinationName!.trim()
-        : _arbFileForLocale(config.templateArbFile, resource.locale);
+    final targetFileName =
+        format == 'arb' && resource.destinationName?.trim().isNotEmpty == true
+            ? resource.destinationName!.trim()
+            : _arbFileForLocale(config.templateArbFile, resource.locale);
     final targetRel = p.join(
       config.arbDir,
-      destinationName,
+      targetFileName,
     );
     final target = File(_resolveProjectPath(targetRel));
     if (!target.parent.existsSync()) {
@@ -181,39 +171,11 @@ extension InstallerLocalePart on Installer {
     addedKeys.sort();
     return _InstalledLocaleResource(
       locale: resource.locale,
-      format: 'arb',
+      format: format,
       source: resource.source,
       destination: targetRel,
       required: resource.required,
       addedKeys: addedKeys,
-      sha256: resource.sha256,
-    );
-  }
-
-  Future<_InstalledLocaleResource> _copyJsonLocaleResource({
-    required _L10nConfig config,
-    required Component component,
-    required ComponentLocaleResource resource,
-    required Map<String, dynamic> data,
-  }) async {
-    final destinationName = resource.destinationName?.trim().isNotEmpty == true
-        ? resource.destinationName!.trim()
-        : '${component.id}_${resource.locale}.json';
-    final targetRel = p.join(config.arbDir, destinationName);
-    final target = File(_resolveProjectPath(targetRel));
-    if (!target.parent.existsSync()) {
-      target.parent.createSync(recursive: true);
-    }
-    await target.writeAsString(
-      '${const JsonEncoder.withIndent('  ').convert(data)}\n',
-    );
-    return _InstalledLocaleResource(
-      locale: resource.locale,
-      format: 'json',
-      source: resource.source,
-      destination: targetRel,
-      required: resource.required,
-      addedKeys: data.keys.toList()..sort(),
       sha256: resource.sha256,
     );
   }
@@ -264,17 +226,12 @@ extension InstallerLocalePart on Installer {
       if (destination == null || destination.isEmpty) {
         continue;
       }
-      if (format == 'arb') {
+      if (format == 'arb' || format == 'json') {
         await _removeOwnedArbKeys(
           destination: destination,
           keys: _localeStringList(item['addedKeys']),
           ownedElsewhere: ownedElsewhere[destination] ?? const <String>{},
         );
-      } else {
-        final target = File(_resolveProjectPath(destination));
-        if (target.existsSync()) {
-          await target.delete();
-        }
       }
     }
   }
