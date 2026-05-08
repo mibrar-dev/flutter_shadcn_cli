@@ -265,15 +265,16 @@ class Installer {
         await _preflightDependencies(deps);
       }
 
-      await _installComponentFiles(component);
+      final installedFiles = await _installComponentFiles(component);
       await _applyPlatformInstructions(component);
 
       if (component.pubspec.isNotEmpty) {
         final deps = component.pubspec['dependencies'] as Map<String, dynamic>;
         await _queueDependencyUpdates(deps);
       }
-      if (component.assets.isNotEmpty) {
-        await _queueAssetUpdates(component.assets);
+      final copiedAssets = _copiedFlutterAssets(installedFiles);
+      if (copiedAssets.isNotEmpty) {
+        await _queueAssetUpdates(copiedAssets);
       }
       if (component.fonts.isNotEmpty) {
         await _queueFontUpdates(component.fonts);
@@ -289,7 +290,10 @@ class Installer {
         }
         logger.warn('Failed to write component manifest: $e');
       }
-      await _writeLockfileRecord(component);
+      await _writeLockfileRecord(
+        component,
+        installedFilesOverride: installedFiles,
+      );
       if (!_deferAliases) {
         await generateAliases();
       }

@@ -93,7 +93,10 @@ extension InstallerManifestPart on Installer {
         .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
   }
 
-  Future<void> _writeLockfileRecord(Component component) async {
+  Future<void> _writeLockfileRecord(
+    Component component, {
+    Set<String>? installedFilesOverride,
+  }) async {
     await _withLockfileWriteLock(() async {
       await _ensureConfigLoaded();
       final namespace = _effectiveNamespace();
@@ -117,7 +120,10 @@ extension InstallerManifestPart on Installer {
               version: component.version,
               registryRoot: registry.registryRoot.root,
               sourceManifestHash: manifestHash,
-              installedFiles: _installedLockFiles(component),
+              installedFiles: _installedLockFiles(
+                component,
+                installedFilesOverride: installedFilesOverride,
+              ),
               dependencies: _componentDependencies(component),
               postInstall: component.postInstall,
               localeKeys: const [],
@@ -188,7 +194,13 @@ extension InstallerManifestPart on Installer {
     return sha256.convert(utf8.encode(jsonEncode(registry.data))).toString();
   }
 
-  List<String> _installedLockFiles(Component component) {
+  List<String> _installedLockFiles(
+    Component component, {
+    Set<String>? installedFilesOverride,
+  }) {
+    if (installedFilesOverride != null) {
+      return installedFilesOverride.toList()..sort();
+    }
     final root = p.normalize(p.absolute(targetDir));
     final files = <String>[];
     for (final file in component.files) {

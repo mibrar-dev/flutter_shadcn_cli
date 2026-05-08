@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter_shadcn_cli/src/init_action_engine.dart';
+import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 import 'package:path/path.dart' as p;
@@ -418,7 +419,93 @@ void main() {
       expect(result.record.pubspecDelta.flutterAssets,
           ['assets/fonts/bootstrap.otf']);
     });
+
+    test('copyFiles preserve policy warns and derives only written assets',
+        () async {
+      final existingAsset = File(
+        p.join(projectRoot.path, 'assets', 'fonts', 'bootstrap.otf'),
+      )
+        ..createSync(recursive: true)
+        ..writeAsStringSync('user-font');
+      final logger = _RecordingLogger();
+      final engine = InitActionEngine();
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'from': 'shared/fonts',
+            'to': 'assets/fonts',
+            'base': 'registry',
+            'destBase': '.',
+            'files': ['shared/fonts/bootstrap.otf'],
+            'strategy': 'copy_preserve_user',
+          },
+          {
+            'type': 'mergePubspec',
+            'deriveFlutterAssets': true,
+          },
+        ],
+        logger: logger,
+      );
+
+      expect(existingAsset.readAsStringSync(), 'user-font');
+      expect(result.filesWritten, 0);
+      expect(result.record.filesWritten, isEmpty);
+      expect(result.record.pubspecDelta.flutterAssets, isEmpty);
+      expect(
+        logger.warnings,
+        contains(
+          contains(
+            'Preserved existing asset assets/fonts/bootstrap.otf',
+          ),
+        ),
+      );
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('assets/fonts/bootstrap.otf')));
+    });
+
+    test('copyFiles rejects merge strategy for svg assets', () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'copyFiles',
+              'base': 'registry',
+              'destBase': '.',
+              'files': ['registry/shared/fonts/bootstrap.svg'],
+              'strategy': 'merge',
+            },
+          ],
+        ),
+        throwsA(
+          isA<InitActionEngineException>().having(
+            (error) => error.toString(),
+            'message',
+            contains('merge strategies are not supported for binary asset'),
+          ),
+        ),
+      );
+    });
   });
+}
+
+class _RecordingLogger extends CliLogger {
+  final List<String> warnings = [];
+
+  _RecordingLogger() : super(useColor: false);
+
+  @override
+  void warn(String message) {
+    warnings.add(message);
+  }
 }
 
 Future<RegistryDirectoryEntry> _loadFixtureEntry({

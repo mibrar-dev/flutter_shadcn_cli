@@ -219,6 +219,11 @@ Date: 2026-02-22
   - `add`, `add --all`, init shared installs, and dry-run now fail on cycles before install writes
   - cycle errors report the concrete path; missing dependencies use a separate typed failure
   - optional file dependencies are excluded from hard cycle detection
+- Completed GAP-19 asset copy and pubspec semantics:
+  - inline init warns and preserves existing user-visible assets under the default overwrite:false behavior
+  - merge strategies are rejected for binary asset destinations including images, fonts, and SVGs
+  - component installs derive `flutter.assets` from actual copied asset files instead of directory entries
+  - preserved existing user assets are not overwritten, added to pubspec, or claimed in the lockfile
 
 ## Verified gates (multi-registry rewrite)
 

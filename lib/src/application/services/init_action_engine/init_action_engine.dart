@@ -130,6 +130,7 @@ class InitActionEngine {
             projectRoot,
             baseUrl: baseUrl,
             action: action,
+            logger: logger,
             groupSelector: groupSelector,
           );
           if (written.isEmpty && _hasActionGroups(action)) {
@@ -146,6 +147,7 @@ class InitActionEngine {
             projectRoot,
             baseUrl: baseUrl,
             action: action,
+            logger: logger,
             groupSelector: groupSelector,
           );
           if (written.isEmpty && _hasActionGroups(action)) {
@@ -266,6 +268,7 @@ class InitActionEngine {
     String projectRoot, {
     required String baseUrl,
     required Map<String, dynamic> action,
+    CliLogger? logger,
     InitActionGroupSelector? groupSelector,
   }) async {
     final base = action['base']?.toString();
@@ -329,12 +332,16 @@ class InitActionEngine {
               base: base,
               destBase: destBase,
             );
+      _rejectUnsupportedAssetStrategy(action, destinationRel);
       final destinationAbs = ProjectPathGuard.resolveSafeWritePath(
         projectRoot: projectRoot,
         destinationRelativePath: destinationRel,
       );
       final destinationFile = File(destinationAbs);
       if (destinationFile.existsSync() && !overwrite) {
+        if (_isUserVisibleAssetPath(destinationRel)) {
+          logger?.warn('Preserved existing asset $destinationRel');
+        }
         continue;
       }
       if (!destinationFile.parent.existsSync()) {
@@ -551,6 +558,44 @@ class InitActionEngine {
       '.woff2',
     };
     return assetExtensions.contains(extension);
+  }
+
+  void _rejectUnsupportedAssetStrategy(
+    Map<String, dynamic> action,
+    String destinationRel,
+  ) {
+    final strategy = action['strategy']?.toString().trim().toLowerCase();
+    if (strategy == null || strategy.isEmpty) {
+      return;
+    }
+    if (!_isBinaryAssetPath(destinationRel)) {
+      return;
+    }
+    if (strategy == 'merge' || strategy.startsWith('merge_')) {
+      throw InitActionEngineException(
+        'merge strategies are not supported for binary asset $destinationRel',
+      );
+    }
+  }
+
+  bool _isBinaryAssetPath(String relativePath) {
+    final extension = p.extension(relativePath).toLowerCase();
+    const binaryAssetExtensions = {
+      '.jpg',
+      '.otf',
+      '.png',
+      '.svg',
+      '.ttf',
+      '.webp',
+      '.woff',
+      '.woff2',
+    };
+    return binaryAssetExtensions.contains(extension);
+  }
+
+  bool _isUserVisibleAssetPath(String relativePath) {
+    final normalized = relativePath.replaceAll('\\', '/');
+    return normalized.startsWith('assets/') && _isBinaryAssetPath(normalized);
   }
 
   Future<List<int>> _readRemoteBytes({

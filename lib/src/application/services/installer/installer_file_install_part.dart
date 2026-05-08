@@ -1,9 +1,11 @@
 part of 'installer.dart';
 
 extension InstallerFileInstallPart on Installer {
-  Future<void> _installFile(RegistryFile file) async {
+  Future<String?> _installFile(RegistryFile file) async {
     await _ensureConfigLoaded();
     final destFile = File(_resolveDestinationPath(file.destination));
+    final destinationRel = _relativeProjectPath(destFile.path);
+    _rejectUnsupportedAssetStrategy(file, destinationRel);
 
     if (!await destFile.parent.exists()) {
       await destFile.parent.create(recursive: true);
@@ -11,15 +13,21 @@ extension InstallerFileInstallPart on Installer {
 
     if (!_shouldInstallFile(file.destination)) {
       logger.detail('Skipping optional ${file.destination}');
-      return;
+      return null;
+    }
+
+    if (await destFile.exists() && _isUserVisibleAssetPath(destinationRel)) {
+      logger.warn('Preserved existing asset $destinationRel');
+      return null;
     }
 
     logger.detail('Writing ${destFile.path}');
     final bytes = await registry.readSourceBytes(file.source);
     await destFile.writeAsBytes(bytes, flush: true);
+    return destinationRel;
   }
 
-  Future<void> _installComponentFile(
+  Future<String?> _installComponentFile(
     Component component,
     RegistryFile file,
     List<RegistryFile> availableFiles,
@@ -31,28 +39,34 @@ extension InstallerFileInstallPart on Installer {
       source: file.source,
       destination: destination,
       dependsOn: file.dependsOn,
+      strategy: file.strategy,
     );
-    await _installFile(patched);
+    return _installFile(patched);
   }
 
-  Future<void> _installComponentFiles(Component component) async {
+  Future<Set<String>> _installComponentFiles(Component component) async {
     final files = component.files;
     if (files.isEmpty) {
-      return;
+      return const <String>{};
     }
     var index = 0;
+    final installed = <String>{};
     Future<void> worker() async {
       while (true) {
         if (index >= files.length) {
           return;
         }
         final file = files[index++];
-        await _installComponentFile(component, file, files);
+        final written = await _installComponentFile(component, file, files);
+        if (written != null) {
+          installed.add(written);
+        }
       }
     }
 
     final workerCount = Installer._fileCopyConcurrency.clamp(1, files.length);
     await Future.wait(List.generate(workerCount, (_) => worker()));
+    return installed;
   }
 
   Future<void> _installFileWithDependencies(
@@ -183,6 +197,11 @@ extension InstallerFileInstallPart on Installer {
     final config = _cachedConfig;
     final installPath = _installPath(config);
     final source = file.source.replaceAll('\\', '/');
+    final explicitDestination = _resolveDestinationPath(file.destination);
+    final explicitDestinationRel = _relativeProjectPath(explicitDestination);
+    if (_isUserVisibleAssetPath(explicitDestinationRel)) {
+      return explicitDestination;
+    }
 
     const registryPrefix = 'registry/';
     if (source.startsWith(registryPrefix)) {
@@ -190,6 +209,79 @@ extension InstallerFileInstallPart on Installer {
       return _resolveProjectPath(p.join(installPath, relative));
     }
 
-    return _resolveDestinationPath(file.destination);
+    return explicitDestination;
+  }
+
+  String _relativeProjectPath(String absolutePath) {
+    final root = p.normalize(p.absolute(targetDir));
+    final normalized = p.normalize(absolutePath);
+    return p.relative(normalized, from: root).replaceAll('\\', '/');
+  }
+
+  List<String> _copiedFlutterAssets(Set<String> installedFiles) {
+    final assets = installedFiles.where(_isDerivableFlutterAssetPath).toList()
+      ..sort();
+    return assets;
+  }
+
+  void _rejectUnsupportedAssetStrategy(
+    RegistryFile file,
+    String destinationRel,
+  ) {
+    final strategy = file.strategy?.trim().toLowerCase();
+    if (strategy == null || strategy.isEmpty) {
+      return;
+    }
+    if (!_isBinaryAssetPath(destinationRel)) {
+      return;
+    }
+    if (strategy == 'merge' || strategy.startsWith('merge_')) {
+      throw Exception(
+        'merge strategies are not supported for binary asset $destinationRel',
+      );
+    }
+  }
+
+  bool _isDerivableFlutterAssetPath(String relativePath) {
+    final normalized = relativePath.replaceAll('\\', '/');
+    if (normalized.startsWith('lib/')) {
+      return false;
+    }
+    if (normalized.endsWith('/')) {
+      return false;
+    }
+    final extension = p.extension(normalized).toLowerCase();
+    const assetExtensions = {
+      '.jpg',
+      '.json',
+      '.otf',
+      '.png',
+      '.svg',
+      '.ttf',
+      '.webp',
+      '.woff',
+      '.woff2',
+    };
+    return assetExtensions.contains(extension);
+  }
+
+  bool _isBinaryAssetPath(String relativePath) {
+    final extension = p.extension(relativePath).toLowerCase();
+    const binaryAssetExtensions = {
+      '.jpg',
+      '.otf',
+      '.png',
+      '.svg',
+      '.ttf',
+      '.webp',
+      '.woff',
+      '.woff2',
+    };
+    return binaryAssetExtensions.contains(extension);
+  }
+
+  bool _isUserVisibleAssetPath(String relativePath) {
+    final normalized = relativePath.replaceAll('\\', '/');
+    return normalized.startsWith('assets/') && _isBinaryAssetPath(normalized);
   }
 }

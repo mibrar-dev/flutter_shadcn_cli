@@ -4,11 +4,13 @@ class RegistryFile {
   final String source;
   final String destination;
   final List<FileDependency> dependsOn;
+  final String? strategy;
 
   RegistryFile({
     required this.source,
     required this.destination,
     this.dependsOn = const [],
+    this.strategy,
   });
 
   factory RegistryFile.fromJson(dynamic json) {
@@ -23,6 +25,7 @@ class RegistryFile {
       source: map['source'] as String,
       destination: map['destination'] as String,
       dependsOn: deps,
+      strategy: map['strategy']?.toString(),
     );
   }
 }

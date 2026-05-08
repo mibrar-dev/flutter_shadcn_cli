@@ -308,6 +308,95 @@ void main() {
       expect(state.managedDependencies, contains('gap'));
     });
 
+    test('adds exact copied asset file to pubspec instead of directory entry',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: true,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _addAssetComponent(registryRoot, assets: ['assets/']);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+        skipIntegrity: true,
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('logo_asset');
+
+      final pubspec =
+          File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, contains('assets/logo.svg'));
+      expect(pubspec, isNot(contains('    - assets/\n')));
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      final record = lock.componentFor(
+        namespace: 'shadcn',
+        componentId: 'logo_asset',
+      );
+      expect(record?.installedFiles, contains('assets/logo.svg'));
+    });
+
+    test('preserves existing asset and does not add it to pubspec or lockfile',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: true,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _addAssetComponent(registryRoot, assets: ['assets/logo.svg']);
+      final existingAsset = File(p.join(targetRoot.path, 'assets', 'logo.svg'))
+        ..createSync(recursive: true)
+        ..writeAsStringSync('<svg>user</svg>');
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+        skipIntegrity: true,
+      );
+      final logger = _RecordingLogger();
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: logger,
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('logo_asset');
+
+      expect(existingAsset.readAsStringSync(), '<svg>user</svg>');
+      expect(logger.warnings,
+          contains(contains('Preserved existing asset assets/logo.svg')));
+      final pubspec =
+          File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('assets/logo.svg')));
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      final record = lock.componentFor(
+        namespace: 'shadcn',
+        componentId: 'logo_asset',
+      );
+      expect(record?.installedFiles, isNot(contains('assets/logo.svg')));
+    });
+
     test('remove deletes lockfile record for removed component', () async {
       await _writeConfig(
         targetRoot,
@@ -1334,6 +1423,32 @@ void _mutateRegistryJson(
   file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(json));
 }
 
+void _addAssetComponent(
+  Directory registryRoot, {
+  required List<String> assets,
+}) {
+  File(p.join(registryRoot.path, 'assets', 'logo.svg'))
+    ..createSync(recursive: true)
+    ..writeAsStringSync('<svg>registry</svg>');
+  _mutateRegistryJson(registryRoot, (json) {
+    final components = json['components'] as List<dynamic>;
+    components.add({
+      'id': 'logo_asset',
+      'name': 'Logo Asset',
+      'files': [
+        {
+          'source': 'registry/assets/logo.svg',
+          'destination': 'assets/logo.svg',
+        }
+      ],
+      'shared': [],
+      'dependsOn': [],
+      'pubspec': {'dependencies': {}},
+      'assets': assets,
+    });
+  });
+}
+
 void _writePubspec(Directory targetRoot, {Map<String, String>? dependencies}) {
   final buffer = StringBuffer()
     ..writeln('name: test_app')
@@ -1353,4 +1468,15 @@ void _writePubspec(Directory targetRoot, {Map<String, String>? dependencies}) {
 
 Future<void> _writeConfig(Directory targetRoot, ShadcnConfig config) async {
   await ShadcnConfig.save(targetRoot.path, config);
+}
+
+class _RecordingLogger extends CliLogger {
+  final List<String> warnings = [];
+
+  _RecordingLogger() : super(useColor: false);
+
+  @override
+  void warn(String message) {
+    warnings.add(message);
+  }
 }
