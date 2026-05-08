@@ -6,14 +6,15 @@ import 'dart:typed_data';
 import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_plan.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/init_config_overrides.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_generator_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_entry.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_assets_update_result.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dependency_update_result.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_fonts_update_result.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_platform_instruction_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_registry_file_owner.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_section_range.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
@@ -384,13 +385,6 @@ class Installer {
     await Future.wait(List.generate(workerCount, (_) => worker()));
   }
 }
-
-final _classRegex = RegExp(
-  r'^\s*(abstract\s+)?class\s+([A-Z]\w*)(\s*<[^>{}]+>)?',
-  multiLine: true,
-);
-
-final _partRegex = RegExp(r'''part\s+['"]([^'"]+)['"];''');
 
 final _importDirectiveRegex = RegExp(
   r'''^\s*(import|export|part)\s+['"]([^'"]+)['"]''',

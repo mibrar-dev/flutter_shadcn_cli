@@ -172,6 +172,11 @@ Date: 2026-02-22
   - added `InstallerFileSelectionPolicy` for README/meta/preview optional file decisions
   - preserved command override, registry config, top-level config, and default precedence
   - added direct policy coverage for file-kind aliases, namespace overrides, explicit include/exclude overrides, and default behavior
+- Completed installer platform alias service extraction:
+  - added `InstallerPlatformInstructionService` for platform target merging, guarded platform writes, and section formatting
+  - added `InstallerAliasGeneratorService` for class alias scanning and `app_components.dart` generation
+  - kept `installer_platform_alias_part.dart` as a compatibility wrapper for installer orchestration calls
+  - added direct service coverage for idempotent platform section writes and alias generation from component parts
 - Completed installer value-object extraction:
   - moved dry-run plans, init config overrides, alias entries, pubspec update results, section ranges, and registry file ownership records out of installer `part` files into normal Dart files
   - exported `InitConfigOverrides` through the public installer compatibility barrel for existing callers

@@ -280,17 +280,4 @@ extension InstallerConfigPart on Installer {
     }
     return input.startsWith('y');
   }
-
-  String _typeArgsFromParams(String params) {
-    final trimmed = params.replaceAll('<', '').replaceAll('>', '');
-    final parts = trimmed.split(',');
-    final args = <String>[];
-    for (final part in parts) {
-      final token = part.trim().split(' ').first;
-      if (token.isNotEmpty) {
-        args.add(token);
-      }
-    }
-    return '<${args.join(', ')}>';
-  }
 }
