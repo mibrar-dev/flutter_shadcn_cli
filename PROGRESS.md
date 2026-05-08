@@ -156,6 +156,10 @@ Date: 2026-02-22
   - extracted inline command dispatch map construction from `presentation/cli/bootstrap.dart`
   - added `presentation/cli/bootstrap_dispatcher_builder.dart` as the dedicated wiring module
   - preserved mutable config updates for `default` and `platform` through explicit getter/setter callbacks
+- Completed installer manifest service extraction:
+  - added `InstallerManifestService` for aggregate `components.json` and per-component `.shadcn/components/*.json` persistence
+  - kept installer orchestration and lockfile collision behavior unchanged
+  - added direct service coverage for aggregate writes, per-component locale manifest payloads, timestamp preservation, and manifest clearing
 - Final dead-code sweep + docs updates for the refactored command structure
   - Completed in this pass:
     - Removed temporary refactor utility file: `tool_check_shared.dart`

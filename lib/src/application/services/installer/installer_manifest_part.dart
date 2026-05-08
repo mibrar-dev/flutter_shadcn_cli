@@ -6,104 +6,31 @@ extension InstallerManifestPart on Installer {
   Future<void> _updateComponentManifest() async {
     await _ensureConfigLoaded();
     final installPath = _installPath(_cachedConfig);
-    final manifestFile = File(
-      _resolveProjectPath(p.join(installPath, 'components.json')),
-    );
     final installed = await _installedComponentIds();
-    if (installed.isEmpty) {
-      if (await manifestFile.exists()) {
-        await manifestFile.delete();
-      }
-      await _clearComponentManifests();
-      return;
-    }
     final requiredDeps = _collectRequiredDependencies(installed);
-    final installedList = installed.toList()..sort();
-    final componentMeta = <String, dynamic>{};
-    for (final id in installedList) {
-      final component = registry.getComponent(id);
-      if (component == null) {
-        continue;
-      }
-      componentMeta[id] = {
-        'version': component.version,
-        'tags': component.tags,
-      };
-    }
-    final payload = {
-      'schemaVersion': 1,
-      'installPath': installPath,
-      'sharedPath': _sharedPath(_cachedConfig),
-      'installed': installedList,
-      'managedDependencies': requiredDeps.keys.toList()..sort(),
-      'componentMeta': componentMeta,
-      'updatedAt': DateTime.now().toUtc().toIso8601String(),
-    };
-    if (!await manifestFile.parent.exists()) {
-      await manifestFile.parent.create(recursive: true);
-    }
-    await manifestFile.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(payload),
+    await _manifestService.updateAggregateManifest(
+      installPath: installPath,
+      sharedPath: _sharedPath(_cachedConfig),
+      installedComponentIds: installed,
+      managedDependencies: requiredDeps,
     );
   }
 
   Directory _componentManifestDirectory() {
-    return Directory(_resolveProjectPath(p.join('.shadcn', 'components')));
+    return _manifestService.componentManifestDirectory();
   }
 
   File _componentManifestFile(String componentId) {
-    return File(
-      _resolveProjectPath(p.join('.shadcn', 'components', '$componentId.json')),
-    );
+    return _manifestService.componentManifestFile(componentId);
   }
 
   Future<void> _writeComponentManifest(
     Component component, {
     List<Map<String, dynamic>> localeResourcesInstalled = const [],
   }) async {
-    final dir = _componentManifestDirectory();
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    final file = _componentManifestFile(component.id);
-    String? installedAt;
-    if (await file.exists()) {
-      try {
-        final content = await file.readAsString();
-        final data = jsonDecode(content);
-        if (data is Map<String, dynamic>) {
-          final value = data['installedAt']?.toString();
-          if (value != null && value.isNotEmpty) {
-            installedAt = value;
-          }
-        }
-      } catch (_) {
-        installedAt = null;
-      }
-    }
-    final payload = {
-      'schemaVersion': 1,
-      'id': component.id,
-      'name': component.name,
-      'version': component.version,
-      'tags': component.tags,
-      'installedAt': installedAt ?? DateTime.now().toUtc().toIso8601String(),
-      'shared': component.shared.toList()..sort(),
-      'dependsOn': component.dependsOn.toList()..sort(),
-      'files': component.files.map((f) => f.source).toList()..sort(),
-      if (localeResourcesInstalled.isNotEmpty)
-        'locale': {
-          'resourcesInstalled': localeResourcesInstalled,
-          'selectionSource': 'registryDefault',
-        },
-      if (registryNamespace != null) 'registryNamespace': registryNamespace,
-      if (registryBaseUrlOverride != null)
-        'registrySource': registryBaseUrlOverride,
-      'manifestSource': 'componentsJson',
-      'registryRoot': registry.registryRoot.root,
-    };
-    await file.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(payload),
+    await _manifestService.writeComponentManifest(
+      component,
+      localeResourcesInstalled: localeResourcesInstalled,
     );
   }
 
@@ -259,17 +186,7 @@ extension InstallerManifestPart on Installer {
   }
 
   Future<void> _removeComponentManifest(String componentId) async {
-    final file = _componentManifestFile(componentId);
-    if (await file.exists()) {
-      await file.delete();
-    }
-  }
-
-  Future<void> _clearComponentManifests() async {
-    final dir = _componentManifestDirectory();
-    if (await dir.exists()) {
-      await dir.delete(recursive: true);
-    }
+    await _manifestService.removeComponentManifest(componentId);
   }
 
   Future<void> _refreshComponentManifests() async {
