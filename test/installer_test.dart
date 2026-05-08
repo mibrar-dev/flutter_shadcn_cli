@@ -339,6 +339,9 @@ void main() {
 
       final lock = await ShadcnLockRepository(targetRoot.path).load();
       expect(lock.components, isEmpty);
+      final pubspec =
+          File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('skeletonizer:')));
     });
 
     test('inserts dependencies when section missing', () async {
@@ -375,7 +378,8 @@ void main() {
       expect(pubspec.contains('skeletonizer: ^2.1.0+1'), isTrue);
     });
 
-    test('does not duplicate dependency present in dev_dependencies', () async {
+    test('fails when dependency is already present in dev_dependencies',
+        () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -408,12 +412,77 @@ void main() {
         logger: CliLogger(),
       );
 
-      await installer.addComponent('button');
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('pubspec.yaml dependency conflict') &&
+                error.toString().contains('skeletonizer'),
+          ),
+        ),
+      );
+    });
+
+    test('fails when existing dependency constraint conflicts', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: true,
+        ),
+      );
+      File(p.join(targetRoot.path, 'pubspec.yaml')).writeAsStringSync(
+        [
+          'name: test_app',
+          'dependencies:',
+          '  flutter:',
+          '    sdk: flutter',
+          '  skeletonizer: ^1.0.0',
+        ].join('\n'),
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('pubspec.yaml dependency conflict') &&
+                error.toString().contains('skeletonizer'),
+          ),
+        ),
+      );
 
       final pubspec =
           File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync();
-      final occurrences = RegExp('skeletonizer:').allMatches(pubspec).length;
-      expect(occurrences, 1);
+      expect(pubspec, contains('skeletonizer: ^1.0.0'));
+      expect(pubspec, isNot(contains('skeletonizer: ^2.1.0+1')));
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'button',
+            'button.dart',
+          ),
+        ).existsSync(),
+        isFalse,
+      );
     });
 
     test('skips meta.json when includeMeta is false', () async {

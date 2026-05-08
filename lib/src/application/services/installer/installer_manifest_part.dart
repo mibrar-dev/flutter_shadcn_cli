@@ -166,7 +166,7 @@ extension InstallerManifestPart on Installer {
     final repository = ShadcnLockRepository(targetDir);
     final lock = await repository.loadOrSynthesize();
     for (final component in lock.components) {
-      if (component.namespace != _effectiveNamespace() ||
+      if (component.namespace == _effectiveNamespace() &&
           component.componentId == componentId) {
         continue;
       }
@@ -277,52 +277,36 @@ extension InstallerManifestPart on Installer {
     }
     final installed = installedOverride ?? await _installedComponentIds();
     final required = _collectRequiredDependencies(installed);
+    final lock = await ShadcnLockRepository(targetDir).loadOrSynthesize();
+    for (final component in lock.components) {
+      component.dependencies.forEach((key, value) {
+        required.putIfAbsent(key, () => value);
+      });
+    }
 
     final managedDeps = managedOverride ?? await _loadManagedDependencies();
     final registryDeps = _collectAllRegistryDependencies();
     final toRemove = (managedDeps.isEmpty ? registryDeps : managedDeps)
         .difference(required.keys.toSet());
 
-    if (toRemove.isNotEmpty) {
-      logger.info('Removing dependencies: ${toRemove.join(', ')}');
-      final result = await Process.run(
-        'dart',
-        ['pub', 'remove', ...toRemove],
-        workingDirectory: targetDir,
-      );
-      if (result.exitCode != 0) {
-        logger
-            .detail('Some dependencies could not be removed: ${result.stderr}');
-      }
-    }
+    final planner = const PubspecChangePlanner();
+    var lines = pubspecFile.readAsLinesSync();
+    final removePlan = planner.planRemoveDependencies(lines, toRemove);
+    lines = removePlan.lines;
 
-    final lines = pubspecFile.readAsLinesSync();
-    final toAdd = <String>[];
-    for (final entry in required.entries) {
-      final dep = entry.key;
-      final version = entry.value;
-      final alreadyExists = lines.any((l) => l.trim().startsWith('$dep:'));
-      if (alreadyExists) {
-        continue;
-      }
-      if (version is String && version.isNotEmpty) {
-        final cleanVersion =
-            version.startsWith('^') ? version.substring(1) : version;
-        toAdd.add('$dep:$cleanVersion');
-      } else {
-        toAdd.add(dep);
-      }
+    final addPlan = planner.planAddDependencies(lines, required);
+    if (addPlan.conflicts.isNotEmpty) {
+      throw Exception(_formatDependencyConflicts(addPlan.conflicts));
     }
+    lines = addPlan.lines;
 
-    if (toAdd.isNotEmpty) {
-      logger.info('Adding dependencies: ${toAdd.join(', ')}');
-      final result = await Process.run(
-        'dart',
-        ['pub', 'add', ...toAdd],
-        workingDirectory: targetDir,
-      );
-      if (result.exitCode != 0) {
-        logger.warn('Some dependencies could not be added: ${result.stderr}');
+    if (removePlan.removed.isNotEmpty || addPlan.added.isNotEmpty) {
+      await pubspecFile.writeAsString(lines.join('\n'));
+      if (removePlan.removed.isNotEmpty) {
+        logger.info('Removed dependencies: ${removePlan.removed.join(', ')}');
+      }
+      if (addPlan.added.isNotEmpty) {
+        logger.info('Added dependencies: ${addPlan.added.keys.join(', ')}');
       }
     }
   }

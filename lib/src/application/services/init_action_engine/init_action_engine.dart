@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
@@ -356,8 +357,7 @@ class InitActionEngine {
 
   Future<InitPubspecDelta> _runMergePubspec(
     String projectRoot,
-    Map<String, dynamic> action,
-    {
+    Map<String, dynamic> action, {
     Set<String> derivedFlutterAssets = const <String>{},
   }) async {
     final file = File(
@@ -372,6 +372,14 @@ class InitActionEngine {
 
     final dependencies = _stringMap(action['dependencies']);
     final devDependencies = _stringMap(action['devDependencies']);
+    final duplicateRequestedDeps =
+        dependencies.keys.where(devDependencies.containsKey).toList()..sort();
+    if (duplicateRequestedDeps.isNotEmpty) {
+      throw InitActionEngineException(
+        'pubspec.yaml dependency conflict: ${duplicateRequestedDeps.join(', ')} '
+        'requested in both dependencies and dev_dependencies.',
+      );
+    }
     final flutterAssets = <String>{
       ..._stringList(action['flutterAssets']),
       if (action['deriveFlutterAssets'] == true) ...derivedFlutterAssets,
@@ -379,12 +387,29 @@ class InitActionEngine {
       ..sort();
     final flutterFonts = _fontFamilies(action['flutterFonts']);
 
+    final lines = file.readAsLinesSync();
+    final planner = const PubspecChangePlanner();
+    final dependencyPlan = planner.planAddDependencies(lines, dependencies);
+    final devDependencyPlan = planner.planAddDependencies(
+      lines,
+      devDependencies,
+      section: 'dev_dependencies',
+    );
+    final conflicts = [
+      ...dependencyPlan.conflicts,
+      ...devDependencyPlan.conflicts,
+    ];
+    if (conflicts.isNotEmpty) {
+      throw InitActionEngineException(_formatPubspecConflicts(conflicts));
+    }
+
     final document = _loadPubspecDocument(file);
     final addedDeps =
         _mergeTopLevelMapEntries(document, 'dependencies', dependencies);
     final addedDevDeps =
         _mergeTopLevelMapEntries(document, 'dev_dependencies', devDependencies);
-    final addedAssets = _mergeFlutterAssetsIntoDocument(document, flutterAssets);
+    final addedAssets =
+        _mergeFlutterAssetsIntoDocument(document, flutterAssets);
     final addedFonts = _mergeFlutterFontsIntoDocument(document, flutterFonts);
 
     await file.writeAsString(_encodeYamlDocument(document));
@@ -419,6 +444,17 @@ class InitActionEngine {
       throw InitActionEngineException('message.lines must be a list');
     }
     return lines.map((e) => e.toString()).toList();
+  }
+
+  String _formatPubspecConflicts(List<PubspecDependencyConflict> conflicts) {
+    final details = conflicts
+        .map(
+          (conflict) =>
+              '${conflict.package} existing ${conflict.existing}, requested ${conflict.requested}',
+        )
+        .join('; ');
+    return 'pubspec.yaml dependency conflict: $details. '
+        'Keep the existing constraint, update it manually, or abort.';
   }
 
   Future<List<String>> _loadCopyDirIndexFiles({
@@ -495,7 +531,8 @@ class InitActionEngine {
   bool _isOptionalAction(Map<String, dynamic> action) =>
       action['optional'] == true;
 
-  bool _hasActionGroups(Map<String, dynamic> action) => action['groups'] is List;
+  bool _hasActionGroups(Map<String, dynamic> action) =>
+      action['groups'] is List;
 
   bool _isDerivableFlutterAssetPath(String relativePath) {
     final normalized = ResolverV1.normalizeRelativePath(relativePath);
@@ -550,11 +587,11 @@ class InitActionEngine {
     return utf8.decode(bytes);
   }
 
-  Map<String, String> _stringMap(dynamic value) {
+  Map<String, dynamic> _stringMap(dynamic value) {
     if (value is! Map) {
       return const {};
     }
-    return value.map((key, val) => MapEntry(key.toString(), val.toString()));
+    return value.map((key, val) => MapEntry(key.toString(), val));
   }
 
   List<String> _stringList(dynamic value) {
@@ -602,7 +639,6 @@ class InitActionEngine {
     return specs;
   }
 
-
   Future<void> _rollbackPubspec(
     String projectRoot,
     InitPubspecDelta delta,
@@ -617,7 +653,8 @@ class InitActionEngine {
       return;
     }
     final document = _loadPubspecDocument(file);
-    _removeTopLevelMapEntries(document, 'dependencies', delta.dependencies.keys);
+    _removeTopLevelMapEntries(
+        document, 'dependencies', delta.dependencies.keys);
     _removeTopLevelMapEntries(
       document,
       'dev_dependencies',
@@ -663,16 +700,16 @@ class InitActionEngine {
     return value;
   }
 
-  Map<String, String> _mergeTopLevelMapEntries(
+  Map<String, dynamic> _mergeTopLevelMapEntries(
     Map<String, dynamic> document,
     String section,
-    Map<String, String> desired,
+    Map<String, dynamic> desired,
   ) {
     if (desired.isEmpty) {
       return const {};
     }
     final sectionMap = _ensureTopLevelStringMap(document, section);
-    final added = <String, String>{};
+    final added = <String, dynamic>{};
     final orderedKeys = desired.keys.toList()..sort();
     for (final key in orderedKeys) {
       if (!sectionMap.containsKey(key)) {
@@ -740,7 +777,8 @@ class InitActionEngine {
         ? existingRaw.map((entry) => entry.toString()).toSet()
         : <String>{};
     final normalized = assets.toSet().toList()..sort();
-    final added = normalized.where((asset) => !existing.contains(asset)).toList();
+    final added =
+        normalized.where((asset) => !existing.contains(asset)).toList();
     if (added.isEmpty) {
       return const [];
     }
@@ -763,8 +801,8 @@ class InitActionEngine {
     if (existingRaw is List) {
       for (final entry in existingRaw) {
         if (entry is Map) {
-          final normalized = <String, dynamic>{}
-            ..addAll(entry.map((key, value) => MapEntry(key.toString(), value)));
+          final normalized = <String, dynamic>{}..addAll(
+              entry.map((key, value) => MapEntry(key.toString(), value)));
           mergedFonts.add(normalized);
           final family = normalized['family']?.toString();
           if (family != null && family.trim().isNotEmpty) {
@@ -1021,5 +1059,4 @@ class InitActionEngine {
     }
     return "'${stringValue.replaceAll("'", "''")}'";
   }
-
 }

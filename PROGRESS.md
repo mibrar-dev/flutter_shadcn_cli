@@ -173,6 +173,15 @@ Date: 2026-02-22
   - legacy `.shadcn/components/*.json` projects synthesize lock records when `shadcn.lock` is absent
   - `doctor` reports lockfile presence, malformed lockfiles, and missing locked files
   - parser accepts `@namespace/component@version` and add rejects explicit version mismatches
+- Completed v1 pubspec conflict policy foundation:
+  - added deterministic `PubspecChangePlanner`
+  - dependency adds classify added, kept, and conflicting constraints
+  - installer and inline `mergePubspec` fail on conflicting existing constraints instead of silently skipping
+  - map-shaped, path, SDK, and other structured dependency entries are compared without collapsing them to strings
+  - dependency removals are planned as targeted pubspec line edits instead of shelling out to `dart pub remove`
+  - dependency conflicts are preflighted before component files are written
+  - lockfile dependency ownership controls removal so shared dependencies remain until the last owner is removed
+  - dependencies already present in the opposite pubspec section are treated as conflicts to avoid duplicate package entries
 - Completed command boundary cleanup:
   - removed public legacy `--registry` routing
   - kept hidden developer overrides wired into the current multi-registry source path

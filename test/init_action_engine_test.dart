@@ -120,6 +120,73 @@ void main() {
       expect(dependencies['fonts'], isNull);
     });
 
+    test('mergePubspec fails on conflicting dependency constraint', () async {
+      File(p.join(projectRoot.path, 'pubspec.yaml')).writeAsStringSync(
+        [
+          'name: test_app',
+          'dependencies:',
+          '  intl: ^0.19.0',
+        ].join('\n'),
+      );
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'mergePubspec',
+              'dependencies': {'intl': '^0.20.0'},
+            }
+          ],
+        ),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('pubspec.yaml dependency conflict') &&
+                error.toString().contains('intl'),
+          ),
+        ),
+      );
+
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, contains('intl: ^0.19.0'));
+      expect(pubspec, isNot(contains('intl: ^0.20.0')));
+    });
+
+    test(
+        'mergePubspec rejects same package in dependencies and devDependencies',
+        () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'mergePubspec',
+              'dependencies': {'foo': '^1.0.0'},
+              'devDependencies': {'foo': '^1.0.0'},
+            }
+          ],
+        ),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('pubspec.yaml dependency conflict') &&
+                error.toString().contains('foo'),
+          ),
+        ),
+      );
+
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('foo: ^1.0.0')));
+    });
+
     test('rolls back recorded inline changes', () async {
       final entry = await _loadFixtureEntry(
         baseUrl: 'http://${server.address.host}:${server.port}/',
@@ -348,9 +415,8 @@ void main() {
       expect(pubspec.contains('assets/theme/color_scheme.dart'), isFalse);
       expect(result.filesWritten, 1);
       expect(result.record.filesWritten, ['assets/fonts/bootstrap.otf']);
-      expect(result.record.pubspecDelta.flutterAssets, [
-        'assets/fonts/bootstrap.otf'
-      ]);
+      expect(result.record.pubspecDelta.flutterAssets,
+          ['assets/fonts/bootstrap.otf']);
     });
   });
 }

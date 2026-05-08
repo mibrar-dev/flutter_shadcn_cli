@@ -12,6 +12,10 @@ extension InstallerRemovePart on Installer {
 
     final lockRecord = await _lockfileComponentRecord(component.id);
     final installed = await _installedComponentIds();
+    final managedDepsBeforeRemove = {
+      ...await _loadManagedDependencies(),
+      if (lockRecord != null) ...lockRecord.dependencies.keys,
+    };
     if (!installed.contains(component.id) && lockRecord == null) {
       logger.detail('Skipping ${component.id} (not installed)');
       return;
@@ -62,7 +66,9 @@ extension InstallerRemovePart on Installer {
       await _updateState();
     }
     if (!_deferDependencyUpdates) {
-      await _syncDependenciesWithInstalled();
+      await _syncDependenciesWithInstalled(
+        managedOverride: managedDepsBeforeRemove,
+      );
     }
   }
 

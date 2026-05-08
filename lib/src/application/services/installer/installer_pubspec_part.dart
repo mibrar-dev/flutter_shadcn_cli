@@ -179,6 +179,9 @@ extension InstallerPubspecPart on Installer {
 
     final lines = pubspecFile.readAsLinesSync();
     final result = _applyDependencies(lines, deps);
+    if (result.conflicts.isNotEmpty) {
+      throw Exception(_formatDependencyConflicts(result.conflicts));
+    }
     if (result.added.isEmpty) {
       logger.detail('Dependencies already present.');
       return;
@@ -186,6 +189,21 @@ extension InstallerPubspecPart on Installer {
 
     await pubspecFile.writeAsString(result.lines.join('\n'));
     logger.success('Added dependencies: ${result.added.join(', ')}');
+  }
+
+  Future<void> _preflightDependencies(Map<String, dynamic> deps) async {
+    if (deps.isEmpty) {
+      return;
+    }
+    final pubspecFile = File(_resolveProjectPath('pubspec.yaml'));
+    if (!pubspecFile.existsSync()) {
+      return;
+    }
+    final lines = pubspecFile.readAsLinesSync();
+    final result = _applyDependencies(lines, deps);
+    if (result.conflicts.isNotEmpty) {
+      throw Exception(_formatDependencyConflicts(result.conflicts));
+    }
   }
 
   Future<void> _updateAssets(List<String> assets) async {
@@ -234,20 +252,25 @@ extension InstallerPubspecPart on Installer {
     List<String> lines,
     Map<String, dynamic> deps,
   ) {
-    final existing = _collectExistingDependencies(lines);
-    final additions = <String, dynamic>{};
-    deps.forEach((key, value) {
-      if (!existing.contains(key)) {
-        additions[key] = value;
-      }
-    });
+    final plan = const PubspecChangePlanner().planAddDependencies(lines, deps);
+    return _DependencyUpdateResult(
+      plan.lines,
+      plan.added.keys.toList()..sort(),
+      plan.conflicts,
+    );
+  }
 
-    if (additions.isEmpty) {
-      return _DependencyUpdateResult(lines, const []);
-    }
-
-    final update = _insertDependencies(lines, additions);
-    return _DependencyUpdateResult(update, additions.keys.toList()..sort());
+  String _formatDependencyConflicts(
+    List<PubspecDependencyConflict> conflicts,
+  ) {
+    final details = conflicts
+        .map(
+          (conflict) =>
+              '${conflict.package} existing ${conflict.existing}, requested ${conflict.requested}',
+        )
+        .join('; ');
+    return 'pubspec.yaml dependency conflict: $details. '
+        'Keep the existing constraint, update it manually, or remove it before retrying.';
   }
 
   _AssetsUpdateResult _applyAssets(List<String> lines, List<String> assets) {
@@ -355,138 +378,6 @@ extension InstallerPubspecPart on Installer {
     final updated = [...lines]..insertAll(fontsRange.end, insertion);
     final addedFamilies = additions.map((f) => f.family).toList()..sort();
     return _FontsUpdateResult(updated, addedFamilies);
-  }
-
-  Set<String> _collectExistingDependencies(List<String> lines) {
-    final deps = <String>{};
-    var inDeps = false;
-    var depsIndent = 0;
-    for (final line in lines) {
-      final trimmed = line.trim();
-      if (trimmed.isEmpty || trimmed.startsWith('#')) {
-        continue;
-      }
-      if (trimmed == 'dependencies:') {
-        inDeps = true;
-        depsIndent = line.indexOf('dependencies:');
-        continue;
-      }
-      if (inDeps) {
-        final currentIndent = line.indexOf(trimmed);
-        if (currentIndent <= depsIndent) {
-          inDeps = false;
-          continue;
-        }
-        final match = RegExp(r'^([A-Za-z0-9_\-]+):').firstMatch(trimmed);
-        if (match != null) {
-          deps.add(match.group(1)!);
-        }
-      }
-    }
-
-    if (!inDeps) {
-      var inDev = false;
-      var devIndent = 0;
-      for (final line in lines) {
-        final trimmed = line.trim();
-        if (trimmed.isEmpty || trimmed.startsWith('#')) {
-          continue;
-        }
-        if (trimmed == 'dev_dependencies:') {
-          inDev = true;
-          devIndent = line.indexOf('dev_dependencies:');
-          continue;
-        }
-        if (inDev) {
-          final currentIndent = line.indexOf(trimmed);
-          if (currentIndent <= devIndent) {
-            inDev = false;
-            continue;
-          }
-          final match = RegExp(r'^([A-Za-z0-9_\-]+):').firstMatch(trimmed);
-          if (match != null) {
-            deps.add(match.group(1)!);
-          }
-        }
-      }
-    }
-
-    return deps;
-  }
-
-  List<String> _insertDependencies(
-    List<String> lines,
-    Map<String, dynamic> additions,
-  ) {
-    final updated = List<String>.from(lines);
-    final depsIndex = _findSectionIndex(updated, 'dependencies:');
-    if (depsIndex == -1) {
-      updated.add('');
-      updated.add('dependencies:');
-      const indent = '  ';
-      final entries = additions.entries.toList()
-        ..sort((a, b) => a.key.compareTo(b.key));
-      for (final entry in entries) {
-        updated.addAll(_formatDependencyLines(entry.key, entry.value, indent));
-      }
-      return updated;
-    }
-
-    final depsIndent = _leadingSpaces(updated[depsIndex]);
-    final childIndent = ' ' * (depsIndent + 2);
-    var insertIndex = depsIndex + 1;
-    while (insertIndex < updated.length) {
-      final line = updated[insertIndex];
-      final trimmed = line.trim();
-      if (trimmed.isEmpty || trimmed.startsWith('#')) {
-        insertIndex++;
-        continue;
-      }
-      final indent = _leadingSpaces(line);
-      if (indent <= depsIndent) {
-        break;
-      }
-      insertIndex++;
-    }
-
-    final entries = additions.entries.toList()
-      ..sort((a, b) => a.key.compareTo(b.key));
-    final linesToInsert = <String>[];
-    for (final entry in entries) {
-      linesToInsert
-          .addAll(_formatDependencyLines(entry.key, entry.value, childIndent));
-    }
-    updated.insertAll(insertIndex, linesToInsert);
-    return updated;
-  }
-
-  List<String> _formatDependencyLines(
-      String key, dynamic value, String indent) {
-    if (value is String) {
-      final trimmed = value.trim();
-      if (trimmed.startsWith('sdk:')) {
-        final sdkValue = trimmed.split(':').skip(1).join(':').trim();
-        return ['$indent$key:', '$indent  sdk: $sdkValue'];
-      }
-    }
-    if (value is Map) {
-      final lines = <String>['$indent$key:'];
-      final childIndent = '$indent  ';
-      value.forEach((k, v) {
-        lines.add('$childIndent$k: $v');
-      });
-      return lines;
-    }
-    return ['$indent$key: ${value.toString()}'];
-  }
-
-  int _findSectionIndex(List<String> lines, String section) {
-    for (var i = 0; i < lines.length; i++) {
-      if (lines[i].trim() == section) {
-        return i;
-      }
-    }
-    return -1;
   }
 
   _SectionRange _findFlutterSection(List<String> lines) {

@@ -5,6 +5,7 @@ import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
+import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
@@ -249,6 +250,11 @@ class Installer {
         for (final sharedId in component.shared) {
           await installShared(sharedId);
         }
+      }
+
+      if (component.pubspec.isNotEmpty) {
+        final deps = component.pubspec['dependencies'] as Map<String, dynamic>;
+        await _preflightDependencies(deps);
       }
 
       await _installComponentFiles(component);
