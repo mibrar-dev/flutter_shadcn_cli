@@ -7,15 +7,12 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_plan.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/init_config_overrides.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_entry.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_assets_update_result.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dependency_update_result.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_fonts_update_result.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_pubspec_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_registry_file_owner.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_section_range.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
@@ -79,6 +76,7 @@ class Installer {
   final InstallerFileSelectionPolicy _fileSelectionPolicy;
   final InstallerManifestService _manifestService;
   final InstallerFileWriterService _fileWriter;
+  final InstallerPubspecService _pubspecService;
 
   Installer({
     required this.registry,
@@ -99,6 +97,7 @@ class Installer {
     InstallerFileSelectionPolicy? fileSelectionPolicy,
     InstallerManifestService? manifestService,
     InstallerFileWriterService? fileWriter,
+    InstallerPubspecService? pubspecService,
   })  : logger = logger ?? CliLogger(),
         _configResolver = configResolver ??
             InstallerConfigResolver(
@@ -123,6 +122,11 @@ class Installer {
         _fileWriter = fileWriter ??
             InstallerFileWriterService(
               registry: registry,
+              logger: logger ?? CliLogger(),
+            ),
+        _pubspecService = pubspecService ??
+            InstallerPubspecService(
+              targetDir: targetDir,
               logger: logger ?? CliLogger(),
             );
 

@@ -172,6 +172,10 @@ Date: 2026-02-22
   - added `InstallerFileSelectionPolicy` for README/meta/preview optional file decisions
   - preserved command override, registry config, top-level config, and default precedence
   - added direct policy coverage for file-kind aliases, namespace overrides, explicit include/exclude overrides, and default behavior
+- Completed installer pubspec service extraction:
+  - added `InstallerPubspecService` for dependency preflight/update and asset/font pubspec mutations
+  - kept `PubspecChangePlanner` conflict semantics, dry-run planning inputs, and lockfile-managed dependency behavior unchanged
+  - added direct service coverage for dependency/assets/fonts writes and dependency conflict preflight without rewriting pubspec
 - Completed installer value-object extraction:
   - moved dry-run plans, init config overrides, alias entries, pubspec update results, section ranges, and registry file ownership records out of installer `part` files into normal Dart files
   - exported `InitConfigOverrides` through the public installer compatibility barrel for existing callers
