@@ -164,6 +164,10 @@ Date: 2026-02-22
   - added `InstallerFileWriterService` for registry byte reads, parent directory creation, optional skip logging, and destination writes
   - kept component/shared dependency traversal and destination mapping in the installer part for now
   - added direct service coverage for writing registry bytes and skipping optional files without source reads
+- Completed installer config resolver extraction:
+  - added `InstallerConfigResolver` for registry defaults, namespace-specific config paths, explicit path overrides, and alias expansion
+  - kept interactive init prompting inside the installer config part
+  - added direct resolver coverage for defaults, namespace overrides, and alias-expanded explicit overrides
 - Final dead-code sweep + docs updates for the refactored command structure
   - Completed in this pass:
     - Removed temporary refactor utility file: `tool_check_shared.dart`

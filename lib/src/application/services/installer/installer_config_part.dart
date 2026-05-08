@@ -236,19 +236,7 @@ extension InstallerConfigPart on Installer {
   }
 
   String _expandAliases(String path, Map<String, String>? aliases) {
-    if (aliases == null || aliases.isEmpty) {
-      return path;
-    }
-    if (path.startsWith('@')) {
-      final index = path.indexOf('/');
-      final name = index == -1 ? path.substring(1) : path.substring(1, index);
-      final aliasPath = aliases[name];
-      if (aliasPath != null) {
-        final suffix = index == -1 ? '' : path.substring(index + 1);
-        return suffix.isEmpty ? aliasPath : p.join(aliasPath, suffix);
-      }
-    }
-    return path;
+    return _configResolver.expandAliases(path, aliases);
   }
 
   bool _promptYesNo(String label, {required bool defaultValue}) {

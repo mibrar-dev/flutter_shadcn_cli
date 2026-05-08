@@ -39,31 +39,11 @@ extension InstallerPubspecPart on Installer {
   }
 
   String _installPath(ShadcnConfig? config) {
-    if (installPathOverride != null && installPathOverride!.isNotEmpty) {
-      return _expandAliases(installPathOverride!, config?.pathAliases);
-    }
-    final registryEntry = registryNamespace == null
-        ? null
-        : config?.registryConfig(registryNamespace);
-    final override = registryEntry?.installPath ?? config?.installPath;
-    if (override != null && override.isNotEmpty) {
-      return _expandAliases(override, config?.pathAliases);
-    }
-    return _defaultInstallPath;
+    return _configResolver.installPath(config);
   }
 
   String _sharedPath(ShadcnConfig? config) {
-    if (sharedPathOverride != null && sharedPathOverride!.isNotEmpty) {
-      return _expandAliases(sharedPathOverride!, config?.pathAliases);
-    }
-    final registryEntry = registryNamespace == null
-        ? null
-        : config?.registryConfig(registryNamespace);
-    final override = registryEntry?.sharedPath ?? config?.sharedPath;
-    if (override != null && override.isNotEmpty) {
-      return _expandAliases(override, config?.pathAliases);
-    }
-    return _defaultSharedPath;
+    return _configResolver.sharedPath(config);
   }
 
   bool _shouldInstallFile(String destination) {
@@ -159,11 +139,11 @@ extension InstallerPubspecPart on Installer {
   }
 
   String get _defaultInstallPath {
-    return registry.defaults['installPath'] ?? 'lib/ui/shadcn';
+    return _configResolver.defaultInstallPath;
   }
 
   String get _defaultSharedPath {
-    return registry.defaults['sharedPath'] ?? 'lib/ui/shadcn/shared';
+    return _configResolver.defaultSharedPath;
   }
 
   Future<void> _updateDependencies(Map<String, dynamic> deps) async {
