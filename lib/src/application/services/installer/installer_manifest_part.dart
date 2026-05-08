@@ -120,6 +120,8 @@ extension InstallerManifestPart on Installer {
               installedFiles: _installedLockFiles(component),
               dependencies: _componentDependencies(component),
               postInstall: component.postInstall,
+              postInstallRequiredManualSteps:
+                  component.postInstallRequiredManualSteps,
               localeKeys: const [],
             ),
           );
@@ -399,8 +401,10 @@ extension InstallerManifestPart on Installer {
     await _updateComponentManifest();
     await _refreshComponentManifests();
     await _refreshLockfileRecords();
+    final lock = await ShadcnLockRepository(targetDir).loadOrSynthesize();
     await generateAliases();
     await _updateState();
     logger.success('Sync complete');
+    _reportLockfilePostInstallNotes(lock);
   }
 }

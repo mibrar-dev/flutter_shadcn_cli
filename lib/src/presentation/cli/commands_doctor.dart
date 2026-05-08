@@ -138,11 +138,17 @@ Future<int> runDoctorCommand(
     lockfileError = e.toString();
   }
   final missingLockedFiles = <String>[];
+  final requiredManualSteps = <String>[];
   if (lockfileError == null) {
     for (final component in lock.components) {
       for (final relativePath in component.installedFiles) {
         if (!File(p.join(Directory.current.path, relativePath)).existsSync()) {
           missingLockedFiles.add('${component.qualifiedId}: $relativePath');
+        }
+      }
+      if (component.postInstallRequiredManualSteps) {
+        for (final note in component.postInstall) {
+          requiredManualSteps.add('${component.qualifiedId}: $note');
         }
       }
     }
@@ -216,6 +222,13 @@ Future<int> runDoctorCommand(
       details: {'files': missingLockedFiles},
     ));
   }
+  if (requiredManualSteps.isNotEmpty) {
+    errors.add(jsonError(
+      code: ExitCodeLabels.validationFailed,
+      message: 'Required manual steps remain after install.',
+      details: {'steps': requiredManualSteps},
+    ));
+  }
   if (lockfileError != null) {
     errors.add(jsonError(
       code: ExitCodeLabels.validationFailed,
@@ -225,8 +238,12 @@ Future<int> runDoctorCommand(
   }
 
   var doctorExitCode = ExitCodes.success;
-  final hasLockIssues = missingLockedFiles.isNotEmpty || lockfileError != null;
-  if (hasSchemaIssues && (hasConfigIssues || hasLockIssues)) {
+  final hasLockIssues = missingLockedFiles.isNotEmpty ||
+      requiredManualSteps.isNotEmpty ||
+      lockfileError != null;
+  if (requiredManualSteps.isNotEmpty) {
+    doctorExitCode = ExitCodes.validationFailed;
+  } else if (hasSchemaIssues && (hasConfigIssues || hasLockIssues)) {
     doctorExitCode = ExitCodes.validationFailed;
   } else if (hasSchemaIssues) {
     doctorExitCode = ExitCodes.schemaInvalid;
@@ -290,6 +307,7 @@ Future<int> runDoctorCommand(
           'registryCount': lock.registries.length,
           'componentCount': lock.components.length,
           'missingFiles': missingLockedFiles,
+          'requiredManualSteps': requiredManualSteps,
           'error': lockfileError,
         },
       },
@@ -385,6 +403,13 @@ Future<int> runDoctorCommand(
     }
     if (missingLockedFiles.length > 12) {
       logger.info('  ...and ${missingLockedFiles.length - 12} more');
+    }
+  }
+  if (requiredManualSteps.isNotEmpty) {
+    print('');
+    logger.section('Required manual steps');
+    for (final step in requiredManualSteps) {
+      logger.info('  - $step');
     }
   }
 

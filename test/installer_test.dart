@@ -308,6 +308,141 @@ void main() {
       expect(state.managedDependencies, contains('gap'));
     });
 
+    test('writes structured post-install notes to lockfile', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: true,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button = components.firstWhere(
+          (entry) => (entry as Map<String, dynamic>)['id'] == 'button',
+        ) as Map<String, dynamic>;
+        button['postInstall'] = {
+          'notes': ['Run flutter pub get', 'Enable the button feature flag'],
+          'requiredManualSteps': true,
+        };
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('button');
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      final record = lock.components.single;
+      expect(record.postInstall, [
+        'Run flutter pub get',
+        'Enable the button feature flag',
+      ]);
+      expect(record.postInstallRequiredManualSteps, isTrue);
+
+      final rawLock = jsonDecode(
+        File(p.join(targetRoot.path, 'shadcn.lock')).readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final rawComponent = (rawLock['components'] as List<dynamic>).single
+          as Map<String, dynamic>;
+      expect(rawComponent['postInstall'], {
+        'notes': ['Run flutter pub get', 'Enable the button feature flag'],
+        'requiredManualSteps': true,
+      });
+    });
+
+    test('treats legacy list-style post-install notes as optional manual work',
+        () async {
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button = components.firstWhere(
+          (entry) => (entry as Map<String, dynamic>)['id'] == 'button',
+        ) as Map<String, dynamic>;
+        button['postInstall'] = ['Optional cleanup'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final component = registry.getComponent('button')!;
+      expect(component.postInstall, ['Optional cleanup']);
+      expect(component.postInstallRequiredManualSteps, isFalse);
+    });
+
+    test('rejects required manual steps without notes during preflight',
+        () async {
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button = components.firstWhere(
+          (entry) => (entry as Map<String, dynamic>)['id'] == 'button',
+        ) as Map<String, dynamic>;
+        button['postInstall'] = {
+          'notes': <String>[],
+          'requiredManualSteps': true,
+        };
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      expect(
+        () => registry.getComponent('button'),
+        throwsA(
+          isA<FormatException>().having(
+            (error) => error.message,
+            'message',
+            contains('requiredManualSteps'),
+          ),
+        ),
+      );
+    });
+
+    test('dedupes duplicate dependency notes in dry-run output', () async {
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        for (final entry in components.cast<Map<String, dynamic>>()) {
+          if (entry['id'] == 'button' || entry['id'] == 'dialog') {
+            entry['postInstall'] = {
+              'notes': ['Run flutter pub get'],
+              'requiredManualSteps': true,
+            };
+          }
+        }
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+      final plan = await installer.buildDryRunPlan(['dialog']);
+
+      expect(plan.postInstall, ['Run flutter pub get']);
+      expect(plan.requiredManualSteps, isTrue);
+    });
+
     test('remove deletes lockfile record for removed component', () async {
       await _writeConfig(
         targetRoot,

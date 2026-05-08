@@ -63,6 +63,7 @@ class Installer {
   final Set<String> _pendingAssets = {};
   final List<FontEntry> _pendingFonts = [];
   final Map<String, Future<void>> _componentInstallTasks = {};
+  final Set<String> _reportedPostInstallNotes = {};
   bool _deferComponentManifest = false;
   Future<void> _lockfileWriteQueue = Future<void>.value();
   Map<String, _RegistryFileOwner>? _registryFileIndex;
@@ -278,9 +279,6 @@ class Installer {
       if (component.fonts.isNotEmpty) {
         await _queueFontUpdates(component.fonts);
       }
-      if (component.postInstall.isNotEmpty) {
-        _reportPostInstall(component);
-      }
       try {
         await _writeComponentManifest(component);
       } catch (e) {
@@ -290,6 +288,7 @@ class Installer {
         logger.warn('Failed to write component manifest: $e');
       }
       await _writeLockfileRecord(component);
+      _reportPostInstall(component);
       if (!_deferAliases) {
         await generateAliases();
       }

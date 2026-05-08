@@ -57,6 +57,7 @@ extension InstallerDryRunPart on Installer {
     final assets = <String>{};
     final fontsByFamily = <String, FontEntry>{};
     final postInstall = <String>{};
+    var requiredManualSteps = false;
     final fileDependencies = <String>{};
     final platformChanges = <String, Set<String>>{};
     final componentFiles = <String, List<Map<String, String>>>{};
@@ -77,6 +78,8 @@ extension InstallerDryRunPart on Installer {
         fontsByFamily.putIfAbsent(font.family, () => font);
       }
       postInstall.addAll(component.postInstall);
+      requiredManualSteps =
+          requiredManualSteps || component.postInstallRequiredManualSteps;
 
       for (final file in component.files) {
         for (final dep in file.dependsOn) {
@@ -147,6 +150,7 @@ extension InstallerDryRunPart on Installer {
       fonts: fontsByFamily.values.toList()
         ..sort((a, b) => a.family.compareTo(b.family)),
       postInstall: postInstall.toList()..sort(),
+      requiredManualSteps: requiredManualSteps,
       fileDependencies: fileDependencies.toList()..sort(),
       platformChanges: platformChanges,
       componentFiles: componentFiles,
@@ -250,6 +254,11 @@ extension InstallerDryRunPart on Installer {
       section('Platform changes', platformLines);
     }
 
-    section('Post-install notes', plan.postInstall);
+    section(
+      plan.requiredManualSteps
+          ? 'Required post-install manual steps'
+          : 'Post-install notes',
+      plan.postInstall,
+    );
   }
 }

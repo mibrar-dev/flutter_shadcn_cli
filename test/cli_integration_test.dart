@@ -127,6 +127,49 @@ void main() {
       ]);
     });
 
+    test('add and doctor surface required post-install manual steps', () async {
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button = components.firstWhere(
+          (entry) => (entry as Map<String, dynamic>)['id'] == 'button',
+        ) as Map<String, dynamic>;
+        button['postInstall'] = {
+          'notes': ['Run flutter pub get'],
+          'requiredManualSteps': true,
+        };
+      });
+
+      final addResult = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          'add',
+          'button',
+          '--registry-path',
+          registryRoot.path,
+        ],
+      );
+
+      expect(addResult.exitCode, ExitCodes.success);
+      expect(addResult.stdout, contains('Run flutter pub get'));
+
+      final doctorResult = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          'doctor',
+          '--registry-path',
+          registryRoot.path,
+        ],
+      );
+
+      expect(doctorResult.exitCode, ExitCodes.validationFailed);
+      expect(doctorResult.stdout, contains('Required manual steps'));
+      expect(
+          doctorResult.stdout, contains('@shadcn/button: Run flutter pub get'));
+    });
+
     test('init rejects multiple positional namespace tokens', () async {
       final result = await _runCli(
         cwd: appRoot.path,
@@ -205,7 +248,8 @@ void main() {
       expect(jsonDecode(registriesResult.stdout), isA<Map<String, dynamic>>());
     });
 
-    test('list uses registries directory manifest paths without persisted config',
+    test(
+        'list uses registries directory manifest paths without persisted config',
         () async {
       final manifestRegistry =
           Directory(p.join(tempRoot.path, 'manifest_registry', 'registry'))
@@ -912,8 +956,7 @@ void main() {
       );
     });
 
-    test(
-        'init without flags uses persisted local registry mode from config',
+    test('init without flags uses persisted local registry mode from config',
         () async {
       final fixture = jsonDecode(
         File(
@@ -1025,7 +1068,8 @@ void main() {
         Map<String, dynamic>.from(fixture)
           ..['paths'] = {
             'componentsJson': 'components.json',
-            'themeConverterDart': 'https://example.com/tool/theme_converter.dart',
+            'themeConverterDart':
+                'https://example.com/tool/theme_converter.dart',
           },
       ]);
 
@@ -1233,7 +1277,8 @@ void main() {
             .existsSync(),
         isFalse,
       );
-      final pubspec = File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
+      final pubspec =
+          File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
       expect(pubspec, contains('assets/fonts/typography_fonts.otf'));
       expect(pubspec, isNot(contains('assets/theme/typography_fonts.dart')));
     });
@@ -2303,6 +2348,16 @@ Future<ProcessResult> _runCli({
       'CI': 'true',
     },
   );
+}
+
+void _mutateRegistryJson(
+  Directory registryRoot,
+  void Function(Map<String, dynamic> json) mutate,
+) {
+  final file = File(p.join(registryRoot.path, 'components.json'));
+  final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+  mutate(json);
+  file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(json));
 }
 
 void _writePubspec(Directory targetRoot) {

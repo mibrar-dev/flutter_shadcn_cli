@@ -10,6 +10,7 @@ class DryRunPlan {
   final List<String> assets;
   final List<FontEntry> fonts;
   final List<String> postInstall;
+  final bool requiredManualSteps;
   final List<String> fileDependencies;
   final Map<String, Set<String>> platformChanges;
   final Map<String, List<Map<String, String>>> componentFiles;
@@ -25,6 +26,7 @@ class DryRunPlan {
     required this.assets,
     required this.fonts,
     required this.postInstall,
+    required this.requiredManualSteps,
     required this.fileDependencies,
     required this.platformChanges,
     required this.componentFiles,
@@ -53,6 +55,7 @@ class DryRunPlan {
               })
           .toList(),
       'postInstall': postInstall,
+      'requiredManualSteps': requiredManualSteps,
       'fileDependencies': fileDependencies,
       'platformChanges': platformChanges.map(
         (key, value) => MapEntry(key, value.toList()..sort()),

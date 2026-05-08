@@ -153,9 +153,33 @@ extension InstallerPlatformAliasPart on Installer {
   }
 
   void _reportPostInstall(Component component) {
+    final notes = component.postInstall
+        .where((line) => _reportedPostInstallNotes.add(line))
+        .toList();
+    if (notes.isEmpty) {
+      return;
+    }
     logger.section('Post-install notes for ${component.name}');
-    for (final line in component.postInstall) {
+    for (final line in notes) {
       logger.info('  • $line');
+    }
+  }
+
+  void _reportLockfilePostInstallNotes(ShadcnLock lock) {
+    final notes = <String>[];
+    for (final component in lock.components) {
+      for (final note in component.postInstall) {
+        if (_reportedPostInstallNotes.add(note)) {
+          notes.add(note);
+        }
+      }
+    }
+    if (notes.isEmpty) {
+      return;
+    }
+    logger.section('Post-install notes');
+    for (final note in notes) {
+      logger.info('  • $note');
     }
   }
 

@@ -218,6 +218,12 @@ Date: 2026-02-22
   - added registry graph preflight for component, shared, and file dependency ownership edges
   - `add`, `add --all`, init shared installs, and dry-run now fail on cycles before install writes
   - cycle errors report the concrete path; missing dependencies use a separate typed failure
+- Completed Task 11 / GAP-23 post-install manual work tracking:
+  - registry components accept legacy list-style notes and structured `{notes, requiredManualSteps}` postInstall data
+  - required manual steps without notes fail during component preflight
+  - lockfile component records retain notes plus required-manual-step ownership per component
+  - add/sync output prints post-install notes with duplicate note text deduped across dependencies
+  - doctor reports required manual steps from the lockfile and exits with validation failure
   - optional file dependencies are excluded from hard cycle detection
 
 ## Verified gates (multi-registry rewrite)

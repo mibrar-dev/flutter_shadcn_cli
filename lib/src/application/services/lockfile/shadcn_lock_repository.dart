@@ -83,6 +83,7 @@ class ShadcnLockRepository {
               installedFiles: files,
               dependencies: const {},
               postInstall: const [],
+              postInstallRequiredManualSteps: false,
               localeKeys: const [],
             ),
           );
@@ -247,6 +248,7 @@ class ShadcnLockComponent {
   final List<String> installedFiles;
   final Map<String, dynamic> dependencies;
   final List<String> postInstall;
+  final bool postInstallRequiredManualSteps;
   final List<String> localeKeys;
 
   const ShadcnLockComponent({
@@ -259,6 +261,7 @@ class ShadcnLockComponent {
     required this.installedFiles,
     required this.dependencies,
     required this.postInstall,
+    required this.postInstallRequiredManualSteps,
     this.localeKeys = const [],
   });
 
@@ -274,7 +277,9 @@ class ShadcnLockComponent {
       dependencies: json['dependencies'] is Map<String, dynamic>
           ? Map<String, dynamic>.from(json['dependencies'] as Map)
           : const {},
-      postInstall: _stringList(json['postInstall']),
+      postInstall: _postInstallNotes(json['postInstall']),
+      postInstallRequiredManualSteps:
+          _postInstallRequiredManualSteps(json['postInstall']),
       localeKeys: _stringList(json['localeKeys']),
     );
   }
@@ -291,10 +296,30 @@ class ShadcnLockComponent {
       'dependencies': Map.fromEntries(
         dependencies.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
       ),
-      'postInstall': postInstall,
+      'postInstall': {
+        'notes': postInstall,
+        'requiredManualSteps': postInstallRequiredManualSteps,
+      },
       'localeKeys': localeKeys.toList()..sort(),
     };
   }
+}
+
+List<String> _postInstallNotes(Object? value) {
+  if (value is List) {
+    return _stringList(value);
+  }
+  if (value is Map<String, dynamic>) {
+    return _stringList(value['notes']);
+  }
+  return const [];
+}
+
+bool _postInstallRequiredManualSteps(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value['requiredManualSteps'] == true;
+  }
+  return false;
 }
 
 List<String> _stringList(Object? value) {

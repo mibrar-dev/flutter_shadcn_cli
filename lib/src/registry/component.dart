@@ -15,6 +15,7 @@ class Component {
   final List<FontEntry> fonts;
   final Map<String, dynamic> pubspec;
   final List<String> postInstall;
+  final bool postInstallRequiredManualSteps;
   final Map<String, PlatformEntry> platform;
 
   Component.fromJson(Map<String, dynamic> json)
@@ -33,10 +34,44 @@ class Component {
             .map((e) => FontEntry.fromJson(e as Map<String, dynamic>))
             .toList(),
         pubspec = json['pubspec'] ?? {},
-        postInstall = List<String>.from(json['postInstall'] ?? []),
+        postInstall = _parsePostInstallNotes(json['postInstall']),
+        postInstallRequiredManualSteps =
+            _parsePostInstallRequiredManualSteps(json['postInstall']),
         platform = (json['platform'] as Map<String, dynamic>? ?? const {})
             .map((key, value) => MapEntry(
                   key,
                   PlatformEntry.fromJson(value as Map<String, dynamic>),
                 ));
+}
+
+List<String> _parsePostInstallNotes(Object? value) {
+  if (value == null) {
+    return const [];
+  }
+  if (value is List) {
+    return value.map((entry) => entry.toString()).toList();
+  }
+  if (value is Map<String, dynamic>) {
+    final notes = value['notes'];
+    final parsedNotes = notes is List
+        ? notes.map((entry) => entry.toString()).toList()
+        : <String>[];
+    final requiredManualSteps = value['requiredManualSteps'] == true;
+    if (requiredManualSteps && parsedNotes.isEmpty) {
+      throw const FormatException(
+        'postInstall.requiredManualSteps requires at least one note.',
+      );
+    }
+    return parsedNotes;
+  }
+  throw const FormatException(
+    'postInstall must be a list of notes or an object with notes.',
+  );
+}
+
+bool _parsePostInstallRequiredManualSteps(Object? value) {
+  if (value is Map<String, dynamic>) {
+    return value['requiredManualSteps'] == true;
+  }
+  return false;
 }
