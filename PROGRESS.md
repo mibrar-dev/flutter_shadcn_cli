@@ -152,7 +152,10 @@ Date: 2026-02-22
 
 ## Remaining
 - Optional: replace remaining installer `part` modules with discrete injected services
-- Optional: split bootstrap dispatcher map construction into dedicated builder module
+- Completed optional bootstrap dispatcher builder split:
+  - extracted inline command dispatch map construction from `presentation/cli/bootstrap.dart`
+  - added `presentation/cli/bootstrap_dispatcher_builder.dart` as the dedicated wiring module
+  - preserved mutable config updates for `default` and `platform` through explicit getter/setter callbacks
 - Final dead-code sweep + docs updates for the refactored command structure
   - Completed in this pass:
     - Removed temporary refactor utility file: `tool_check_shared.dart`
