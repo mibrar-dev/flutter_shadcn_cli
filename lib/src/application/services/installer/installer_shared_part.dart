@@ -2,53 +2,12 @@ part of 'installer.dart';
 
 extension InstallerSharedPart on Installer {
   Future<void> installShared(String id) async {
-    await _ensureConfigLoaded();
-    final resolvedId = _normalizeSharedId(id);
-    final sharedItem = registry.getSharedItem(resolvedId);
-    if (sharedItem == null) {
-      final fallbackComponent = registry.getComponent(resolvedId);
-      if (fallbackComponent != null) {
-        await addComponent(resolvedId);
-        return;
-      }
-      logger.warn('Shared item "$id" not found');
-      return;
-    }
-
-    if (_installedSharedCache.contains(resolvedId)) {
-      return;
-    }
-    if (_installingSharedIds.contains(resolvedId)) {
-      throw RegistryDependencyCycleException([
-        'shared:$resolvedId',
-        'shared:$resolvedId',
-      ]);
-    }
-
-    _installingSharedIds.add(resolvedId);
-    try {
-      final sharedDeps = await _loadSharedDependencies(resolvedId);
-      for (final depId in sharedDeps) {
-        if (depId == resolvedId) {
-          throw RegistryDependencyCycleException([
-            'shared:$resolvedId',
-            'shared:$resolvedId',
-          ]);
-        }
-        await installShared(depId);
-      }
-      for (final file in sharedItem.files) {
-        await _installFileWithDependencies(
-          file,
-          sharedItem.files,
-          sharedId: sharedItem.id,
-        );
-      }
-
-      _installedSharedCache.add(resolvedId);
-    } finally {
-      _installingSharedIds.remove(resolvedId);
-    }
+    await _sharedService.installShared(
+      id,
+      ensureConfigLoaded: _ensureConfigLoaded,
+      installComponent: addComponent,
+      installFileWithDependencies: _installFileWithDependencies,
+    );
   }
 
   Future<void> ensureInitFiles({bool allowPrompts = false}) async {
@@ -143,134 +102,24 @@ extension InstallerSharedPart on Installer {
   }
 
   List<String> _coreSharedIdsForInit() {
-    final ids = <String>[
-      'theme',
-      'util',
-      'color_extensions',
-      'form_control',
-      'form_value_supplier',
-    ];
-    if (registry.getSharedItem('color_scheme') != null) {
-      ids.add('color_scheme');
-    }
-    return ids;
+    return _sharedService.coreSharedIdsForInit();
   }
 
   String _normalizeSharedId(String id) {
-    switch (id) {
-      case 'utils':
-        return 'util';
-      default:
-        return id;
-    }
+    return _sharedService.normalizeSharedId(id);
   }
 
   Future<Set<String>> _resolveSharedDependencyClosure(
-      Set<String> seedIds) async {
-    final resolved = <String>{};
-    final pending = <String>[];
-    for (final id in seedIds) {
-      pending.add(_normalizeSharedId(id));
-    }
-    while (pending.isNotEmpty) {
-      final id = pending.removeLast();
-      if (!resolved.add(id)) {
-        continue;
-      }
-      final deps = await _loadSharedDependencies(id);
-      for (final dep in deps) {
-        final normalized = _normalizeSharedId(dep);
-        if (!resolved.contains(normalized)) {
-          pending.add(normalized);
-        }
-      }
-    }
-    return resolved;
-  }
-
-  Future<Set<String>> _loadSharedDependencies(String sharedId) async {
-    final cached = _sharedDependencyCache[sharedId];
-    if (cached != null) {
-      return cached;
-    }
-
-    final sharedItem = registry.getSharedItem(sharedId);
-    if (sharedItem == null) {
-      _sharedDependencyCache[sharedId] = {};
-      return {};
-    }
-
-    final deps = <String>{};
-    for (final file in sharedItem.files) {
-      if (!file.source.endsWith('.dart')) {
-        continue;
-      }
-      try {
-        final bytes = await registry.readSourceBytes(file.source);
-        final content = utf8.decode(bytes);
-        final dir = p.posix.dirname(_normalizeRegistryPath(file.source));
-        for (final line in content.split('\n')) {
-          if (_partOfDirectiveRegex.hasMatch(line)) {
-            continue;
-          }
-          final match = _importDirectiveRegex.firstMatch(line);
-          if (match == null) {
-            continue;
-          }
-          final importPath = match.group(2);
-          if (importPath == null || !_isRelativeImport(importPath)) {
-            continue;
-          }
-          final resolved = p.posix.normalize(p.posix.join(dir, importPath));
-          final owner = _lookupRegistryFileOwner(resolved);
-          if (owner != null && owner.isShared) {
-            deps.add(owner.id);
-          }
-        }
-      } catch (_) {
-        continue;
-      }
-    }
-
-    _sharedDependencyCache[sharedId] = deps;
-    return deps;
-  }
-
-  bool _isRelativeImport(String path) {
-    return path.startsWith('.');
-  }
-
-  Map<String, InstallerRegistryFileOwner> _buildRegistryFileIndex() {
-    final cached = _registryFileIndex;
-    if (cached != null) {
-      return cached;
-    }
-    final index = <String, InstallerRegistryFileOwner>{};
-    for (final sharedItem in registry.shared) {
-      for (final file in sharedItem.files) {
-        final normalized = _normalizeRegistryPath(file.source);
-        index[normalized] =
-            InstallerRegistryFileOwner.shared(sharedItem.id, file);
-      }
-    }
-    for (final component in registry.components) {
-      for (final file in component.files) {
-        final normalized = _normalizeRegistryPath(file.source);
-        index[normalized] =
-            InstallerRegistryFileOwner.component(component.id, file);
-      }
-    }
-    _registryFileIndex = index;
-    return index;
+    Set<String> seedIds,
+  ) async {
+    return _sharedService.resolveSharedDependencyClosure(seedIds);
   }
 
   InstallerRegistryFileOwner? _lookupRegistryFileOwner(String source) {
-    final normalized = _normalizeRegistryPath(source);
-    return _buildRegistryFileIndex()[normalized];
+    return _sharedService.lookupRegistryFileOwner(source);
   }
 
   String _normalizeRegistryPath(String source) {
-    final normalized = source.replaceAll('\\', '/');
-    return p.posix.normalize(normalized);
+    return _sharedService.normalizeRegistryPath(source);
   }
 }

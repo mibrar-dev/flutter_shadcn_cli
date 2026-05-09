@@ -176,6 +176,10 @@ Date: 2026-02-22
   - moved dry-run plans, init config overrides, alias entries, pubspec update results, section ranges, and registry file ownership records out of installer `part` files into normal Dart files
   - exported `InitConfigOverrides` through the public installer compatibility barrel for existing callers
   - preserved installer behavior while reducing the remaining installer `part` surface
+- Completed installer shared service extraction:
+  - added `InstallerSharedService` for shared ID normalization, core init shared IDs, shared dependency closure, registry file ownership lookup, and shared install recursion
+  - kept bulk install batching and installer state flush behavior in the installer part
+  - added direct service coverage for dependency closure from relative Dart imports, dependency install ordering, legacy `utils` normalization, optional `color_scheme`, and component fallback installs
 - Final dead-code sweep + docs updates for the refactored command structure
   - Completed in this pass:
     - Removed temporary refactor utility file: `tool_check_shared.dart`

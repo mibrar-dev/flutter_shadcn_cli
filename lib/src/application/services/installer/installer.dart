@@ -16,6 +16,7 @@ import 'package:flutter_shadcn_cli/src/application/services/installer/installer_
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_fonts_update_result.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_registry_file_owner.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_section_range.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_shared_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
@@ -61,8 +62,6 @@ class Installer {
   final bool enableComposites;
   Set<String>? _installedComponentCache;
   final Set<String> _installingComponentIds = {};
-  final Set<String> _installingSharedIds = {};
-  final Set<String> _installedSharedCache = {};
   bool _initFilesEnsured = false;
   bool _deferAliases = false;
   bool _deferDependencyUpdates = false;
@@ -72,13 +71,12 @@ class Installer {
   final Map<String, Future<void>> _componentInstallTasks = {};
   bool _deferComponentManifest = false;
   Future<void> _lockfileWriteQueue = Future<void>.value();
-  Map<String, InstallerRegistryFileOwner>? _registryFileIndex;
-  final Map<String, Set<String>> _sharedDependencyCache = {};
   ShadcnConfig? _cachedConfig;
   final InstallerConfigResolver _configResolver;
   final InstallerFileSelectionPolicy _fileSelectionPolicy;
   final InstallerManifestService _manifestService;
   final InstallerFileWriterService _fileWriter;
+  final InstallerSharedService _sharedService;
 
   Installer({
     required this.registry,
@@ -99,32 +97,40 @@ class Installer {
     InstallerFileSelectionPolicy? fileSelectionPolicy,
     InstallerManifestService? manifestService,
     InstallerFileWriterService? fileWriter,
-  })  : logger = logger ?? CliLogger(),
-        _configResolver = configResolver ??
-            InstallerConfigResolver(
-              registry: registry,
-              installPathOverride: installPathOverride,
-              sharedPathOverride: sharedPathOverride,
-              registryNamespace: registryNamespace,
-            ),
-        _fileSelectionPolicy = fileSelectionPolicy ??
-            InstallerFileSelectionPolicy(
-              includeFileKindsOverride: includeFileKindsOverride,
-              excludeFileKindsOverride: excludeFileKindsOverride,
-              registryNamespace: registryNamespace,
-            ),
-        _manifestService = manifestService ??
-            InstallerManifestService(
-              targetDir: targetDir,
-              registry: registry,
-              registryNamespace: registryNamespace,
-              registryBaseUrlOverride: registryBaseUrlOverride,
-            ),
-        _fileWriter = fileWriter ??
-            InstallerFileWriterService(
-              registry: registry,
-              logger: logger ?? CliLogger(),
-            );
+  }) : logger = logger ?? CliLogger(),
+       _configResolver =
+           configResolver ??
+           InstallerConfigResolver(
+             registry: registry,
+             installPathOverride: installPathOverride,
+             sharedPathOverride: sharedPathOverride,
+             registryNamespace: registryNamespace,
+           ),
+       _fileSelectionPolicy =
+           fileSelectionPolicy ??
+           InstallerFileSelectionPolicy(
+             includeFileKindsOverride: includeFileKindsOverride,
+             excludeFileKindsOverride: excludeFileKindsOverride,
+             registryNamespace: registryNamespace,
+           ),
+       _manifestService =
+           manifestService ??
+           InstallerManifestService(
+             targetDir: targetDir,
+             registry: registry,
+             registryNamespace: registryNamespace,
+             registryBaseUrlOverride: registryBaseUrlOverride,
+           ),
+       _fileWriter =
+           fileWriter ??
+           InstallerFileWriterService(
+             registry: registry,
+             logger: logger ?? CliLogger(),
+           ),
+       _sharedService = InstallerSharedService(
+         registry: registry,
+         logger: logger ?? CliLogger(),
+       );
 
   Future<void> init({
     bool skipPrompts = false,
@@ -136,8 +142,9 @@ class Installer {
       skipPrompts: skipPrompts,
       configOverrides: configOverrides,
     );
-    final hasMissingConfigValues =
-        autoReuseExistingSetup ? await _hasMissingInitConfigValues() : false;
+    final hasMissingConfigValues = autoReuseExistingSetup
+        ? await _hasMissingInitConfigValues()
+        : false;
     final effectiveSkipPrompts =
         skipPrompts || (autoReuseExistingSetup && !hasMissingConfigValues);
     if (autoReuseExistingSetup) {
@@ -173,8 +180,7 @@ class Installer {
     await RegistryDependencyGraph(registry).validateSharedInstall(coreShared);
     final sharedToInstall = (await _resolveSharedDependencyClosure(
       coreShared.toSet(),
-    ))
-      ..removeWhere((id) => id.isEmpty);
+    ))..removeWhere((id) => id.isEmpty);
     final sharedList = sharedToInstall.toList()..sort();
 
     logger.section('Installing core shared modules');
@@ -391,8 +397,3 @@ final _classRegex = RegExp(
 );
 
 final _partRegex = RegExp(r'''part\s+['"]([^'"]+)['"];''');
-
-final _importDirectiveRegex = RegExp(
-  r'''^\s*(import|export|part)\s+['"]([^'"]+)['"]''',
-);
-final _partOfDirectiveRegex = RegExp(r'^\s*part\s+of\b');
