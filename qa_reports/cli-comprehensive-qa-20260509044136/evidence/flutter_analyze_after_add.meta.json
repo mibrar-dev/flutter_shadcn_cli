@@ -1,0 +1,11 @@
+{
+  "id": "flutter_analyze_after_add",
+  "exitCode": 0,
+  "startedAt": "2026-05-09T04:42:42Z",
+  "endedAt": "2026-05-09T04:42:45Z",
+  "cwd": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/app",
+  "command": [
+    "flutter",
+    "analyze"
+  ]
+}

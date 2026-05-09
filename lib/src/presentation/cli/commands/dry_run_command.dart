@@ -9,11 +9,6 @@ Future<int> runDryRunCommand({
   required ArgResults dryRunCommand,
   required Installer? installer,
 }) async {
-  final activeInstaller = installer;
-  if (activeInstaller == null) {
-    stderr.writeln('Error: Installer is not available.');
-    return ExitCodes.registryNotFound;
-  }
   if (dryRunCommand['help'] == true) {
     print(
         'Usage: flutter_shadcn dry-run <component> [<component> ...] [--json]');
@@ -26,6 +21,11 @@ Future<int> runDryRunCommand({
     print('  --json             Output machine-readable JSON');
     print('  --help, -h         Show this message');
     return ExitCodes.success;
+  }
+  final activeInstaller = installer;
+  if (activeInstaller == null) {
+    stderr.writeln('Error: Installer is not available.');
+    return ExitCodes.registryNotFound;
   }
   final rest = dryRunCommand.rest;
   final dryRunAll = dryRunCommand['all'] == true || rest.contains('all');

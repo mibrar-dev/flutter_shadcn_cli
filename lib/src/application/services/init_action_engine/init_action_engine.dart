@@ -370,8 +370,8 @@ class InitActionEngine {
       throw InitActionEngineException('pubspec.yaml not found in project root');
     }
 
-    final dependencies = _stringMap(action['dependencies']);
-    final devDependencies = _stringMap(action['devDependencies']);
+    final dependencies = _pubspecDependencyMap(action['dependencies']);
+    final devDependencies = _pubspecDependencyMap(action['devDependencies']);
     final duplicateRequestedDeps =
         dependencies.keys.where(devDependencies.containsKey).toList()..sort();
     if (duplicateRequestedDeps.isNotEmpty) {
@@ -592,6 +592,25 @@ class InitActionEngine {
       return const {};
     }
     return value.map((key, val) => MapEntry(key.toString(), val));
+  }
+
+  Map<String, dynamic> _pubspecDependencyMap(dynamic value) {
+    final raw = _stringMap(value);
+    if (raw.isEmpty) {
+      return const {};
+    }
+    return raw.map((key, val) {
+      if (val is String) {
+        final trimmed = val.trim();
+        if (trimmed.startsWith('sdk:')) {
+          final sdk = trimmed.split(':').skip(1).join(':').trim();
+          if (sdk.isNotEmpty) {
+            return MapEntry(key, {'sdk': sdk});
+          }
+        }
+      }
+      return MapEntry(key, val);
+    });
   }
 
   List<String> _stringList(dynamic value) {

@@ -1,0 +1,6 @@
+Usage: flutter_shadcn info <component-id|@namespace/component> [--refresh] [--json]
+
+Shows detailed information about a component.
+Options:
+  --refresh  Refresh cache from remote
+  --json     Output machine-readable JSON

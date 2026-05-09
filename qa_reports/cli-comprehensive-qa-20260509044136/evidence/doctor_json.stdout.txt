@@ -1,0 +1,82 @@
+{
+  "status": "ok",
+  "command": "doctor",
+  "data": {
+    "environment": {
+      "script": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+      "cwd": "/private/tmp/shadcn_cli-comprehensive-qa-20260509044136/app",
+      "pubCache": "/Users/ibrar/.pub-cache"
+    },
+    "registry": {
+      "mode": "local",
+      "root": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/source_overlay/registry",
+      "componentsJson": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/source_overlay/registry/manifests/components.json",
+      "cache": "(local registry, no cache)",
+      "schema": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/source_overlay/registry/manifests/components.schema.json"
+    },
+    "configuration": {
+      "SHADCN_REGISTRY_ROOT": null,
+      "SHADCN_REGISTRY_URL": null,
+      "cliRoot": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "localRegistryRoot": null,
+      "config.registryMode": "remote",
+      "config.registryPath": null,
+      "config.registryUrl": "https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry"
+    },
+    "paths": {
+      "installPath": "lib/ui/shadcn",
+      "sharedPath": "lib/ui/shadcn/shared",
+      "resolvedInstallPath": "lib/ui/shadcn",
+      "resolvedSharedPath": "lib/ui/shadcn/shared",
+      "installPathValid": true,
+      "sharedPathValid": true,
+      "installPathExists": true,
+      "sharedPathExists": true,
+      "colorSchemePath": "/private/tmp/shadcn_cli-comprehensive-qa-20260509044136/app/lib/ui/shadcn/shared/theme/color_scheme.dart",
+      "colorSchemeExists": true
+    },
+    "aliases": {
+      "configured": {},
+      "invalid": []
+    },
+    "schema": {
+      "found": true,
+      "valid": true,
+      "errorCount": 0,
+      "errors": []
+    },
+    "platformTargets": {
+      "android": {
+        "permissions": "android/app/src/main/AndroidManifest.xml",
+        "gradle": "android/app/build.gradle",
+        "notes": ".shadcn/platform/android.md"
+      },
+      "ios": {
+        "infoPlist": "ios/Runner/Info.plist",
+        "podfile": "ios/Podfile",
+        "notes": ".shadcn/platform/ios.md"
+      },
+      "macos": {
+        "entitlements": "macos/Runner/DebugProfile.entitlements",
+        "notes": ".shadcn/platform/macos.md"
+      },
+      "desktop": {
+        "config": ".shadcn/platform/desktop.md"
+      }
+    },
+    "lockfile": {
+      "exists": false,
+      "lockfileVersion": 1,
+      "registryCount": 0,
+      "componentCount": 0,
+      "missingFiles": [],
+      "error": null
+    }
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:42:15.677358Z",
+    "exitCode": 0
+  }
+}

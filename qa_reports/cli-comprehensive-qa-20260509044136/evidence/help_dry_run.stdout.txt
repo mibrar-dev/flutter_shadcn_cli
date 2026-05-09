@@ -1,0 +1,8 @@
+Usage: flutter_shadcn dry-run <component> [<component> ...] [--json]
+       flutter_shadcn dry-run --all [--json]
+
+Shows what would be installed (dependencies, shared modules, assets, fonts).
+Options:
+  --all, -a          Include every available component
+  --json             Output machine-readable JSON
+  --help, -h         Show this message

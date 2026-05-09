@@ -1,0 +1,6 @@
+Usage: flutter_shadcn registries [--json]
+
+Lists configured and discoverable registries.
+Options:
+  --json             Output machine-readable JSON
+  --help, -h         Show this message

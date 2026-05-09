@@ -1,0 +1,4 @@
+• Installing Button (button)
+
+Post-install notes for Button
+  • Optional: wrap a subtree with Theme(data: ThemeData(...), child: ...) to override defaults.

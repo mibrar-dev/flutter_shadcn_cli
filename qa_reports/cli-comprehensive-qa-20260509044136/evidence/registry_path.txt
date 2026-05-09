@@ -1,0 +1,1 @@
+/tmp/shadcn_cli-comprehensive-qa-20260509044136/source_overlay/registry

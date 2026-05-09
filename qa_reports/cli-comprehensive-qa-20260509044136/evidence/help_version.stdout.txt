@@ -1,0 +1,7 @@
+Usage: flutter_shadcn version [--check]
+
+Shows the current CLI version.
+
+Options:
+  --check            Check for available updates
+  --help, -h         Show this message

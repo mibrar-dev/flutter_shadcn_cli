@@ -47,6 +47,10 @@ Future<void> runCliBootstrap(List<String> arguments) async {
     printCliUsage(advanced: advanced);
     exit(0);
   }
+  if (_isProjectHelpArgs(normalizedArgs)) {
+    _printProjectUsage();
+    exit(0);
+  }
 
   if (argResults.command == null) {
     printCliUsage(advanced: advanced);
@@ -146,6 +150,31 @@ Future<void> runCliBootstrap(List<String> arguments) async {
       );
       if (themeExit != ExitCodes.success) {
         exitCode = themeExit;
+      }
+      return;
+    }
+
+    if (_isCommandHelpRequest(argResults)) {
+      final command = argResults.command!;
+      final dispatcher = buildBootstrapCommandDispatcher(
+        rootArgs: argResults,
+        command: command,
+        roots: roots,
+        targetDir: targetDir,
+        homeDirectory: homeDirectory,
+        offline: offline,
+        logger: logger,
+        multiRegistry: multiRegistry,
+        installer: null,
+        preloadedSelection: null,
+        readConfig: () => config,
+        writeConfig: (updatedConfig) {
+          config = updatedConfig;
+        },
+      );
+      final dispatchExit = await dispatcher.dispatch(command.name!);
+      if (dispatchExit != ExitCodes.success) {
+        exitCode = dispatchExit;
       }
       return;
     }
@@ -286,4 +315,35 @@ bool _isThemeHelpRequest(ArgResults argResults) {
   }
   return command?.command?.name == 'widget' &&
       command?.command?['help'] == true;
+}
+
+bool _isCommandHelpRequest(ArgResults argResults) {
+  final command = argResults.command;
+  if (command == null) {
+    return false;
+  }
+  if (command['help'] == true) {
+    return true;
+  }
+  if (command.rest.contains('--help') || command.rest.contains('-h')) {
+    return true;
+  }
+  final nested = command.command;
+  return nested != null && nested['help'] == true;
+}
+
+bool _isProjectHelpArgs(List<String> arguments) {
+  if (arguments.length != 2 || arguments.first != 'project') {
+    return false;
+  }
+  return arguments[1] == '--help' || arguments[1] == '-h';
+}
+
+void _printProjectUsage() {
+  print('Usage: flutter_shadcn project <command>');
+  print('');
+  print('Commands:');
+  print(
+      '  reset [--undo]     Remove CLI-managed project files or restore them');
+  print('  refresh            Regenerate missing CLI scaffolding');
 }

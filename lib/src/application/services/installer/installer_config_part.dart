@@ -356,7 +356,7 @@ extension InstallerConfigPart on Installer {
       logger.info('  themePreset: $themePreset');
     }
     logger.info(
-        '  shared core: theme, util, color_extensions, form_control, form_value_supplier');
+        '  shared core: theme, app_theme, util, color_extensions, form_control, form_value_supplier, localizations, localizations_extensions');
     logger.info('  dependencies: data_widget, gap');
   }
 

@@ -1,0 +1,17 @@
+{
+  "id": "init_missing_registry_path",
+  "exitCode": 60,
+  "startedAt": "2026-05-09T04:42:12Z",
+  "endedAt": "2026-05-09T04:42:13Z",
+  "cwd": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/app",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "init",
+    "--yes",
+    "--registry-path",
+    "/tmp/shadcn_cli-comprehensive-qa-20260509044136/missing_registry",
+    "--skip-integrity"
+  ]
+}

@@ -1,0 +1,13 @@
+{
+  "id": "help_rm",
+  "exitCode": 0,
+  "startedAt": "2026-05-09T04:41:39Z",
+  "endedAt": "2026-05-09T04:41:40Z",
+  "cwd": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/app",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "rm",
+    "--help"
+  ]
+}

@@ -1,0 +1,6 @@
+Usage: flutter_shadcn deps [--all] [--json]
+
+Compares registry dependency versions to pubspec.yaml.
+Options:
+  --all, -a          Compare all registry components
+  --json             Output machine-readable JSON

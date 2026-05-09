@@ -1,0 +1,88 @@
+{
+  "generatedAt": "2026-05-09T04:45:55.572Z",
+  "score": 100,
+  "passed": 13,
+  "total": 13,
+  "appPath": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/app",
+  "registryPath": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/source_overlay/registry",
+  "registriesPath": "/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/registry-directory/registries/registries.json",
+  "commands": 67,
+  "components": 133,
+  "initGeneratedFiles": 64,
+  "initShadcnFiles": 55,
+  "generatedFilesAfterAllComponents": 1700,
+  "finalFiles": 1809,
+  "criteria": [
+    {
+      "name": "CLI command inventory",
+      "status": "pass",
+      "evidence": "67 command/edge invocations matched expected exit codes"
+    },
+    {
+      "name": "Init generated files",
+      "status": "pass",
+      "evidence": "64 init files; app theme and shared localization files present"
+    },
+    {
+      "name": "All registry components installed",
+      "status": "pass",
+      "evidence": "133/133 component IDs installed in one command"
+    },
+    {
+      "name": "Generated file count",
+      "status": "pass",
+      "evidence": "1700 generated shadcn files after all components"
+    },
+    {
+      "name": "Dry-run all",
+      "status": "pass",
+      "evidence": "dry-run --all returned 133 real components"
+    },
+    {
+      "name": "Doctor after add",
+      "status": "pass",
+      "evidence": "doctor --json status ok after install"
+    },
+    {
+      "name": "Deps after add",
+      "status": "pass",
+      "evidence": "deps --json status ok after install"
+    },
+    {
+      "name": "Validate after add",
+      "status": "pass",
+      "evidence": "validate --json status ok after install"
+    },
+    {
+      "name": "Audit after add",
+      "status": "pass",
+      "evidence": "audit --json status ok after install"
+    },
+    {
+      "name": "Remove/re-add audit",
+      "status": "pass",
+      "evidence": "button remove + re-add followed by audit ok"
+    },
+    {
+      "name": "Generated app analyze",
+      "status": "pass",
+      "evidence": "flutter analyze exit 0 after all components"
+    },
+    {
+      "name": "CLI analyze",
+      "status": "pass",
+      "evidence": "dart analyze exit 0"
+    },
+    {
+      "name": "CLI tests",
+      "status": "pass",
+      "evidence": "full dart test suite exit 0"
+    }
+  ],
+  "expectedNonZero": {
+    "init_missing_registry_path": 60,
+    "add_missing_component": 30,
+    "list_missing_registry_path": 10,
+    "deps_json_before_add": 50
+  }
+}

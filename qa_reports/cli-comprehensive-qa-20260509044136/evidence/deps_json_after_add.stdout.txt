@@ -1,0 +1,247 @@
+{
+  "status": "ok",
+  "command": "deps",
+  "data": {
+    "components": [
+      "accordion",
+      "alert",
+      "alert_dialog",
+      "alpha",
+      "app",
+      "async",
+      "autocomplete",
+      "avatar",
+      "badge",
+      "basic",
+      "border_loading",
+      "breadcrumb",
+      "button",
+      "calendar",
+      "card",
+      "card_image",
+      "carousel",
+      "chat",
+      "checkbox",
+      "chip",
+      "chip_input",
+      "circular_progress_indicator",
+      "clickable",
+      "code_snippet",
+      "collapsible",
+      "color",
+      "color_input",
+      "color_picker",
+      "command",
+      "context_menu",
+      "control",
+      "date_picker",
+      "debug",
+      "dialog",
+      "divider",
+      "dot_indicator",
+      "drawer",
+      "dropdown_menu",
+      "dropzone",
+      "empty_state",
+      "error_system",
+      "eye_dropper",
+      "fade_scroll",
+      "feature_carousel",
+      "file_input",
+      "file_picker",
+      "filter_bar",
+      "flex",
+      "focus_outline",
+      "form",
+      "form_field",
+      "formatted_input",
+      "formatter",
+      "gooey_toast",
+      "group",
+      "hidden",
+      "history",
+      "hover",
+      "hover_card",
+      "hsl",
+      "hsv",
+      "icon",
+      "image",
+      "input",
+      "input_otp",
+      "item_picker",
+      "keyboard_shortcut",
+      "linear_progress_indicator",
+      "locale_utils",
+      "markdown",
+      "media_query",
+      "menu",
+      "menubar",
+      "multiple_choice",
+      "navigation_bar",
+      "navigation_menu",
+      "number_ticker",
+      "object_input",
+      "outlined_container",
+      "overflow_marquee",
+      "overlay",
+      "pagination",
+      "patch",
+      "phone_input",
+      "popover",
+      "popup",
+      "progress",
+      "radio_group",
+      "refresh_trigger",
+      "repeated_animation_builder",
+      "resizable",
+      "scaffold",
+      "scrollable",
+      "scrollable_client",
+      "scrollbar",
+      "scrollview",
+      "select",
+      "selectable",
+      "shadcn_localizations",
+      "shadcn_localizations_en",
+      "shadcn_localizations_extensions",
+      "skeleton",
+      "slider",
+      "sortable",
+      "spinner",
+      "stage_container",
+      "star_rating",
+      "stepper",
+      "steps",
+      "subfocus",
+      "swiper",
+      "switch",
+      "switcher",
+      "tab_container",
+      "tab_list",
+      "tab_pane",
+      "table",
+      "tabs",
+      "text",
+      "text_animate",
+      "text_area",
+      "text_field",
+      "time_picker",
+      "timeline",
+      "timeline_animation",
+      "toast",
+      "tooltip",
+      "tracker",
+      "tree",
+      "triple_dots",
+      "validated",
+      "window",
+      "wrapper"
+    ],
+    "dependencies": [
+      {
+        "package": "data_widget",
+        "required": [
+          "^0.0.2"
+        ],
+        "installed": "^0.0.2",
+        "status": "ok"
+      },
+      {
+        "package": "gap",
+        "required": [
+          "^3.0.1"
+        ],
+        "installed": "^3.0.1",
+        "status": "ok"
+      },
+      {
+        "package": "animation_kit",
+        "required": [
+          "^0.0.2"
+        ],
+        "installed": "^0.0.2",
+        "status": "ok"
+      },
+      {
+        "package": "country_flags",
+        "required": [
+          "^4.1.0",
+          "^4.1.1"
+        ],
+        "installed": "^4.1.1",
+        "status": "ok"
+      },
+      {
+        "package": "cross_file",
+        "required": [
+          "^0.3.4+2"
+        ],
+        "installed": "^0.3.4+2",
+        "status": "ok"
+      },
+      {
+        "package": "phonecodes",
+        "required": [
+          "^0.0.4"
+        ],
+        "installed": "^0.0.4",
+        "status": "ok"
+      },
+      {
+        "package": "skeletonizer",
+        "required": [
+          "^2.1.0+1"
+        ],
+        "installed": "^2.1.0+1",
+        "status": "ok"
+      },
+      {
+        "package": "web",
+        "required": [
+          "^1.1.1"
+        ],
+        "installed": "^1.1.1",
+        "status": "ok"
+      },
+      {
+        "package": "email_validator",
+        "required": [
+          "^3.0.0"
+        ],
+        "installed": "^3.0.0",
+        "status": "ok"
+      },
+      {
+        "package": "expressions",
+        "required": [
+          "^0.2.5+2"
+        ],
+        "installed": "^0.2.5+2",
+        "status": "ok"
+      },
+      {
+        "package": "intl",
+        "required": [
+          "^0.20.2",
+          "any"
+        ],
+        "installed": "any",
+        "status": "ok"
+      },
+      {
+        "package": "flutter_localizations",
+        "required": [
+          "sdk: flutter"
+        ],
+        "installed": "sdk: flutter",
+        "status": "ok"
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:42:40.905676Z",
+    "exitCode": 0
+  }
+}

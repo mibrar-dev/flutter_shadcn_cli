@@ -99,6 +99,16 @@ CommandDispatcher buildBootstrapCommandDispatcher({
           ),
         ),
     'project': () async {
+      if (command['help'] == true ||
+          command.command == null ||
+          command.command?['help'] == true) {
+        return runProjectCommand(
+          command: command,
+          resetProject: () => throw StateError('help requested'),
+          undoProject: () => throw StateError('help requested'),
+          refreshProject: () => throw StateError('help requested'),
+        );
+      }
       final config = readConfig();
       final projectRoot = findProjectRootFrom(targetDir);
       final snapshotStore = ResetSnapshotStore(

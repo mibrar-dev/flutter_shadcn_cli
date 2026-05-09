@@ -1,0 +1,6 @@
+Usage: flutter_shadcn remove <component> [<component> ...]
+       flutter_shadcn remove --all
+Options:
+  --all, -a          Remove every installed component
+  --force, -f        Force removal even if dependencies remain
+  --help, -h         Show this message

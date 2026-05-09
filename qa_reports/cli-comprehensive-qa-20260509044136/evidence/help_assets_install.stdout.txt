@@ -1,0 +1,9 @@
+Usage: flutter_shadcn assets [options]
+
+Options:
+  --icons            Install icon font assets
+  --typography       Install typography font assets
+  --fonts            Alias for --typography
+  --list             List available assets
+  --all, -a          Install both icon + typography fonts
+  --help, -h         Show this message

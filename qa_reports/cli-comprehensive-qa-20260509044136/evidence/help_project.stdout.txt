@@ -1,0 +1,5 @@
+Usage: flutter_shadcn project <command>
+
+Commands:
+  reset [--undo]     Remove CLI-managed project files or restore them
+  refresh            Regenerate missing CLI scaffolding

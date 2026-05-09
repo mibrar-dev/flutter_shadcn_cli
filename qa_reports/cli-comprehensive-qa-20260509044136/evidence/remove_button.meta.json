@@ -1,0 +1,20 @@
+{
+  "id": "remove_button",
+  "exitCode": 0,
+  "startedAt": "2026-05-09T04:42:45Z",
+  "endedAt": "2026-05-09T04:42:46Z",
+  "cwd": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/app",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registries-path",
+    "/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/registry-directory/registries/registries.json",
+    "--registry-path",
+    "/tmp/shadcn_cli-comprehensive-qa-20260509044136/source_overlay/registry",
+    "--skip-integrity",
+    "remove",
+    "button",
+    "--force"
+  ]
+}

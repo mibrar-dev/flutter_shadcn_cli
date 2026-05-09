@@ -79,13 +79,21 @@ class InstallerSharedService {
   }
 
   List<String> coreSharedIdsForInit() {
-    final ids = <String>[
+    final ids = <String>[];
+    for (final id in const [
       'theme',
+      'app_theme',
       'util',
       'color_extensions',
       'form_control',
       'form_value_supplier',
-    ];
+      'localizations',
+      'localizations_extensions',
+    ]) {
+      if (registry.getSharedItem(id) != null) {
+        ids.add(id);
+      }
+    }
     if (registry.getSharedItem('color_scheme') != null) {
       ids.add('color_scheme');
     }

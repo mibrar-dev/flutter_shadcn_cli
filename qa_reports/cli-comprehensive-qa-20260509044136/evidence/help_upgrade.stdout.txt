@@ -1,0 +1,7 @@
+Usage: flutter_shadcn upgrade [--force]
+
+Upgrades flutter_shadcn_cli to the latest version from pub.dev.
+
+Options:
+  --force, -f        Force upgrade even if already on latest version
+  --help, -h         Show this message

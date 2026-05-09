@@ -1,0 +1,7 @@
+Usage: flutter_shadcn list [--refresh] [--json]
+       flutter_shadcn list @<namespace> [--refresh] [--json]
+
+Lists all available components from the registry.
+Options:
+  --refresh  Refresh cache from remote
+  --json     Output machine-readable JSON

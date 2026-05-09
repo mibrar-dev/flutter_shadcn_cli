@@ -1,0 +1,5 @@
+Usage: flutter_shadcn audit [--json]
+
+Audits installed components against registry metadata.
+Options:
+  --json             Output machine-readable JSON

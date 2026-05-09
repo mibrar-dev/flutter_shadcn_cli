@@ -1,0 +1,14 @@
+{
+  "id": "help_project_reset",
+  "exitCode": 0,
+  "startedAt": "2026-05-09T04:42:01Z",
+  "endedAt": "2026-05-09T04:42:02Z",
+  "cwd": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/app",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "project",
+    "reset",
+    "--help"
+  ]
+}

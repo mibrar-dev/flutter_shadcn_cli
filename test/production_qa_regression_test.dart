@@ -188,6 +188,57 @@ void main() {
       expect(result.stdout.toString(), isNot(contains('baseUrl')));
       expect(result.stderr.toString(), contains('Local registry not found'));
     });
+
+    test('init installs shared app and localization modules by default',
+        () async {
+      _writeRegistry(
+        registryRoot,
+        shared: [
+          _shared('theme'),
+          _shared('app_theme'),
+          _shared('util'),
+          _shared('color_extensions'),
+          _shared('form_control'),
+          _shared('form_value_supplier'),
+          _shared('localizations'),
+          _shared('localizations_extensions'),
+        ],
+        components: [
+          _component('button'),
+        ],
+      );
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(tempRoot.path),
+        skipIntegrity: true,
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: appRoot.path,
+        logger: CliLogger(useColor: false),
+      );
+
+      await installer.init(skipPrompts: true);
+
+      expect(
+        File(p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'shared', 'app_theme',
+                'app_theme.dart'))
+            .existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'shared',
+                'localizations', 'localizations.dart'))
+            .existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'shared',
+                'localizations_extensions', 'localizations_extensions.dart'))
+            .existsSync(),
+        isTrue,
+      );
+    });
   });
 }
 
@@ -219,8 +270,16 @@ Future<void> _writePubspec(Directory root) {
 void _writeRegistry(
   Directory root, {
   required List<Map<String, Object?>> components,
+  List<Map<String, Object?>> shared = const [],
   bool schemaUnderManifests = false,
 }) {
+  for (final item in shared) {
+    final id = item['id'] as String;
+    File(p.join(root.path, 'shared', id, '$id.dart'))
+      ..createSync(recursive: true)
+      ..writeAsStringSync('class ${_pascal(id)}Shared {}');
+  }
+
   File(p.join(root.path, 'components.json')).writeAsStringSync(
     const JsonEncoder.withIndent('  ').convert({
       r'$schema': './components.schema.json',
@@ -230,7 +289,7 @@ void _writeRegistry(
         'installPath': 'lib/ui/shadcn',
         'sharedPath': 'lib/ui/shadcn/shared',
       },
-      'shared': const [],
+      'shared': shared,
       'components': components,
     }),
   );
@@ -253,6 +312,23 @@ void _writeRegistry(
         },
       }),
     );
+}
+
+Map<String, Object?> _shared(String id) {
+  return {
+    'id': id,
+    'files': [
+      _file('registry/shared/$id/$id.dart', '{sharedPath}/$id/$id.dart'),
+    ],
+  };
+}
+
+String _pascal(String value) {
+  return value
+      .split('_')
+      .where((part) => part.isNotEmpty)
+      .map((part) => part[0].toUpperCase() + part.substring(1))
+      .join();
 }
 
 Map<String, Object?> _component(

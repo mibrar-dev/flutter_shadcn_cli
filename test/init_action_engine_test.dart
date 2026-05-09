@@ -120,6 +120,32 @@ void main() {
       expect(dependencies['fonts'], isNull);
     });
 
+    test('mergePubspec writes sdk dependencies as nested yaml maps', () async {
+      final engine = InitActionEngine();
+
+      await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'mergePubspec',
+            'dependencies': {'flutter_localizations': 'sdk: flutter'},
+          }
+        ],
+      );
+
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, contains('flutter_localizations:'));
+      expect(pubspec, contains('  sdk: flutter'));
+      expect(pubspec, isNot(contains("flutter_localizations: 'sdk: flutter'")));
+
+      final doc = loadYaml(pubspec) as YamlMap;
+      final dependencies = doc['dependencies'] as YamlMap;
+      final localizations = dependencies['flutter_localizations'] as YamlMap;
+      expect(localizations['sdk'], 'flutter');
+    });
+
     test('mergePubspec fails on conflicting dependency constraint', () async {
       File(p.join(projectRoot.path, 'pubspec.yaml')).writeAsStringSync(
         [
