@@ -5,6 +5,7 @@ Documentation for installing, configuring, and maintaining Flutter shadcn compon
 ## Start Here
 
 - [Installation](installation.md)
+- [Complete guide](user/complete-guide.md)
 - [Getting started](getting-started.md)
 - [Troubleshooting](troubleshooting.md)
 - [Changelog](changelog.md)
@@ -12,6 +13,7 @@ Documentation for installing, configuring, and maintaining Flutter shadcn compon
 ## User Docs
 
 - [User getting started](user/getting-started.md)
+- [Complete guide](user/complete-guide.md)
 - [Commands](user/commands.md)
 - [Components](user/components.md)
 - [Registries](user/registries.md)

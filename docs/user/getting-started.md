@@ -65,6 +65,7 @@ Use `doctor` after setup or when registry resolution feels wrong.
 
 ## More Docs
 
+- Complete A-Z guide: [complete-guide.md](complete-guide.md)
 - Command guide: [commands.md](commands.md)
 - Components: [components.md](components.md)
 - Registries: [registries.md](registries.md)

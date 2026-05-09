@@ -2,6 +2,8 @@
 
 This page explains every public command in `flutter_shadcn`. Examples use the current multi-registry CLI and canonical `@namespace/component` component addresses.
 
+For the full installation-to-production workflow, read the [complete user guide](complete-guide.md).
+
 ## Global Options
 
 Global options appear before the command.
