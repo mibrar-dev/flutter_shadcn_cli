@@ -13,7 +13,7 @@ import 'package:json_schema/json_schema.dart';
 import 'package:path/path.dart' as p;
 
 const String defaultRegistriesDirectoryUrl =
-    'https://raw.githubusercontent.com/ibrar-x/shadcn-flutter-registry/master/registries.v3.json';
+    'https://raw.githubusercontent.com/ibrar-x/shadcn-flutter-registry/master/registries.v4.json';
 
 class RegistryDirectoryClient {
   final http.Client _client;

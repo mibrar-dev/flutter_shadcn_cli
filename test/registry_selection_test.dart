@@ -14,7 +14,7 @@ void main() {
       () {
     expect(
       defaultRegistriesDirectoryUrl,
-      'https://raw.githubusercontent.com/ibrar-x/shadcn-flutter-registry/master/registries.v3.json',
+      'https://raw.githubusercontent.com/ibrar-x/shadcn-flutter-registry/master/registries.v4.json',
     );
   });
 }
