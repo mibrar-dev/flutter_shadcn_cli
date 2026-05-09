@@ -242,4 +242,4 @@ String sanitizeCacheKey(String value) {
 }
 
 const String defaultRemoteRegistryBase =
-    'https://cdn.jsdelivr.net/gh/ibrar-x/shadcn_flutter_kit@latest/flutter_shadcn_kit/lib';
+    'https://raw.githubusercontent.com/ibrar-x/shadcn-flutter-registry/master';
