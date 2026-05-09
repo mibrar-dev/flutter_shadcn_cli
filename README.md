@@ -60,6 +60,7 @@ flutter_shadcn doctor
 - Components: [docs/user/components.md](docs/user/components.md)
 - Registries: [docs/user/registries.md](docs/user/registries.md)
 - Command reference: [docs/reference/commands/index.md](docs/reference/commands/index.md)
+- Exit codes: [docs/reference/exit-codes.md](docs/reference/exit-codes.md)
 - Registry directory reference: [docs/reference/registries-json.md](docs/reference/registries-json.md)
 - Inline init actions: [docs/reference/inline-init-actions.md](docs/reference/inline-init-actions.md)
 - Developer docs: [docs/developer/local-registry-development.md](docs/developer/local-registry-development.md)

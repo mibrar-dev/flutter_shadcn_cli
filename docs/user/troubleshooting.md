@@ -1,5 +1,7 @@
 # Troubleshooting
 
+For scripts and CI, see the full [exit code reference](../reference/exit-codes.md). It lists every numeric process exit code, JSON error label, meaning, and recovery action.
+
 ## Component Is Ambiguous
 
 If more than one enabled registry contains the same component name, unqualified `add button` fails. Use a qualified address:

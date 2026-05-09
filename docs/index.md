@@ -37,6 +37,7 @@ Documentation for installing, configuring, and maintaining Flutter shadcn compon
 ## Reference
 
 - [Generated command reference](reference/commands/index.md)
+- [Exit codes](reference/exit-codes.md)
 - [Config and state](reference/config-state.md)
 - [registries.json](reference/registries-json.md)
 - [Inline init actions](reference/inline-init-actions.md)
