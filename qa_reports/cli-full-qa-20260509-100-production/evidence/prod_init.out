@@ -1,0 +1,9 @@
+! components.json validation skipped for init (shadcn).
+shared core: theme, util, color_extensions, form_control, form_value_supplier
+pub dependencies: data_widget, gap
+✓ Initialized shadcn (48 files, 3 dirs).
+! Schema validation failed for "manifests/themes.index.schema.json": Exception: Schema file not found: /tmp/shadcn_prod_qa.AK9lFm/source_overlay/manifests/themes.index.schema.json
+! theme.index.json schema validation failed (1 issues).
+! Schema validation failed for "manifests/themes.index.schema.json": Exception: Schema file not found: /tmp/shadcn_prod_qa.AK9lFm/source_overlay/manifests/themes.index.schema.json
+! theme.index.json schema validation failed (1 issues).
+✓ Applied theme: Amber Minimal

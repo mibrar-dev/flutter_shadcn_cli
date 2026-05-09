@@ -31,8 +31,6 @@ Future<int> runDryRunCommand({
   final dryRunAll = dryRunCommand['all'] == true || rest.contains('all');
   final componentIds = <String>[];
   if (dryRunAll) {
-    componentIds.add('icon_fonts');
-    componentIds.add('typography_fonts');
     componentIds.addAll(activeInstaller.registry.components.map((c) => c.id));
   } else {
     if (rest.isEmpty) {

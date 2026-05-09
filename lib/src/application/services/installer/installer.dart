@@ -97,40 +97,36 @@ class Installer {
     InstallerFileSelectionPolicy? fileSelectionPolicy,
     InstallerManifestService? manifestService,
     InstallerFileWriterService? fileWriter,
-  }) : logger = logger ?? CliLogger(),
-       _configResolver =
-           configResolver ??
-           InstallerConfigResolver(
-             registry: registry,
-             installPathOverride: installPathOverride,
-             sharedPathOverride: sharedPathOverride,
-             registryNamespace: registryNamespace,
-           ),
-       _fileSelectionPolicy =
-           fileSelectionPolicy ??
-           InstallerFileSelectionPolicy(
-             includeFileKindsOverride: includeFileKindsOverride,
-             excludeFileKindsOverride: excludeFileKindsOverride,
-             registryNamespace: registryNamespace,
-           ),
-       _manifestService =
-           manifestService ??
-           InstallerManifestService(
-             targetDir: targetDir,
-             registry: registry,
-             registryNamespace: registryNamespace,
-             registryBaseUrlOverride: registryBaseUrlOverride,
-           ),
-       _fileWriter =
-           fileWriter ??
-           InstallerFileWriterService(
-             registry: registry,
-             logger: logger ?? CliLogger(),
-           ),
-       _sharedService = InstallerSharedService(
-         registry: registry,
-         logger: logger ?? CliLogger(),
-       );
+  })  : logger = logger ?? CliLogger(),
+        _configResolver = configResolver ??
+            InstallerConfigResolver(
+              registry: registry,
+              installPathOverride: installPathOverride,
+              sharedPathOverride: sharedPathOverride,
+              registryNamespace: registryNamespace,
+            ),
+        _fileSelectionPolicy = fileSelectionPolicy ??
+            InstallerFileSelectionPolicy(
+              includeFileKindsOverride: includeFileKindsOverride,
+              excludeFileKindsOverride: excludeFileKindsOverride,
+              registryNamespace: registryNamespace,
+            ),
+        _manifestService = manifestService ??
+            InstallerManifestService(
+              targetDir: targetDir,
+              registry: registry,
+              registryNamespace: registryNamespace,
+              registryBaseUrlOverride: registryBaseUrlOverride,
+            ),
+        _fileWriter = fileWriter ??
+            InstallerFileWriterService(
+              registry: registry,
+              logger: logger ?? CliLogger(),
+            ),
+        _sharedService = InstallerSharedService(
+          registry: registry,
+          logger: logger ?? CliLogger(),
+        );
 
   Future<void> init({
     bool skipPrompts = false,
@@ -142,9 +138,8 @@ class Installer {
       skipPrompts: skipPrompts,
       configOverrides: configOverrides,
     );
-    final hasMissingConfigValues = autoReuseExistingSetup
-        ? await _hasMissingInitConfigValues()
-        : false;
+    final hasMissingConfigValues =
+        autoReuseExistingSetup ? await _hasMissingInitConfigValues() : false;
     final effectiveSkipPrompts =
         skipPrompts || (autoReuseExistingSetup && !hasMissingConfigValues);
     if (autoReuseExistingSetup) {
@@ -167,6 +162,7 @@ class Installer {
     }
 
     final config = await ShadcnConfig.load(targetDir);
+    await _ensureAnalysisOptionsExclude(config);
     if (!effectiveSkipPrompts) {
       _printInitSummary(config, themePreset);
       final proceed = _confirmInitProceed();
@@ -180,7 +176,8 @@ class Installer {
     await RegistryDependencyGraph(registry).validateSharedInstall(coreShared);
     final sharedToInstall = (await _resolveSharedDependencyClosure(
       coreShared.toSet(),
-    ))..removeWhere((id) => id.isEmpty);
+    ))
+      ..removeWhere((id) => id.isEmpty);
     final sharedList = sharedToInstall.toList()..sort();
 
     logger.section('Installing core shared modules');

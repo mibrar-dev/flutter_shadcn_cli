@@ -79,7 +79,10 @@ class InstallerFileSelectionPolicy {
         base.contains('meta')) {
       kinds.add('meta');
     }
-    if (base.contains('preview')) {
+    if (base == 'preview.dart' ||
+        base == 'preview_state.dart' ||
+        (base.endsWith('_preview.dart') && !normalized.contains('/_impl/')) ||
+        base.endsWith('_preview_state.dart')) {
       kinds.add('preview');
     }
     return kinds;

@@ -1,0 +1,57 @@
+00:00 +0: loading test/installer_file_selection_policy_test.dart                                                                                                                                       00:00 +0: test/installer_file_selection_policy_test.dart: InstallerFileSelectionPolicy installs non-optional files by default                                                                          00:00 +1: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                           00:00 +2: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                           00:00 +3: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                           00:00 +4: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                           00:00 +5: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                           00:00 +6: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                           00:00 +7: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                           00:00 +7: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                           
+{
+  "status": "ok",
+  "command": "dry-run",
+  "data": {
+    "requested": [
+      "button"
+    ],
+    "missing": [],
+    "components": [
+      "button"
+    ],
+    "dependencyGraph": {
+      "button": []
+    },
+    "shared": [],
+    "pubspecDependencies": {},
+    "assets": [],
+    "fonts": [],
+    "postInstall": [],
+    "fileDependencies": [],
+    "platformChanges": {},
+    "componentFiles": {
+      "button": [
+        {
+          "source": "registry/components/button/button.dart",
+          "destination": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/production_qa_DqDPsh/app/lib/ui/shadcn/components/button/button.dart"
+        }
+      ]
+    },
+    "manifestPreview": {
+      "button": {
+        "id": "button",
+        "name": "button",
+        "version": null,
+        "tags": [],
+        "shared": [],
+        "dependsOn": [],
+        "files": [
+          "registry/components/button/button.dart"
+        ],
+        "registryRoot": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/production_qa_DqDPsh/registry"
+      }
+    }
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:15:01.099081Z",
+    "exitCode": 0
+  }
+}
+00:00 +8: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                           00:00 +8: test/production_qa_regression_test.dart: production QA regressions doctor validates v1 manifests schema when root schema is absent                                                           00:01 +8: test/production_qa_regression_test.dart: production QA regressions doctor validates v1 manifests schema when root schema is absent                                                           00:01 +9: test/production_qa_regression_test.dart: production QA regressions doctor validates v1 manifests schema when root schema is absent                                                           00:01 +9: test/production_qa_regression_test.dart: production QA regressions audit ignores optional preview files excluded by project config                                                           ✨ Component audit
+Installed components: 1
+✓ Registry coverage: OK
+✓ Files: OK
+00:01 +10: test/production_qa_regression_test.dart: production QA regressions audit ignores optional preview files excluded by project config                                                          00:01 +10: test/production_qa_regression_test.dart: production QA regressions explicit missing registry path after command is rejected locally                                                         00:02 +10: test/production_qa_regression_test.dart: production QA regressions explicit missing registry path after command is rejected locally                                                         00:02 +11: test/production_qa_regression_test.dart: production QA regressions explicit missing registry path after command is rejected locally                                                         00:02 +11: All tests passed!                                                                                                                                                                           

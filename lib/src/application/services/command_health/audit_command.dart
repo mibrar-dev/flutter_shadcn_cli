@@ -1,5 +1,6 @@
 import 'dart:convert';
 import 'dart:io';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
@@ -29,6 +30,7 @@ Future<int> runAuditCommand({
   final resolvedSharedPath = _expandAliasPath(sharedPath, aliases);
   final installPathOnDisk = _ensureLibPrefix(resolvedInstallPath);
   final sharedPathOnDisk = _ensureLibPrefix(resolvedSharedPath);
+  const fileSelectionPolicy = InstallerFileSelectionPolicy();
 
   final manifests = await _loadComponentManifests(targetDir, installPathOnDisk);
   final installedIds = manifests.keys.toList()..sort();
@@ -81,6 +83,9 @@ Future<int> runAuditCommand({
         sharedPathOnDisk,
         file,
       );
+      if (!fileSelectionPolicy.shouldInstallFile(destination, config)) {
+        continue;
+      }
       if (!File(destination).existsSync()) {
         missingFiles.add('$id -> $destination');
       }

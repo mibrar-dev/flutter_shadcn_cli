@@ -105,6 +105,94 @@ extension InstallerConfigPart on Installer {
     _cachedConfig = await ShadcnConfig.load(targetDir);
   }
 
+  Future<void> _ensureAnalysisOptionsExclude(ShadcnConfig config) async {
+    final installPath = config.installPath ?? _defaultInstallPath;
+    final normalizedInstallPath = installPath.replaceAll('\\', '/');
+    final excludedPath = normalizedInstallPath.endsWith('/**')
+        ? normalizedInstallPath
+        : '$normalizedInstallPath/**';
+    final file = File(p.join(targetDir, 'analysis_options.yaml'));
+    if (!await file.exists()) {
+      await file.writeAsString(
+        [
+          'include: package:flutter_lints/flutter.yaml',
+          '',
+          'analyzer:',
+          '  exclude:',
+          '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+          '    - $excludedPath',
+          '',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    final content = await file.readAsString();
+    if (content.contains(excludedPath)) {
+      return;
+    }
+
+    final lines = content.split('\n');
+    final analyzerIndex = lines.indexWhere(
+      (line) => RegExp(r'^analyzer:\s*$').hasMatch(line),
+    );
+    if (analyzerIndex == -1) {
+      final prefix = content.endsWith('\n') ? content : '$content\n';
+      await file.writeAsString(
+        [
+          prefix,
+          'analyzer:',
+          '  exclude:',
+          '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+          '    - $excludedPath',
+          '',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    var analyzerEnd = lines.length;
+    for (var i = analyzerIndex + 1; i < lines.length; i++) {
+      final line = lines[i];
+      if (line.trim().isEmpty || line.startsWith(' ') || line.startsWith('#')) {
+        continue;
+      }
+      analyzerEnd = i;
+      break;
+    }
+
+    final excludeIndex = () {
+      for (var i = analyzerIndex + 1; i < analyzerEnd; i++) {
+        if (RegExp(r'^\s{2}exclude:\s*$').hasMatch(lines[i])) {
+          return i;
+        }
+      }
+      return -1;
+    }();
+
+    if (excludeIndex == -1) {
+      lines.insertAll(analyzerEnd, [
+        '  exclude:',
+        '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+        '    - $excludedPath',
+      ]);
+    } else {
+      var insertIndex = excludeIndex + 1;
+      while (insertIndex < analyzerEnd &&
+          (RegExp(r'^\s{4}-\s+').hasMatch(lines[insertIndex]) ||
+              lines[insertIndex].trim().isEmpty ||
+              RegExp(r'^\s{4}#').hasMatch(lines[insertIndex]))) {
+        insertIndex++;
+      }
+      lines.insertAll(insertIndex, [
+        '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+        '    - $excludedPath',
+      ]);
+    }
+
+    await file.writeAsString(lines.join('\n'));
+  }
+
   String _normalizePathOverride(String? value, String fallback) {
     if (value == null || value.trim().isEmpty) {
       return fallback;

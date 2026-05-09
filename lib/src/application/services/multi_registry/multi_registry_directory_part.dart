@@ -517,6 +517,12 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     final path = registryPathOverride?.trim();
     final url = registryUrlOverride?.trim();
     if (path != null && path.isNotEmpty) {
+      final normalizedPath = _resolveLocalOverridePath(path);
+      if (!Directory(normalizedPath).existsSync()) {
+        throw MultiRegistryException(
+          'Local registry not found: $normalizedPath',
+        );
+      }
       final componentsPath = _pathForLocalOverride(
         localRegistryPath: path,
         path: configEntry?.componentsPath ?? directoryEntry?.componentsPath,

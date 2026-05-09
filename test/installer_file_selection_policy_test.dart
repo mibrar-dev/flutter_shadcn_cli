@@ -18,6 +18,27 @@ void main() {
       expect(policy.shouldInstallFile('button_preview.dart', null), isFalse);
     });
 
+    test(
+        'does not classify required preview-named implementation files as optional',
+        () {
+      const policy = InstallerFileSelectionPolicy();
+
+      expect(
+        policy.shouldInstallFile(
+          'components/display/markdown/_impl/state/markdown_live_preview.dart',
+          null,
+        ),
+        isTrue,
+      );
+      expect(
+        policy.shouldInstallFile(
+          'components/overlay/eye_dropper/_impl/utils/_color_preview_painter.dart',
+          null,
+        ),
+        isTrue,
+      );
+    });
+
     test('explicit include override wins before config excludes', () {
       const policy = InstallerFileSelectionPolicy(
         includeFileKindsOverride: {'preview'},

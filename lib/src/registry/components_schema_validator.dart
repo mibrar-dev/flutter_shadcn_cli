@@ -99,6 +99,13 @@ class ComponentsSchemaValidator {
     }
 
     final relative = _normalizeSchemaPath(trimmed);
+    final localV1Schema = _localV1SchemaFallback(relative, registryRoot);
+    if (localV1Schema != null) {
+      return SchemaSource(
+        label: registryRoot.describe(localV1Schema),
+        read: () => registryRoot.readString(localV1Schema),
+      );
+    }
     return SchemaSource(
       label: registryRoot.describe(relative),
       read: () => registryRoot.readString(relative),
@@ -116,5 +123,22 @@ class ComponentsSchemaValidator {
     }
     normalized = normalized.replaceFirst(RegExp(r'^/+'), '');
     return p.posix.normalize(normalized);
+  }
+
+  static String? _localV1SchemaFallback(
+    String relative,
+    RegistryLocation registryRoot,
+  ) {
+    if (registryRoot.isRemote || relative != 'components.schema.json') {
+      return null;
+    }
+    const v1SchemaPath = 'manifests/components.schema.json';
+    if (File(p.join(registryRoot.root, relative)).existsSync()) {
+      return null;
+    }
+    if (File(p.join(registryRoot.root, v1SchemaPath)).existsSync()) {
+      return v1SchemaPath;
+    }
+    return null;
   }
 }
