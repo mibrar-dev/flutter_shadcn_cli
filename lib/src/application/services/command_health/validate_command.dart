@@ -24,6 +24,7 @@ Future<int> runValidateCommand({
     schemaSource = ComponentsSchemaValidator.resolveSchemaSource(
       data: registry.data,
       registryRoot: registryRoot,
+      schemaPathOverride: registry.schemaPath,
     );
     if (schemaSource != null) {
       final result = await ComponentsSchemaValidator.validateWithJsonSchema(

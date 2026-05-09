@@ -277,3 +277,11 @@ Date: 2026-02-22
   - expanded `README.md` from a command stub into a current v1 overview
   - updated getting-started, component, registry, config/state, inline-init, and registry-directory docs for manifest-first installs, per-component locale merging, init/assets split, and lockfile state
   - regenerated generated command reference pages from command metadata
+- Completed full CLI QA fixes from fresh Flutter project testing:
+  - dependency planner now keeps compatible caret constraints, SDK shorthand/map equivalents, and existing `any` constraints instead of reporting false conflicts
+  - `deps` command compares dependency values structurally, so `flutter_localizations: sdk: flutter` audits correctly
+  - `project refresh` repairs grouped `copyFiles` actions without generating `../` path escapes
+  - explicit `--registry-path` now forces local registry selection even when persisted config is remote-mode
+  - local v1 registry roots with `manifests/components.json` are accepted by registry root validation
+  - `validate` carries the selected manifest schema path through the loaded registry and no longer falls back to root `components.schema.json`
+  - real-registry fresh app verification installs all 133 components, passes `deps`, and passes `validate --json`

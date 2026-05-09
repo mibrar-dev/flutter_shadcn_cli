@@ -79,7 +79,11 @@ class PubspecChangePlanner {
         continue;
       }
       if (_valuesEqual(existing.value, requested)) {
-        kept[key] = requested;
+        kept[key] = existing.value;
+        continue;
+      }
+      if (_existingConstraintSatisfiesRequest(existing.value, requested)) {
+        kept[key] = existing.value;
         continue;
       }
       conflicts.add(
@@ -362,6 +366,26 @@ class PubspecChangePlanner {
     return _canonical(existing).toString() == _canonical(requested).toString();
   }
 
+  bool _existingConstraintSatisfiesRequest(
+    dynamic existing,
+    dynamic requested,
+  ) {
+    final existingText = _canonical(existing)?.toString().trim();
+    final requestedText = _canonical(requested)?.toString().trim();
+    if (existingText == null || requestedText == null) {
+      return false;
+    }
+    if (existingText == 'any' || requestedText == 'any') {
+      return true;
+    }
+    final existingRange = _CaretRange.tryParse(existingText);
+    final requestedRange = _CaretRange.tryParse(requestedText);
+    if (existingRange == null || requestedRange == null) {
+      return false;
+    }
+    return requestedRange.allows(existingRange.minimum);
+  }
+
   dynamic _canonical(dynamic value) {
     if (value is YamlMap) {
       return _convertYaml(value);
@@ -381,7 +405,13 @@ class PubspecChangePlanner {
     if (value is List) {
       return value.map(_canonical).toList();
     }
-    return value?.toString();
+    final text = value?.toString();
+    final sdkMatch =
+        text == null ? null : RegExp(r'^sdk:\s*(.+)$').firstMatch(text.trim());
+    if (sdkMatch != null) {
+      return {'sdk': sdkMatch.group(1)!.trim()};
+    }
+    return text;
   }
 
   dynamic _convertYaml(dynamic value) {
@@ -427,4 +457,55 @@ class _SectionRange {
   final int indent;
 
   const _SectionRange(this.start, this.end, this.indent);
+}
+
+class _CaretRange {
+  final _Semver minimum;
+  final _Semver exclusiveMaximum;
+
+  const _CaretRange(this.minimum, this.exclusiveMaximum);
+
+  static _CaretRange? tryParse(String value) {
+    final match = RegExp(r'^\^(\d+)\.(\d+)\.(\d+)$').firstMatch(value);
+    if (match == null) {
+      return null;
+    }
+    final minimum = _Semver(
+      int.parse(match.group(1)!),
+      int.parse(match.group(2)!),
+      int.parse(match.group(3)!),
+    );
+    final maximum = minimum.major > 0
+        ? _Semver(minimum.major + 1, 0, 0)
+        : minimum.minor > 0
+            ? _Semver(0, minimum.minor + 1, 0)
+            : _Semver(0, 0, minimum.patch + 1);
+    return _CaretRange(minimum, maximum);
+  }
+
+  bool allows(_Semver version) {
+    return version.compareTo(minimum) >= 0 &&
+        version.compareTo(exclusiveMaximum) < 0;
+  }
+}
+
+class _Semver implements Comparable<_Semver> {
+  final int major;
+  final int minor;
+  final int patch;
+
+  const _Semver(this.major, this.minor, this.patch);
+
+  @override
+  int compareTo(_Semver other) {
+    final majorDiff = major.compareTo(other.major);
+    if (majorDiff != 0) {
+      return majorDiff;
+    }
+    final minorDiff = minor.compareTo(other.minor);
+    if (minorDiff != 0) {
+      return minorDiff;
+    }
+    return patch.compareTo(other.patch);
+  }
 }

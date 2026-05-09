@@ -40,6 +40,39 @@ void main() {
       expect(result.conflicts.single.requested, '^0.20.0');
     });
 
+    test('keeps an existing caret dependency that satisfies requested range',
+        () {
+      final result = planner.planAddDependencies(
+        const [
+          'name: app',
+          'dependencies:',
+          '  country_flags: ^4.1.1',
+        ],
+        const {'country_flags': '^4.1.0'},
+      );
+
+      expect(result.added, isEmpty);
+      expect(result.kept, {'country_flags': '^4.1.1'});
+      expect(result.conflicts, isEmpty);
+    });
+
+    test('reports an existing caret dependency below the requested minimum',
+        () {
+      final result = planner.planAddDependencies(
+        const [
+          'name: app',
+          'dependencies:',
+          '  country_flags: ^4.1.0',
+        ],
+        const {'country_flags': '^4.1.1'},
+      );
+
+      expect(result.added, isEmpty);
+      expect(result.kept, isEmpty);
+      expect(result.conflicts, hasLength(1));
+      expect(result.conflicts.single.package, 'country_flags');
+    });
+
     test('preserves and compares map-shaped dependencies structurally', () {
       final result = planner.planAddDependencies(
         const [
@@ -72,6 +105,38 @@ void main() {
       );
 
       expect(result.kept, {'intl': '^0.20.0'});
+      expect(result.conflicts, isEmpty);
+    });
+
+    test('matches sdk shorthand against map-shaped dependency syntax', () {
+      final result = planner.planAddDependencies(
+        const [
+          'name: app',
+          'dependencies:',
+          '  flutter_localizations:',
+          '    sdk: flutter',
+        ],
+        const {'flutter_localizations': 'sdk: flutter'},
+      );
+
+      expect(result.kept, {
+        'flutter_localizations': {'sdk': 'flutter'},
+      });
+      expect(result.conflicts, isEmpty);
+    });
+
+    test('keeps an existing any constraint for requested hosted dependency',
+        () {
+      final result = planner.planAddDependencies(
+        const [
+          'name: app',
+          'dependencies:',
+          '  intl: any',
+        ],
+        const {'intl': '^0.20.2'},
+      );
+
+      expect(result.kept, {'intl': 'any'});
       expect(result.conflicts, isEmpty);
     });
 

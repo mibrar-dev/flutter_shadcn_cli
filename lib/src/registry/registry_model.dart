@@ -23,12 +23,13 @@ class Registry {
   final Map<String, dynamic> data;
   final RegistryLocation registryRoot;
   final RegistryLocation sourceRoot;
+  final String? schemaPath;
   List<Component>? _componentsCache;
   Map<String, Component>? _componentLookupCache;
   List<SharedItem>? _sharedCache;
   Map<String, SharedItem>? _sharedLookupCache;
 
-  Registry(this.data, this.registryRoot, this.sourceRoot);
+  Registry(this.data, this.registryRoot, this.sourceRoot, [this.schemaPath]);
 
   static Future<Registry> load({
     required RegistryLocation registryRoot,
@@ -102,7 +103,7 @@ class Registry {
         schemaPathOverride: schemaPath,
       );
       if (schemaSource == null) {
-        return Registry(data, registryRoot, sourceRoot);
+        return Registry(data, registryRoot, sourceRoot, schemaPath);
       }
       final result = await ComponentsSchemaValidator.validateWithJsonSchema(
         data,
@@ -113,7 +114,7 @@ class Registry {
       }
     }
 
-    return Registry(data, registryRoot, sourceRoot);
+    return Registry(data, registryRoot, sourceRoot, schemaPath);
   }
 
   Map<String, String> get defaults {

@@ -130,6 +130,9 @@ String? validateRegistryRoot(String candidate) {
   if (File(p.join(candidate, 'components.json')).existsSync()) {
     return candidate;
   }
+  if (File(p.join(candidate, 'manifests', 'components.json')).existsSync()) {
+    return candidate;
+  }
   return null;
 }
 

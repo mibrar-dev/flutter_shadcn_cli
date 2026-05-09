@@ -21,7 +21,7 @@ Future<int> runDepsCommand({
       ? registry.components.map((c) => c.id).toList()
       : installedIds;
 
-  final requiredDeps = <String, Set<String>>{};
+  final requiredDeps = <String, Map<String, String>>{};
   for (final id in componentIds) {
     final component = registry.getComponent(id);
     if (component == null) {
@@ -32,7 +32,9 @@ Future<int> runDepsCommand({
       if (value == null) {
         return;
       }
-      requiredDeps.putIfAbsent(key, () => <String>{}).add(value.toString());
+      requiredDeps.putIfAbsent(
+              key, () => <String, String>{})[_normalizeDependencyValue(value)] =
+          _formatDependencyValue(value);
     });
   }
 
@@ -40,15 +42,18 @@ Future<int> runDepsCommand({
   final results = <Map<String, dynamic>>[];
   for (final entry in requiredDeps.entries) {
     final installed = pubspecDeps[entry.key];
+    final installedCanonical = installed == null
+        ? null
+        : _normalizeDependencyValue(installed.originalValue);
     final status = installed == null
         ? 'missing'
-        : entry.value.contains(installed)
+        : entry.value.containsKey(installedCanonical)
             ? 'ok'
             : 'mismatch';
     results.add({
       'package': entry.key,
-      'required': entry.value.toList()..sort(),
-      'installed': installed,
+      'required': entry.value.values.toList()..sort(),
+      'installed': installed?.displayValue,
       'status': status,
     });
   }
@@ -161,21 +166,96 @@ String _ensureLibPrefix(String path) {
   return p.join('lib', path);
 }
 
-Map<String, String> _loadPubspecDependencies(String targetDir) {
+Map<String, _PubspecDependencyValue> _loadPubspecDependencies(
+    String targetDir) {
   final pubspecFile = File(p.join(targetDir, 'pubspec.yaml'));
   if (!pubspecFile.existsSync()) {
     return {};
   }
   final content = pubspecFile.readAsStringSync();
   final doc = loadYaml(content);
-  final deps = <String, String>{};
+  final deps = <String, _PubspecDependencyValue>{};
   if (doc is YamlMap && doc['dependencies'] is YamlMap) {
     final yamlDeps = doc['dependencies'] as YamlMap;
     yamlDeps.forEach((key, value) {
       if (key is String) {
-        deps[key] = value?.toString() ?? '';
+        deps[key] = _PubspecDependencyValue(
+          originalValue: value,
+          displayValue: _formatDependencyValue(value),
+        );
       }
     });
   }
   return deps;
+}
+
+String _normalizeDependencyValue(dynamic value) {
+  return jsonEncode(_canonicalDependencyValue(value));
+}
+
+String _formatDependencyValue(dynamic value) {
+  final canonical = _canonicalDependencyValue(value);
+  if (canonical is Map && canonical.length == 1 && canonical['sdk'] != null) {
+    return 'sdk: ${canonical['sdk']}';
+  }
+  if (canonical is Map || canonical is List) {
+    return canonical.toString();
+  }
+  return canonical?.toString() ?? '';
+}
+
+dynamic _canonicalDependencyValue(dynamic value) {
+  if (value is YamlMap) {
+    return Map.fromEntries(
+      value.nodes.entries
+          .map(
+            (entry) => MapEntry(
+              entry.key.value.toString(),
+              _canonicalDependencyValue(entry.value.value),
+            ),
+          )
+          .toList()
+        ..sort((a, b) => a.key.compareTo(b.key)),
+    );
+  }
+  if (value is YamlList) {
+    return value.nodes
+        .map((node) => _canonicalDependencyValue(node.value))
+        .toList();
+  }
+  if (value is Map) {
+    return Map.fromEntries(
+      value.entries
+          .map(
+            (entry) => MapEntry(
+              entry.key.toString(),
+              _canonicalDependencyValue(entry.value),
+            ),
+          )
+          .toList()
+        ..sort((a, b) => a.key.compareTo(b.key)),
+    );
+  }
+  if (value is List) {
+    return value.map(_canonicalDependencyValue).toList();
+  }
+  final text = value?.toString().trim();
+  if (text == null) {
+    return '';
+  }
+  final sdkMatch = RegExp(r'^sdk:\s*(.+)$').firstMatch(text);
+  if (sdkMatch != null) {
+    return {'sdk': sdkMatch.group(1)!.trim()};
+  }
+  return text;
+}
+
+class _PubspecDependencyValue {
+  final dynamic originalValue;
+  final String displayValue;
+
+  const _PubspecDependencyValue({
+    required this.originalValue,
+    required this.displayValue,
+  });
 }

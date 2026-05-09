@@ -62,14 +62,20 @@ RegistrySelection resolveRegistrySelection(
     exit(ExitCodes.configInvalid);
   }
 
-  final mode = optionalStringOption(args, 'registry') ??
-      selectedEntry?.registryMode ??
-      config.registryMode ??
-      'auto';
-  final pathOverride = optionalStringOption(args, 'registry-path') ??
+  final explicitPathOverride = optionalStringOption(args, 'registry-path');
+  final explicitUrlOverride = optionalStringOption(args, 'registry-url');
+  final mode = explicitPathOverride?.trim().isNotEmpty == true
+      ? 'local'
+      : explicitUrlOverride?.trim().isNotEmpty == true
+          ? 'remote'
+          : optionalStringOption(args, 'registry') ??
+              selectedEntry?.registryMode ??
+              config.registryMode ??
+              'auto';
+  final pathOverride = explicitPathOverride ??
       selectedEntry?.registryPath ??
       config.registryPath;
-  final urlOverride = optionalStringOption(args, 'registry-url') ??
+  final urlOverride = explicitUrlOverride ??
       selectedEntry?.baseUrl ??
       selectedEntry?.registryUrl ??
       config.registryUrl;
