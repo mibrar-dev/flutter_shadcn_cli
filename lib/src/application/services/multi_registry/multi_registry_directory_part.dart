@@ -406,14 +406,23 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     }
 
     final configEntry = config.registryConfig(namespace);
+    final shouldLoadDirectory = _shouldLoadDirectoryForNamespace(
+      configEntry: configEntry,
+      allowDirectoryFallback: allowDirectoryFallback,
+    );
     RegistryDirectoryEntry? directoryEntry;
-    try {
-      final directory = await _loadDirectory();
-      directoryEntry = directory.registries.firstWhere(
-        (item) => item.namespace == namespace,
-      );
-    } on StateError {
-      directoryEntry = null;
+    Object? directoryError;
+    if (shouldLoadDirectory) {
+      try {
+        final directory = await _loadDirectory();
+        directoryEntry = directory.registries.firstWhere(
+          (item) => item.namespace == namespace,
+        );
+      } on StateError {
+        directoryEntry = null;
+      } catch (e) {
+        directoryError = e;
+      }
     }
 
     final overrideSource = _sourceOverrideForNamespace(
@@ -500,6 +509,11 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
 
     final entry = directoryEntry;
     if (entry == null) {
+      if (directoryError != null && configEntry == null) {
+        throw MultiRegistryException(
+          directoryError.toString().replaceFirst('Exception: ', ''),
+        );
+      }
       throw MultiRegistryException(
         'Registry namespace "$namespace" not found in registries directory.',
       );
@@ -595,23 +609,49 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     return null;
   }
 
+  bool _shouldLoadDirectoryForNamespace({
+    required RegistryConfigEntry? configEntry,
+    required bool allowDirectoryFallback,
+  }) {
+    if (directoryPath != null && directoryPath!.trim().isNotEmpty) {
+      return true;
+    }
+    if (registryPathOverride != null &&
+        registryPathOverride!.trim().isNotEmpty) {
+      return false;
+    }
+    if (registryUrlOverride != null && registryUrlOverride!.trim().isNotEmpty) {
+      return false;
+    }
+    if (configEntry == null) {
+      return allowDirectoryFallback;
+    }
+    final hasLocalSource = configEntry.registryPath != null &&
+        configEntry.registryPath!.isNotEmpty;
+    final hasRemoteSource =
+        (configEntry.baseUrl != null && configEntry.baseUrl!.isNotEmpty) ||
+            (configEntry.registryUrl != null &&
+                configEntry.registryUrl!.isNotEmpty);
+    return !hasLocalSource && !hasRemoteSource && allowDirectoryFallback;
+  }
+
   String _inlineActionBaseUrl({
     required RegistryDirectoryEntry entry,
     required RegistryConfigEntry? configEntry,
   }) {
-    final configuredPath = configEntry?.registryPath?.trim();
-    if ((configEntry?.registryMode == 'local' || configuredPath != null) &&
-        configuredPath != null &&
-        configuredPath.isNotEmpty) {
-      return _resolveLocalOverridePath(configuredPath);
-    }
     final path = registryPathOverride?.trim();
     if (path != null && path.isNotEmpty) {
-      return _resolveLocalOverridePath(path);
+      return _localOverrideSourceRoot(path);
     }
     final url = registryUrlOverride?.trim();
     if (url != null && url.isNotEmpty) {
       return url;
+    }
+    final configuredPath = configEntry?.registryPath?.trim();
+    if ((configEntry?.registryMode == 'local' || configuredPath != null) &&
+        configuredPath != null &&
+        configuredPath.isNotEmpty) {
+      return _localOverrideSourceRoot(configuredPath);
     }
     return configEntry?.baseUrl ?? configEntry?.registryUrl ?? entry.baseUrl;
   }

@@ -16,10 +16,7 @@ flutter_shadcn default [namespace] [--local | --remote]
 
 ## Flags
 
-| Flag | Default | Description |
-|------|---------|-------------|
-| `--local` | `false` | Persist local development paths for the selected namespace. |
-| `--remote` | `false` | Switch the selected namespace back to the published remote registry. |
+This command does not define command-specific flags.
 
 ## Examples
 

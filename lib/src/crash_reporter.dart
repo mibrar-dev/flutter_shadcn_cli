@@ -2,7 +2,6 @@ import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/application/services/feedback/feedback_manager.dart';
 import 'package:flutter_shadcn_cli/src/application/services/version/version_manager.dart';
-import 'package:path/path.dart' as p;
 
 typedef BrowserLauncher = Future<void> Function(String url);
 
@@ -126,7 +125,7 @@ $stack
         .toIso8601String()
         .replaceAll(':', '-')
         .replaceAll('.', '-');
-    final file = File(p.join(crashDirectory.path, '$timestamp.log'));
+    final file = File(_joinPath(crashDirectory.path, '$timestamp.log'));
     await file.writeAsString(crashLog, flush: true);
     return file;
   }
@@ -147,7 +146,7 @@ $stack
         if (byModified != 0) {
           return byModified;
         }
-        return p.basename(right.path).compareTo(p.basename(left.path));
+        return _basename(right.path).compareTo(_basename(left.path));
       });
 
     for (final file in logs.skip(_maxCrashLogs)) {
@@ -278,9 +277,13 @@ $crashLog
     return env['HOME'] ?? '.';
   }
 
-  static String _joinPath(String left, String middle, String right) {
+  static String _joinPath(
+    String left,
+    String middle, [
+    String? right,
+  ]) {
     final separator = Platform.pathSeparator;
-    final parts = [left, middle, right]
+    final parts = [left, middle, if (right != null) right]
         .where((part) => part.trim().isNotEmpty)
         .map((part) => part.replaceAll(RegExp(r'[\\/]+$'), ''))
         .toList();
@@ -289,6 +292,15 @@ $crashLog
 
   static String _normalizePath(String value) {
     return value.replaceAll('\\', '/').replaceAll(RegExp(r'/+$'), '');
+  }
+
+  static String _basename(String value) {
+    final normalized = _normalizePath(value);
+    final index = normalized.lastIndexOf('/');
+    if (index < 0) {
+      return normalized;
+    }
+    return normalized.substring(index + 1);
   }
 
   static Future<void> _openInBrowser(String url) async {
