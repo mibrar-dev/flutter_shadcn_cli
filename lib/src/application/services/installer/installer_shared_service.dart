@@ -1,17 +1,15 @@
 import 'dart:convert';
 
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_registry_file_owner.dart';
-import 'package:flutter_shadcn_cli/src/application/services/registry_dependency_graph.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:path/path.dart' as p;
 
-typedef InstallerSharedFileInstaller =
-    Future<void> Function(
-      RegistryFile file,
-      List<RegistryFile> availableFiles, {
-      String? sharedId,
-    });
+typedef InstallerSharedFileInstaller = Future<void> Function(
+  RegistryFile file,
+  List<RegistryFile> availableFiles, {
+  String? sharedId,
+});
 
 class InstallerSharedService {
   static final RegExp _importDirectiveRegex = RegExp(
@@ -52,22 +50,13 @@ class InstallerSharedService {
       return;
     }
     if (_installingSharedIds.contains(resolvedId)) {
-      throw RegistryDependencyCycleException([
-        'shared:$resolvedId',
-        'shared:$resolvedId',
-      ]);
+      return;
     }
 
     _installingSharedIds.add(resolvedId);
     try {
       final sharedDeps = await loadSharedDependencies(resolvedId);
       for (final depId in sharedDeps) {
-        if (depId == resolvedId) {
-          throw RegistryDependencyCycleException([
-            'shared:$resolvedId',
-            'shared:$resolvedId',
-          ]);
-        }
         await installShared(
           depId,
           ensureConfigLoaded: ensureConfigLoaded,
@@ -171,7 +160,7 @@ class InstallerSharedService {
           }
           final resolved = p.posix.normalize(p.posix.join(dir, importPath));
           final owner = lookupRegistryFileOwner(resolved);
-          if (owner != null && owner.isShared) {
+          if (owner != null && owner.isShared && owner.id != sharedId) {
             deps.add(owner.id);
           }
         }
@@ -195,7 +184,11 @@ class InstallerSharedService {
   }
 
   bool _isRelativeImport(String path) {
-    return path.startsWith('.');
+    final uri = Uri.tryParse(path);
+    if (uri != null && uri.hasScheme) {
+      return false;
+    }
+    return !path.startsWith('/');
   }
 
   Map<String, InstallerRegistryFileOwner> _buildRegistryFileIndex() {

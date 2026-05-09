@@ -72,6 +72,76 @@ void main() {
       },
     );
 
+    test(
+      'resolves sibling Dart imports without dot prefixes as relative imports',
+      () async {
+        _writeSource(
+          registryDir,
+          'registry/shared/primitives/clickable.dart',
+          "import 'focus_outline.dart';\nclass Clickable {}\n",
+        );
+        _writeSource(
+          registryDir,
+          'registry/shared/primitives/focus_outline.dart',
+          'class FocusOutline {}\n',
+        );
+        final service = InstallerSharedService(
+          registry: _registry(
+            registryDir,
+            shared: [
+              _shared(
+                'clickable',
+                source: 'registry/shared/primitives/clickable.dart',
+              ),
+              _shared(
+                'focus_outline',
+                source: 'registry/shared/primitives/focus_outline.dart',
+              ),
+            ],
+          ),
+          logger: CliLogger(),
+        );
+
+        final closure = await service.resolveSharedDependencyClosure({
+          'clickable',
+        });
+
+        expect(closure, {'clickable', 'focus_outline'});
+      },
+    );
+
+    test(
+      'ignores imports between files owned by the same shared item',
+      () async {
+        _writeSource(
+          registryDir,
+          'registry/shared/clickable/clickable.dart',
+          "import '_impl/clickable_state.dart';\nclass Clickable {}\n",
+        );
+        _writeSource(
+          registryDir,
+          'registry/shared/clickable/_impl/clickable_state.dart',
+          'class ClickableState {}\n',
+        );
+        final service = InstallerSharedService(
+          registry: _registry(
+            registryDir,
+            shared: [
+              _sharedFiles('clickable', [
+                'registry/shared/clickable/clickable.dart',
+                'registry/shared/clickable/_impl/clickable_state.dart',
+              ]),
+            ],
+          ),
+          logger: CliLogger(),
+        );
+
+        final dependencies = await service.loadSharedDependencies('clickable');
+
+        expect(dependencies, isEmpty);
+      },
+    );
+
     test('installs shared dependencies before owning shared item', () async {
       _writeSource(
         registryDir,
@@ -109,6 +179,50 @@ void main() {
       expect(installed, [
         'theme:registry/shared/theme/theme.dart',
         'util:registry/shared/util/util.dart',
+      ]);
+    });
+
+    test('installs mutually importing shared items without recursion failure',
+        () async {
+      _writeSource(
+        registryDir,
+        'registry/shared/theme/theme.dart',
+        "import '../color_scheme/color_scheme.dart';\nclass ThemeTokens {}\n",
+      );
+      _writeSource(
+        registryDir,
+        'registry/shared/color_scheme/color_scheme.dart',
+        "import '../theme/theme.dart';\nclass ColorSchemeTokens {}\n",
+      );
+      final service = InstallerSharedService(
+        registry: _registry(
+          registryDir,
+          shared: [
+            _shared('theme', source: 'registry/shared/theme/theme.dart'),
+            _shared(
+              'color_scheme',
+              source: 'registry/shared/color_scheme/color_scheme.dart',
+            ),
+          ],
+        ),
+        logger: CliLogger(),
+      );
+      final installed = <String>[];
+
+      await service.installShared(
+        'theme',
+        ensureConfigLoaded: () async {},
+        installComponent: (_) async {
+          fail('component fallback should not be used for existing shared ids');
+        },
+        installFileWithDependencies: (file, availableFiles, {sharedId}) async {
+          installed.add('$sharedId:${file.source}');
+        },
+      );
+
+      expect(installed, [
+        'color_scheme:registry/shared/color_scheme/color_scheme.dart',
+        'theme:registry/shared/theme/theme.dart',
       ]);
     });
 
@@ -164,6 +278,16 @@ Map<String, dynamic> _shared(String id, {String? source}) {
     'id': id,
     'files': [
       {'source': fileSource, 'destination': '{sharedPath}/$id.dart'},
+    ],
+  };
+}
+
+Map<String, dynamic> _sharedFiles(String id, List<String> sources) {
+  return {
+    'id': id,
+    'files': [
+      for (final source in sources)
+        {'source': source, 'destination': '{sharedPath}/$id.dart'},
     ],
   };
 }
