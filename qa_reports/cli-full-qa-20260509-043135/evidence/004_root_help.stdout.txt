@@ -1,0 +1,44 @@
+
+flutter_shadcn CLI
+Usage: flutter_shadcn <command> [arguments]
+
+Components
+  add                     Install one or more components.
+  remove (alias: rm)      Remove one or more installed components.
+  dry-run                 Preview what would be installed.
+  list (alias: ls)        List available components.
+  search                  Search for components.
+  info (alias: i)         Show component details.
+
+Project
+  init                    Initialize shadcn_flutter in the current project.
+  registries              List available and configured registries.
+  default                 Set or show the default registry namespace and source mode.
+  sync                    Sync paths and theme from .shadcn/config.json.
+  project                 Project repair and cleanup commands.
+  assets                  Install font and icon assets.
+  locale                  Create local Flutter localization files.
+  theme                   Manage registry theme presets.
+  platform                Configure platform target paths.
+
+Diagnostics
+  reset                   Clear global CLI-managed cache and home-directory state.
+  doctor                  Diagnose registry resolution and project state.
+  validate                Validate registry integrity.
+  audit                   Audit installed components.
+  deps                    Compare registry dependencies against pubspec.yaml.
+
+Tooling
+  feedback                Submit feedback or report issues.
+  version                 Show CLI version.
+  upgrade                 Upgrade the CLI to the latest version.
+
+Global flags
+  General:
+    --verbose               Verbose logging
+    --offline               Disable network calls (use cache only)
+
+  Registry Selection:
+    --registry-name         Registry namespace (e.g. shadcn)
+
+

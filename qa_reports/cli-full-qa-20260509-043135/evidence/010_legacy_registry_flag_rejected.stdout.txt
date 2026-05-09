@@ -1,0 +1,1 @@
+Error: FormatException: Could not find an option named "--registry".

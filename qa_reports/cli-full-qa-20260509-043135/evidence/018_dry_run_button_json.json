@@ -1,0 +1,28 @@
+{
+  "id": "018_dry_run_button_json",
+  "name": "dry run button json",
+  "category": "planning",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "dry-run",
+    "button",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.382,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"dry-run\",\n  \"data\": {\n    \"requested\": [\n      \"button\"\n    ],\n    \"missing\": [],\n    \"components\": [\n      \"button\"\n    ],\n    \"dependencyGraph\": {\n      \"button\": []\n    },\n    \"shared\": [\n      \"clickable\",\n      \"color_extensions\",\n      \"form_control\",\n      \"form_value_supplier\",\n      \"geometry_extensions\",\n      \"menu_group\",\n      \"theme\"\n    ],\n    \"pubspecDependencies\": {\n      \"data_widget\": \"^0.0.2\",\n      \"gap\": \"^3.0.1\"\n    },\n    \"assets\": [],\n    \"fonts\": [],\n    \"postInstall\": [\n      \"Optional: wrap a subtree with Theme(data: ThemeData(...),\n...<truncated>...\nutton.dart\",\n          \"registry/components/control/button/_impl/variants/selected_button_widget.dart\",\n          \"registry/components/control/button/_impl/variants/tab_button.dart\",\n          \"registry/components/control/button/_impl/variants/text_button.dart\",\n          \"registry/components/control/button/button.dart\"\n        ],\n        \"registryRoot\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\"\n      }\n    }\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:10.585184Z\",\n    \"exitCode\": 0\n  }\n}\n",
+  "stderrExcerpt": ""
+}

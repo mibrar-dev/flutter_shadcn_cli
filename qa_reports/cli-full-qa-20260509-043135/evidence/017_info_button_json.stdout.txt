@@ -1,0 +1,74 @@
+! index.json schema validation failed (42 issues).
+{
+  "status": "ok",
+  "command": "info",
+  "data": {
+    "registry": {
+      "id": "_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_flutter_shadcn_pdf_qa.784yj_tl_",
+      "baseUrl": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry"
+    },
+    "component": {
+      "id": "button",
+      "name": "Button",
+      "category": "control",
+      "description": "Shadcn-style button system with variants, toggles, and groups.",
+      "tags": [
+        "controls",
+        "forms",
+        "buttons"
+      ],
+      "install": "flutter_shadcn add button",
+      "import": "import 'package:<your_app>/ui/shadcn/control/button/button.dart';",
+      "importPath": "ui/shadcn/control/button/button.dart",
+      "api": {
+        "constructors": [
+          "`Button` — base widget requiring `child` and `style`.",
+          "`PrimaryButton`, `SecondaryButton`, `OutlineButton`, `GhostButton`, `LinkButton`, `TextButton`, `DestructiveButton`, `CardButton`, `TabButton` — pre-styled variants.",
+          "`IconButton` — icon-only button, with named constructors like `IconButton.primary` and `IconButton.secondary`.",
+          "`Toggle` — boolean toggle button.",
+          "`SelectedButton` — selected/unselected button with distinct styles.",
+          "`ButtonGroup` — groups multiple buttons with shared borders."
+        ],
+        "callbacks": [
+          "`onPressed` (buttons and icon buttons)",
+          "`onChanged` (toggle and selected buttons)",
+          "`onHover`, `onFocus`",
+          "`onTapDown`, `onTapUp`, `onTapCancel`",
+          "`onSecondaryTapDown`, `onSecondaryTapUp`, `onSecondaryTapCancel`",
+          "`onTertiaryTapDown`, `onTertiaryTapUp`, `onTertiaryTapCancel`",
+          "`onLongPressStart`, `onLongPressUp`, `onLongPressMoveUpdate`, `onLongPressEnd`",
+          "`onSecondaryLongPress`, `onTertiaryLongPress`"
+        ]
+      },
+      "examples": {
+        "minimal": "PrimaryButton(\n  onPressed: () {},\n  child: const Text('Save'),\n)"
+      },
+      "dependencies": {
+        "pubspec": {
+          "data_widget": "^0.0.2",
+          "gap": "^3.0.1"
+        },
+        "shared": [
+          "theme",
+          "color_extensions",
+          "geometry_extensions",
+          "clickable",
+          "form_control",
+          "form_value_supplier",
+          "menu_group"
+        ]
+      },
+      "related": [
+        "clickable",
+        "hover",
+        "patch"
+      ]
+    }
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T03:33:09.190028Z",
+    "exitCode": 0
+  }
+}

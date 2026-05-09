@@ -1,0 +1,23 @@
+{
+  "id": "012_flutter_create_app",
+  "name": "flutter create app",
+  "category": "setup",
+  "severity": "normal",
+  "command": [
+    "flutter",
+    "create",
+    "--platforms=ios,android",
+    "app"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.398,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Creating project app...\nResolving dependencies in `app`...\nDownloading packages...\nGot dependencies in `app`.\nWrote 75 files.\n\nAll done!\nYou can find general documentation for Flutter at: https://docs.flutter.dev/\nDetailed API documentation is available at: https://api.flutter.dev/\nIf you prefer video documentation, consider: https://www.youtube.com/c/flutterdev\n\nIn order to run your application, type:\n\n  $ cd app\n  $ flutter run\n\nYour application code is in app/lib/main.dart.\n\n",
+  "stderrExcerpt": ""
+}

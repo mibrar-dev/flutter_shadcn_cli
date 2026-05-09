@@ -1,0 +1,27 @@
+{
+  "id": "033_audit_json_installed",
+  "name": "audit json installed",
+  "category": "health",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "audit",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.242,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"audit\",\n  \"data\": {\n    \"installed\": [\n      \"alert\",\n      \"button\",\n      \"card\"\n    ],\n    \"missingRegistry\": [],\n    \"versionMismatches\": [],\n    \"tagMismatches\": [],\n    \"missingFiles\": [],\n    \"missingManifests\": []\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:02.895648Z\",\n    \"exitCode\": 0\n  }\n}\n",
+  "stderrExcerpt": ""
+}

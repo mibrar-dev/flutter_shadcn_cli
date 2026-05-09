@@ -1,0 +1,21 @@
+{
+  "id": "046_kit_dart_analyze",
+  "name": "kit dart analyze",
+  "category": "repo-gate",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "analyze"
+  ],
+  "cwd": "/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 4.326,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Analyzing flutter_shadcn_kit...\nNo issues found!\n",
+  "stderrExcerpt": ""
+}

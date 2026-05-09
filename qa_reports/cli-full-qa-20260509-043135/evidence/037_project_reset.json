@@ -1,0 +1,23 @@
+{
+  "id": "037_project_reset",
+  "name": "project reset",
+  "category": "project",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "project",
+    "reset"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.56,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Removed CLI-managed project files:\n  - .shadcn\n  - lib/ui/shadcn\nUndo available until 2026-05-10T03:34:15.097242Z via `flutter_shadcn project reset --undo`.\n",
+  "stderrExcerpt": ""
+}

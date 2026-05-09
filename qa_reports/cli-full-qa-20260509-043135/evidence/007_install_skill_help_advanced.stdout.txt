@@ -1,0 +1,14 @@
+Usage: flutter_shadcn install-skill [--skill <id>] [--model <name>] [options]
+
+[33m⚠️  EXPERIMENTAL - This command has not been fully tested yet. Use with caution.[0m
+
+Modes:
+  (no args)              Multi-skill interactive mode (default)
+  --available, -a        List available skills from registry
+  --list                 List installed skills grouped by model
+  --skill <id>           Install one skill (interactive model choice if --model omitted)
+  --skill <id> --model   Install skill to specific model folder
+  --skills-url           Override skills base URL/path
+  --symlink --model      Symlink one installed skill to other models
+  --uninstall <id>       Remove skill from one model (requires --model)
+  --uninstall-interactive Interactive removal mode

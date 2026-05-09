@@ -1,0 +1,22 @@
+{
+  "status": "ok",
+  "command": "audit",
+  "data": {
+    "installed": [
+      "alert",
+      "button",
+      "card"
+    ],
+    "missingRegistry": [],
+    "versionMismatches": [],
+    "tagMismatches": [],
+    "missingFiles": [],
+    "missingManifests": []
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T03:34:02.895648Z",
+    "exitCode": 0
+  }
+}

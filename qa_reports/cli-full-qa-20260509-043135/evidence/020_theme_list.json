@@ -1,0 +1,23 @@
+{
+  "id": "020_theme_list",
+  "name": "theme list",
+  "category": "theme",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "theme",
+    "--list"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 17.329,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Installed theme presets:\n  1) Amber Minimal (amber-minimal) (current)\n  2) Amethyst Haze (amethyst-haze)\n  3) Bold Tech (bold-tech)\n  4) Bubblegum (bubblegum)\n  5) Caffeine (caffeine)\n  6) Candyland (candyland)\n  7) Catppuccin (catppuccin)\n  8) Claude (claude)\n  9) Claymorphism (claymorphism)\n  10) Clean Slate (clean-slate)\n  11) Cosmic Night (cosmic-night)\n  12) Cyberpunk (cyberpunk)\n  13) Darkmatter (darkmatter)\n  14) Doom 64 (doom-64)\n  15) Elegant Luxury (elegant-luxury)\n  16) Graphite (graphite)\n  17) Kodama Grove (kodama-grove)\n  18) Midnight Bloom (midnight-bloom)\n  19) Mocha Mousse (mo\n...<truncated>...\n-brutalism)\n  24) Northern Lights (northern-lights)\n  25) Notebook (notebook)\n  26) Ocean Breeze (ocean-breeze)\n  27) Pastel Dreams (pastel-dreams)\n  28) Perpetuity (perpetuity)\n  29) Quantum Rose (quantum-rose)\n  30) Retro Arcade (retro-arcade)\n  31) Sage Garden (sage-garden)\n  32) Soft Pop (soft-pop)\n  33) Solar Dusk (solar-dusk)\n  34) Starry Night (starry-night)\n  35) Sunset Horizon (sunset-horizon)\n  36) Supabase (supabase)\n  37) T3 Chat (t3-chat)\n  38) Tangerine (tangerine)\n  39) Twitter (twitter)\n  40) Vercel (vercel)\n  41) Vintage Paper (vintage-paper)\n  42) Violet Bloom (violet-bloom)\n",
+  "stderrExcerpt": ""
+}

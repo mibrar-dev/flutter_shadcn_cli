@@ -1,0 +1,27 @@
+{
+  "id": "035_project_refresh_repairs_missing_scaffold_file",
+  "name": "project refresh repairs missing scaffold file",
+  "category": "project",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "project",
+    "refresh"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 8.219,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Install font assets?\nCopies selected font families to assets/fonts/.\nSelect groups (comma-separated numbers, Enter for defaults):\n  1) Geist Sans [default]\n     18 weight/style variants - ~3.2 MB\n  2) Geist Mono [default]\n     17 weight/style variants - ~2.8 MB\n  3) Bootstrap icon font [default]\n     Bootstrap icon font asset.\n  4) Lucide icon font [default]\n     Lucide icon font asset.\n  5) Radix icon font [default]\n     Radix icon font asset.\nGroups: Regenerated 38 missing scaffolding files.\n  - assets/fonts/bootstrap.otf\n  - assets/fonts/geist/Geist-Black.otf\n  - assets/fonts/geist/Geist-Bl\n...<truncated>...\nonts/geist/GeistMono-Light.otf\n  - assets/fonts/geist/GeistMono-LightItalic.otf\n  - assets/fonts/geist/GeistMono-Medium.otf\n  - assets/fonts/geist/GeistMono-MediumItalic.otf\n  - assets/fonts/geist/GeistMono-Regular.otf\n  - assets/fonts/geist/GeistMono-SemiBold.otf\n  - assets/fonts/geist/GeistMono-SemiBoldItalic.otf\n  - assets/fonts/geist/GeistMono-Thin.otf\n  - assets/fonts/geist/GeistMono-ThinItalic.otf\n  - assets/fonts/geist/GeistMono-UltraBlack.otf\n  - assets/fonts/geist/GeistMono-UltraLight.otf\n  - assets/fonts/lucide.ttf\n  - assets/fonts/radix.otf\n  - lib/ui/shadcn/shared/theme/theme.dart\n",
+  "stderrExcerpt": ""
+}

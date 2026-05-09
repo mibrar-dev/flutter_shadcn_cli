@@ -1,0 +1,24 @@
+{
+  "id": "025_platform_set_android_permission",
+  "name": "platform set android permission",
+  "category": "platform",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "platform",
+    "--set",
+    "android.permissions=android/app/src/main/AndroidManifest.xml"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.226,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "\nPlatform targets\n  android:\n    permissions: android/app/src/main/AndroidManifest.xml\n    gradle: android/app/build.gradle\n    notes: .shadcn/platform/android.md\n  ios:\n    infoPlist: ios/Runner/Info.plist\n    podfile: ios/Podfile\n    notes: .shadcn/platform/ios.md\n  macos:\n    entitlements: macos/Runner/DebugProfile.entitlements\n    notes: .shadcn/platform/macos.md\n  desktop:\n    config: .shadcn/platform/desktop.md\n",
+  "stderrExcerpt": ""
+}

@@ -1,0 +1,1 @@
+Available assets are defined by inline registry actions.

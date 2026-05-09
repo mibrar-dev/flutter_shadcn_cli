@@ -1,0 +1,27 @@
+{
+  "id": "015_list_json",
+  "name": "list json",
+  "category": "discovery",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "list",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.585,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "! index.json schema validation failed (42 issues).\n{\n  \"status\": \"ok\",\n  \"command\": \"list\",\n  \"data\": {\n    \"registry\": {\n      \"id\": \"_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_flutter_shadcn_pdf_qa.784yj_tl_\",\n      \"baseUrl\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\"\n    },\n    \"count\": 133,\n    \"components\": [\n      {\n        \"id\": \"accordion\",\n        \"name\": \"Accordion\",\n        \"category\": \"layout\",\n        \"description\": \"Single-expansion accordion with configurable triggers and theming.\",\n        \"tags\": [\n         \n...<truncated>...\n],\n          \"types\": [\n            \"`Wrapper`\",\n            \"`WrapperBuilder`\"\n          ]\n        },\n        \"examples\": {\n          \"minimal\": \"Wrapper(\\n  wrap: isEnabled,\\n  builder: (context, child) => Padding(\\n    padding: const EdgeInsets.all(8),\\n    child: child,\\n  ),\\n  child: const Text('Wrapped'),\\n)\"\n        },\n        \"dependencies\": {\n          \"pubspec\": {},\n          \"shared\": []\n        },\n        \"related\": [\n          \"debug\"\n        ]\n      }\n    ]\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:06.145372Z\",\n    \"exitCode\": 0\n  }\n}\n",
+  "stderrExcerpt": ""
+}

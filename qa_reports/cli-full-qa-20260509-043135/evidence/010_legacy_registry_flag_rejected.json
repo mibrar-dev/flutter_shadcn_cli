@@ -1,0 +1,24 @@
+{
+  "id": "010_legacy_registry_flag_rejected",
+  "name": "legacy registry flag rejected",
+  "category": "negative",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--registry",
+    "local",
+    "list"
+  ],
+  "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "expectedExitCodes": [
+    64
+  ],
+  "exitCode": 2,
+  "timedOut": false,
+  "durationSeconds": 1.155,
+  "status": "FAIL",
+  "notes": "Removed public --registry flag must remain rejected.",
+  "stdoutExcerpt": "Error: FormatException: Could not find an option named \"--registry\".\n",
+  "stderrExcerpt": ""
+}

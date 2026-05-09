@@ -1,0 +1,52 @@
+Install font assets?
+Copies selected font families to assets/fonts/.
+Select groups (comma-separated numbers, Enter for defaults):
+  1) Geist Sans [default]
+     18 weight/style variants - ~3.2 MB
+  2) Geist Mono [default]
+     17 weight/style variants - ~2.8 MB
+  3) Bootstrap icon font [default]
+     Bootstrap icon font asset.
+  4) Lucide icon font [default]
+     Lucide icon font asset.
+  5) Radix icon font [default]
+     Radix icon font asset.
+Groups: Regenerated 38 missing scaffolding files.
+  - assets/fonts/bootstrap.otf
+  - assets/fonts/geist/Geist-Black.otf
+  - assets/fonts/geist/Geist-BlackItalic.otf
+  - assets/fonts/geist/Geist-Bold.otf
+  - assets/fonts/geist/Geist-BoldItalic.otf
+  - assets/fonts/geist/Geist-ExtraLightItalic.otf
+  - assets/fonts/geist/Geist-Light.otf
+  - assets/fonts/geist/Geist-LightItalic.otf
+  - assets/fonts/geist/Geist-Medium.otf
+  - assets/fonts/geist/Geist-MediumItalic.otf
+  - assets/fonts/geist/Geist-Regular.otf
+  - assets/fonts/geist/Geist-RegularItalic.otf
+  - assets/fonts/geist/Geist-SemiBold.otf
+  - assets/fonts/geist/Geist-SemiBoldItalic.otf
+  - assets/fonts/geist/Geist-Thin.otf
+  - assets/fonts/geist/Geist-ThinItalic.otf
+  - assets/fonts/geist/Geist-UltraBlack.otf
+  - assets/fonts/geist/Geist-UltraLight.otf
+  - assets/fonts/geist/GeistMono-Black.otf
+  - assets/fonts/geist/GeistMono-BlackItalic.otf
+  - assets/fonts/geist/GeistMono-Bold.otf
+  - assets/fonts/geist/GeistMono-BoldItalic.otf
+  - assets/fonts/geist/GeistMono-ExtraLightItalic.otf
+  - assets/fonts/geist/GeistMono-Italic.otf
+  - assets/fonts/geist/GeistMono-Light.otf
+  - assets/fonts/geist/GeistMono-LightItalic.otf
+  - assets/fonts/geist/GeistMono-Medium.otf
+  - assets/fonts/geist/GeistMono-MediumItalic.otf
+  - assets/fonts/geist/GeistMono-Regular.otf
+  - assets/fonts/geist/GeistMono-SemiBold.otf
+  - assets/fonts/geist/GeistMono-SemiBoldItalic.otf
+  - assets/fonts/geist/GeistMono-Thin.otf
+  - assets/fonts/geist/GeistMono-ThinItalic.otf
+  - assets/fonts/geist/GeistMono-UltraBlack.otf
+  - assets/fonts/geist/GeistMono-UltraLight.otf
+  - assets/fonts/lucide.ttf
+  - assets/fonts/radix.otf
+  - lib/ui/shadcn/shared/theme/theme.dart

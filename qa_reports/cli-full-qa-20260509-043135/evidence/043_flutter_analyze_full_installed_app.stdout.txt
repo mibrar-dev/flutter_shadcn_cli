@@ -1,0 +1,273 @@
+Resolving dependencies...
+Downloading packages...
++ animation_kit 0.0.2
++ args 2.7.0
++ convert 3.1.2
++ country_flags 4.1.2
++ cross_file 0.3.5+2
++ data_widget 0.0.3
++ email_validator 3.0.0
++ expressions 0.2.5+3
++ flutter_localizations 0.0.0 from sdk flutter
++ gap 3.0.1
++ http 1.6.0
++ http_parser 4.1.2
++ intl 0.20.2
++ jovial_misc 0.10.0
++ jovial_svg 1.1.29
+  matcher 0.12.18 (0.12.20 available)
+  meta 1.17.0 (1.18.2 available)
++ petitparser 7.0.2
++ phonecodes 0.0.4
++ quiver 3.2.2
++ rxdart 0.28.0
++ skeletonizer 2.1.3
+  test_api 0.7.9 (0.7.12 available)
++ typed_data 1.4.0
+  vector_math 2.2.0 (2.3.0 available)
++ web 1.1.1
++ xml 6.6.1 (7.0.1 available)
+Changed 23 dependencies!
+5 packages have newer versions incompatible with dependency constraints.
+Try `flutter pub outdated` for more information.
+Analyzing app...                                                
+
+warning • Unused import: 'package:data_widget/data_widget.dart' • lib/ui/shadcn/components/control/button/_impl/core/button_widget.dart:1:8 • unused_import
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/control/button/_impl/core/button_widget.dart:3:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/clickable.dart' • lib/ui/shadcn/components/control/button/_impl/core/button_widget.dart:5:8 • unused_import
+warning • Unused import: '../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/core/button_widget.dart:6:8 • unused_import
+warning • Unused import: '../../../../../shared/utils/geometry_extensions.dart' • lib/ui/shadcn/components/control/button/_impl/core/button_widget.dart:7:8 • unused_import
+warning • Unused import: '../../../../../shared/utils/platform_utils.dart' • lib/ui/shadcn/components/control/button/_impl/core/button_widget.dart:8:8 • unused_import
+warning • Unused import: '../styles/button_overrides.dart' • lib/ui/shadcn/components/control/button/_impl/core/button_widget.dart:9:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/form_value_supplier.dart' • lib/ui/shadcn/components/control/button/_impl/core/controlled_toggle.dart:4:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/clickable.dart' • lib/ui/shadcn/components/control/button/_impl/core/toggle_widget.dart:3:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/form_control.dart' • lib/ui/shadcn/components/control/button/_impl/core/toggle_widget.dart:4:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/form_value_supplier.dart' • lib/ui/shadcn/components/control/button/_impl/core/toggle_widget.dart:5:8 • unused_import
+warning • Unused import: '../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/core/toggle_widget.dart:6:8 • unused_import
+warning • Unused import: '../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/core/toggle_widget.dart:7:8 • unused_import
+warning • Unused import: '../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/core/toggle_widget.dart:8:8 • unused_import
+warning • Unused import: 'button_widget.dart' • lib/ui/shadcn/components/control/button/_impl/core/toggle_widget.dart:10:8 • unused_import
+warning • Unused import: '../state/toggle_controller.dart' • lib/ui/shadcn/components/control/button/_impl/core/toggle_widget.dart:11:8 • unused_import
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/control/button/_impl/state/button_state.dart:3:8 • unused_import
+warning • Unused import: '../../../../../shared/utils/geometry_extensions.dart' • lib/ui/shadcn/components/control/button/_impl/state/button_state.dart:7:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/clickable.dart' • lib/ui/shadcn/components/control/button/_impl/state/selected_button_state.dart:3:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/form_control.dart' • lib/ui/shadcn/components/control/button/_impl/state/selected_button_state.dart:4:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/form_value_supplier.dart' • lib/ui/shadcn/components/control/button/_impl/state/selected_button_state.dart:5:8 • unused_import
+warning • Unused import: '../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/state/selected_button_state.dart:6:8 • unused_import
+warning • Unused import: '../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/state/selected_button_state.dart:7:8 • unused_import
+warning • Unused import: '../styles/button_style_class.dart' • lib/ui/shadcn/components/control/button/_impl/state/selected_button_state.dart:8:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/form_value_supplier.dart' • lib/ui/shadcn/components/control/button/_impl/state/toggle_controller_class.dart:4:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/clickable.dart' • lib/ui/shadcn/components/control/button/_impl/state/toggle_state.dart:3:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/form_control.dart' • lib/ui/shadcn/components/control/button/_impl/state/toggle_state.dart:4:8 • unused_import
+warning • Unused import: '../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/state/toggle_state.dart:7:8 • unused_import
+warning • Unused import: 'toggle_controller.dart' • lib/ui/shadcn/components/control/button/_impl/state/toggle_state.dart:11:8 • unused_import
+warning • Unused import: 'button_state_property_delegate.dart' • lib/ui/shadcn/components/control/button/_impl/styles/component_theme_button_style.dart:6:8 • unused_import
+   info • The import of '../../styles/button_state_property_delegate.dart' is unnecessary because all of the used elements are also provided by the import of '../../variants/button_variance.dart' • lib/ui/shadcn/components/control/button/_impl/themes/config/button_theme_tokens.dart:11:8 • unnecessary_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/button_theme_base.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/button_theme_base.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/card_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/card_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/card_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/destructive_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/destructive_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/destructive_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/fixed_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/fixed_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/fixed_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/ghost_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/ghost_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/ghost_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/link_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/link_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/link_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/menu_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/menu_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/menu_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/menubar_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/menubar_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/menubar_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/muted_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/muted_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/muted_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/outline_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/outline_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/outline_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/primary_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/primary_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/primary_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/secondary_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/secondary_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/secondary_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/text_button_theme.dart:3:8 • unused_import
+warning • Unused import: '../../styles/abstract_button_style.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/text_button_theme.dart:4:8 • unused_import
+warning • Unused import: '../../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/themes/variants/text_button_theme.dart:5:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/clickable.dart' • lib/ui/shadcn/components/control/button/_impl/utils/button_helpers.dart:4:8 • unused_import
+   info • The import of '../styles/component_theme_button_style.dart' is unnecessary because all of the used elements are also provided by the import of '../themes/base/button_theme.dart' • lib/ui/shadcn/components/control/button/_impl/variants/button_variance_class.dart:6:8 • unnecessary_import
+warning • Unused import: '../../../../../shared/primitives/clickable.dart' • lib/ui/shadcn/components/control/button/_impl/variants/selected_button_widget.dart:3:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/form_control.dart' • lib/ui/shadcn/components/control/button/_impl/variants/selected_button_widget.dart:4:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/form_value_supplier.dart' • lib/ui/shadcn/components/control/button/_impl/variants/selected_button_widget.dart:5:8 • unused_import
+warning • Unused import: '../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/control/button/_impl/variants/selected_button_widget.dart:6:8 • unused_import
+warning • Unused import: '../styles/button_state_property.dart' • lib/ui/shadcn/components/control/button/_impl/variants/selected_button_widget.dart:8:8 • unused_import
+warning • Unused import: '../core/button_widget.dart' • lib/ui/shadcn/components/control/button/_impl/variants/selected_button_widget.dart:10:8 • unused_import
+   info • The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' • lib/ui/shadcn/components/control/clickable/_impl/core/clickable_widget.dart:1:8 • unnecessary_import
+warning • Unused import: 'package:flutter/foundation.dart' • lib/ui/shadcn/components/control/clickable/_impl/state/clickable_state.dart:2:8 • unused_import
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/control/clickable/_impl/state/widget_states_provider.dart:91:37 • use_null_aware_elements
+warning • Unused import: '../../../../overlay/dialog/dialog.dart' • lib/ui/shadcn/components/control/command/_impl/state/command_state.dart:5:8 • unused_import
+warning • Unused import: '../../../../../shared/primitives/clickable.dart' • lib/ui/shadcn/components/control/command/_impl/state/command_state.dart:8:8 • unused_import
+warning • Unused import: '../../../../../shared/utils/border_utils.dart' • lib/ui/shadcn/components/control/command/_impl/state/command_state.dart:13:8 • unused_import
+warning • Unused import: '../../../../../shared/utils/constants.dart' • lib/ui/shadcn/components/control/command/_impl/state/command_state.dart:14:8 • unused_import
+warning • Duplicate import • lib/ui/shadcn/components/control/command/_impl/state/command_state.dart:19:8 • duplicate_import
+warning • Unused import: 'package:flutter/widgets.dart' • lib/ui/shadcn/components/control/patch/_impl/utils/click_details.dart:1:8 • unused_import
+warning • Unused import: '../../../../../shared/utils/style_value.dart' • lib/ui/shadcn/components/control/scrollbar/_impl/core/shadcn_scrollbar.dart:3:8 • unused_import
+warning • Unused import: '../themes/base/scrollbar_theme.dart' • lib/ui/shadcn/components/control/scrollbar/_impl/core/shadcn_scrollbar.dart:4:8 • unused_import
+   info • The import of 'package:flutter/painting.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' • lib/ui/shadcn/components/display/border_loading/border_loading.dart:5:8 • unnecessary_import
+   info • The import of 'package:flutter/physics.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' • lib/ui/shadcn/components/display/border_loading/border_loading.dart:6:8 • unnecessary_import
+  error • Undefined class 'AxisAlignment' • lib/ui/shadcn/components/display/chat/_impl/core/_tail_painter.dart:18:9 • undefined_class
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/chat/_impl/core/chat_bubble.dart:27:9 • undefined_class
+  error • Undefined name 'AxisAlignmentDirectional' • lib/ui/shadcn/components/display/chat/_impl/core/chat_bubble.dart:73:21 • undefined_identifier
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/chat/_impl/core/chat_group.dart:29:9 • undefined_class
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/chat/_impl/core/chat_group.dart:50:9 • undefined_class
+  error • Undefined name 'AxisAlignmentDirectional' • lib/ui/shadcn/components/display/chat/_impl/core/chat_group.dart:106:29 • undefined_identifier
+  error • Undefined name 'AxisAlignment' • lib/ui/shadcn/components/display/chat/_impl/core/chat_group.dart:109:34 • undefined_identifier
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/chat/_impl/core/chat_group_theme.dart:9:9 • undefined_class
+  error • The name 'AxisAlignmentGeometry' isn't a type, so it can't be used as a type argument • lib/ui/shadcn/components/display/chat/_impl/core/chat_group_theme.dart:40:17 • non_type_as_type_argument
+  error • Undefined class 'AxisDirectional' • lib/ui/shadcn/components/display/chat/_impl/core/chat_tail_theme.dart:6:9 • undefined_class
+  error • The name 'AxisDirectional' isn't a type, so it can't be used as a type argument • lib/ui/shadcn/components/display/chat/_impl/core/chat_tail_theme.dart:57:17 • non_type_as_type_argument
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/chat/_impl/core/chat_theme.dart:9:9 • undefined_class
+  error • The name 'AxisAlignmentGeometry' isn't a type, so it can't be used as a type argument • lib/ui/shadcn/components/display/chat/_impl/core/chat_theme.dart:63:17 • non_type_as_type_argument
+  error • Undefined class 'AxisAlignment' • lib/ui/shadcn/components/display/chat/_impl/core/render_chat_constrained_box.dart:11:3 • undefined_class
+  error • Undefined class 'AxisAlignment' • lib/ui/shadcn/components/display/chat/_impl/core/render_chat_constrained_box.dart:21:14 • undefined_class
+  error • Undefined class 'AxisAlignment' • lib/ui/shadcn/components/display/chat/_impl/core/render_chat_constrained_box.dart:31:3 • undefined_class
+  error • Undefined class 'AxisAlignment' • lib/ui/shadcn/components/display/chat/_impl/core/render_chat_constrained_box.dart:42:17 • undefined_class
+  error • Undefined name 'AxisAlignmentDirectional' • lib/ui/shadcn/components/display/chat/_impl/core/sharp_corner_chat_bubble_type.dart:102:25 • undefined_identifier
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/chat/_impl/core/tail_chat_bubble_type.dart:6:9 • undefined_class
+  error • Undefined class 'AxisDirectional' • lib/ui/shadcn/components/display/chat/_impl/core/tail_chat_bubble_type.dart:9:9 • undefined_class
+  error • The name 'AxisAlignmentGeometry' isn't a type, so it can't be used as a type argument • lib/ui/shadcn/components/display/chat/_impl/core/tail_chat_bubble_type.dart:59:17 • non_type_as_type_argument
+  error • The name 'AxisDirectional' isn't a type, so it can't be used as a type argument • lib/ui/shadcn/components/display/chat/_impl/core/tail_chat_bubble_type.dart:60:17 • non_type_as_type_argument
+  error • Undefined name 'AxisDirectional' • lib/ui/shadcn/components/display/chat/_impl/core/tail_chat_bubble_type.dart:129:21 • undefined_identifier
+  error • Undefined name 'AxisAlignmentDirectional' • lib/ui/shadcn/components/display/chat/_impl/core/tail_chat_bubble_type.dart:190:23 • undefined_identifier
+  error • Undefined name 'AxisDirectional' • lib/ui/shadcn/components/display/chat/_impl/core/tail_chat_bubble_type.dart:195:23 • undefined_identifier
+  error • Target of URI doesn't exist: '../../../shared/utils/axis.dart' • lib/ui/shadcn/components/display/chat/chat.dart:9:8 • uri_does_not_exist
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/chat/chat.dart:42:9 • undefined_class
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/display/code_snippet/code_snippet.dart:2:8 • unused_import
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/divider/_impl/core/vertical_divider.dart:40:9 • undefined_class
+  error • Undefined name 'AxisAlignment' • lib/ui/shadcn/components/display/divider/_impl/core/vertical_divider.dart:50:55 • undefined_identifier
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/divider/_impl/themes/base/divider_theme.dart:24:9 • undefined_class
+  error • The name 'AxisAlignmentGeometry' isn't a type, so it can't be used as a type argument • lib/ui/shadcn/components/display/divider/_impl/themes/base/divider_theme.dart:47:17 • non_type_as_type_argument
+  error • Target of URI doesn't exist: '../../../../../../shared/utils/axis.dart' • lib/ui/shadcn/components/display/divider/_impl/themes/config/divider_theme_defaults.dart:3:8 • uri_does_not_exist
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/divider/_impl/themes/config/divider_theme_defaults.dart:27:9 • undefined_class
+  error • Undefined name 'AxisAlignment' • lib/ui/shadcn/components/display/divider/_impl/themes/config/divider_theme_defaults.dart:36:27 • undefined_identifier
+  error • Target of URI doesn't exist: '../../../../../../shared/utils/axis.dart' • lib/ui/shadcn/components/display/divider/_impl/themes/config/divider_theme_tokens.dart:3:8 • uri_does_not_exist
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/divider/_impl/themes/config/divider_theme_tokens.dart:17:9 • undefined_class
+  error • Undefined name 'AxisAlignment' • lib/ui/shadcn/components/display/divider/_impl/themes/config/divider_theme_tokens.dart:28:27 • undefined_identifier
+  error • Target of URI doesn't exist: '../../../shared/utils/axis.dart' • lib/ui/shadcn/components/display/divider/divider.dart:10:8 • uri_does_not_exist
+  error • Undefined class 'AxisAlignmentGeometry' • lib/ui/shadcn/components/display/divider/divider.dart:57:9 • undefined_class
+  error • Undefined name 'AxisAlignment' • lib/ui/shadcn/components/display/divider/divider.dart:103:21 • undefined_identifier
+   info • 'dart:html' is deprecated and shouldn't be used. Use package:web and dart:js_interop instead • lib/ui/shadcn/components/display/markdown/_impl/utils/markdown_link_opener_web.dart:3:1 • deprecated_member_use
+  error • Target of URI doesn't exist: 'package:app/ui/shadcn/components/display/markdown/_impl/state/markdown_live_preview.dart' • lib/ui/shadcn/components/display/markdown/markdown.dart:22:6 • uri_does_not_exist
+  error • Classes can only extend other classes • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:4:29 • extends_non_class
+  error • No associated named super constructor parameter • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:5:30 • super_formal_parameter_without_associated_named
+  error • No associated named super constructor parameter • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:5:41 • super_formal_parameter_without_associated_named
+  error • No associated named super constructor parameter • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:5:54 • super_formal_parameter_without_associated_named
+  error • Undefined class 'Widget' • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:8:3 • undefined_class
+warning • The method doesn't override an inherited method • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:8:12 • override_on_non_overriding_member
+  error • Undefined class 'BuildContext' • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:8:18 • undefined_class
+  error • The method 'resolveSize' isn't defined for the type 'CircleSpinner' • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:9:26 • undefined_method
+  error • The method 'resolveColor' isn't defined for the type 'CircleSpinner' • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:11:27 • undefined_method
+  error • Undefined name 'm' • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:12:12 • undefined_identifier
+  error • Undefined name 'm' • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:15:14 • undefined_identifier
+  error • Undefined name 'm' • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:19:15 • undefined_identifier
+  error • The name 'Color' isn't a type, so it can't be used as a type argument • lib/ui/shadcn/components/display/spinner/circle_spinner.dart:19:40 • non_type_as_type_argument
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/display/text/_impl/core/_selectable_text_then_widget.dart:22:20 • use_null_aware_elements
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/form/color_input/color_input.dart:2:8 • unused_import
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/form/dropzone/dropzone.dart:2:8 • unused_import
+warning • Unused import: '../../../shared/utils/color_extensions.dart' • lib/ui/shadcn/components/form/dropzone/dropzone.dart:7:8 • unused_import
+warning • Unused import: '../../../shared/utils/geometry_extensions.dart' • lib/ui/shadcn/components/form/dropzone/dropzone.dart:9:8 • unused_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/dropzone/dropzone.dart:99:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/dropzone/dropzone.dart:106:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/dropzone/dropzone.dart:151:42 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/file_picker/_impl/core/file_item.dart:101:52 • deprecated_member_use
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/file_picker/_impl/core/file_item.dart:158:13 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/file_picker/_impl/state/file_upload_state.dart:227:9 • use_null_aware_elements
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/file_picker/_impl/state/file_upload_state_surfaces.dart:86:51 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/file_picker/_impl/state/file_upload_state_surfaces.dart:101:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/file_picker/_impl/state/file_upload_state_surfaces.dart:226:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/file_picker/_impl/state/file_upload_state_surfaces.dart:229:45 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/file_picker/_impl/state/file_upload_state_surfaces.dart:240:47 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/file_picker/_impl/state/file_upload_state_surfaces.dart:271:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/file_picker/_impl/state/file_upload_state_surfaces.dart:379:45 • deprecated_member_use
+   info • The 'child' argument should be last in widget constructor invocations • lib/ui/shadcn/components/form/file_picker/_impl/utils/file_drop_adapter_web.dart:30:7 • sort_child_properties_last
+warning • Unused import: '../../../shared/utils/color_extensions.dart' • lib/ui/shadcn/components/form/file_picker/file_picker.dart:18:8 • unused_import
+warning • Unused import: '../../../shared/utils/constants.dart' • lib/ui/shadcn/components/form/file_picker/file_picker.dart:19:8 • unused_import
+warning • Unused import: '../../../shared/utils/geometry_extensions.dart' • lib/ui/shadcn/components/form/file_picker/file_picker.dart:20:8 • unused_import
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/form/_impl/utils/form_entry_error_builder.dart:37:11 • use_null_aware_elements
+  error • Target of URI doesn't exist: '../../../shared/primitives/phone_number.dart' • lib/ui/shadcn/components/form/form/form.dart:12:8 • uri_does_not_exist
+  error • The name 'PhoneNumber' isn't a type, so it can't be used as a type argument • lib/ui/shadcn/components/form/form/form.dart:143:33 • non_type_as_type_argument
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/object_input/_impl/core/nullable_date.dart:132:7 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/object_input/_impl/core/nullable_date.dart:133:7 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/object_input/_impl/core/nullable_date.dart:134:7 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/object_input/_impl/core/nullable_time_of_day.dart:142:7 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/object_input/_impl/core/nullable_time_of_day.dart:143:7 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/object_input/_impl/core/nullable_time_of_day.dart:144:7 • use_null_aware_elements
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/core/shad_slider_renderers.dart:88:63 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/core/shad_slider_renderers.dart:148:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/core/shad_slider_renderers.dart:150:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/core/shad_slider_renderers.dart:204:62 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/core/shad_slider_renderers.dart:207:23 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:58:52 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:82:14 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:83:69 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:102:64 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:151:56 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:163:34 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:294:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:295:29 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:336:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:368:54 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:370:28 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:420:53 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:422:55 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:462:62 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_defaults.dart:465:23 • deprecated_member_use
+warning • Unused import: '../../../../../shared/theme/theme.dart' • lib/ui/shadcn/components/form/slider/_impl/styles/shad_slider_presets.dart:3:8 • unused_import
+   info • The import of '../core/shad_slider_renderers.dart' is unnecessary because all of the used elements are also provided by the import of '../../slider.dart' • lib/ui/shadcn/components/form/slider/_impl/variants/base_slider_variant.dart:3:8 • unnecessary_import
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/variants/wave_slider.dart:549:30 • deprecated_member_use
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/form/slider/_impl/variants/wave_slider.dart:574:35 • deprecated_member_use
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/form/text_field/_impl/state/text_field_state_part1.dart:490:19 • use_null_aware_elements
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/form/time_picker/time_picker.dart:4:8 • unused_import
+  error • Target of URI doesn't exist: '../../component_theme_global_configs.dart' • lib/ui/shadcn/components/layout/app/app.dart:8:8 • uri_does_not_exist
+  error • The method 'registerComponentThemeGlobalConfigs' isn't defined for the type 'ShadcnApp' • lib/ui/shadcn/components/layout/app/app.dart:230:7 • undefined_method
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/layout/basic/_impl/core/label.dart:34:11 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/layout/basic/_impl/core/label.dart:41:11 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/layout/filter_bar/_impl/core/filter_bar_content.dart:434:11 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/components/layout/filter_bar/_impl/core/filter_bar_content.dart:442:9 • use_null_aware_elements
+   info • The 'child' argument should be last in widget constructor invocations • lib/ui/shadcn/components/layout/filter_bar/_impl/core/filter_bar_content.dart:714:11 • sort_child_properties_last
+   info • 'withOpacity' is deprecated and shouldn't be used. Use .withValues() to avoid precision loss • lib/ui/shadcn/components/layout/filter_bar/_impl/styles/filter_bar_style.dart:128:51 • deprecated_member_use
+   info • The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' • lib/ui/shadcn/components/layout/scrollable/scrollable.dart:3:8 • unnecessary_import
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/navigation/stepper/stepper.dart:6:8 • unused_import
+   info • Unnecessary use of multiple underscores • lib/ui/shadcn/components/navigation/tab_container/_impl/core/tab_container_2.dart:46:57 • unnecessary_underscores
+   info • Unnecessary use of multiple underscores • lib/ui/shadcn/components/navigation/tabs/_impl/core/tab_container.dart:46:57 • unnecessary_underscores
+  error • The method '_ColorPreviewPainter' isn't defined for the type '_EyeDropperLayerState' • lib/ui/shadcn/components/overlay/eye_dropper/_impl/state/_eye_dropper_layer_state.dart:205:44 • undefined_method
+  error • The method '_ColorPreviewPainter' isn't defined for the type '_EyeDropperLayerState' • lib/ui/shadcn/components/overlay/eye_dropper/_impl/state/_eye_dropper_layer_state.dart:246:40 • undefined_method
+  error • Target of URI doesn't exist: 'package:app/ui/shadcn/components/overlay/eye_dropper/_impl/utils/_color_preview_painter.dart' • lib/ui/shadcn/components/overlay/eye_dropper/eye_dropper.dart:20:6 • uri_does_not_exist
+   info • The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' • lib/ui/shadcn/components/overlay/swiper/_impl/themes/config/swiper_theme_defaults.dart:1:8 • unnecessary_import
+   info • The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' • lib/ui/shadcn/components/overlay/swiper/_impl/themes/config/swiper_theme_tokens.dart:1:8 • unnecessary_import
+   info • The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/rendering.dart' • lib/ui/shadcn/components/overlay/toast/toast.dart:2:8 • unnecessary_import
+   info • The import of 'package:flutter/rendering.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' • lib/ui/shadcn/components/overlay/toast/toast.dart:5:8 • unnecessary_import
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/utility/error_system/_impl/core/app_error_banner.dart:5:8 • unused_import
+   info • The 'child' argument should be last in widget constructor invocations • lib/ui/shadcn/components/utility/error_system/_impl/core/app_error_gate.dart:45:7 • sort_child_properties_last
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/utility/error_system/_impl/core/error_dialog.dart:5:8 • unused_import
+warning • Unused import: 'app_error.dart' • lib/ui/shadcn/components/utility/error_system/_impl/core/error_handled_repository.dart:4:8 • unused_import
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/utility/error_system/_impl/core/error_snackbar.dart:5:8 • unused_import
+warning • Dead code • lib/ui/shadcn/components/utility/error_system/_impl/core/error_snackbar.dart:174:3 • dead_code
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/utility/error_system/_impl/core/error_state.dart:5:8 • unused_import
+warning • Unused import: 'package:gap/gap.dart' • lib/ui/shadcn/components/utility/error_system/_impl/core/inline_error.dart:5:8 • unused_import
+   info • The import of 'package:flutter/foundation.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' • lib/ui/shadcn/components/utility/error_system/_impl/state/screen_error_scope.dart:4:8 • unnecessary_import
+   info • The import of 'package:flutter/widgets.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/services.dart' • lib/ui/shadcn/components/utility/error_system/_impl/utils/platform_rules.dart:5:8 • unnecessary_import
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/shared/primitives/_impl/core/label.dart:39:11 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/shared/primitives/_impl/core/label.dart:44:11 • use_null_aware_elements
+   info • Use the null-aware marker '?' rather than a null check via an 'if' • lib/ui/shadcn/shared/primitives/_impl/core/widget_states_provider.dart:70:9 • use_null_aware_elements
+   info • The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/rendering.dart' • lib/ui/shadcn/shared/utils/color_extensions.dart:2:8 • unnecessary_import
+   info • The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' • lib/ui/shadcn/shared/utils/text_input_utils.dart:1:8 • unnecessary_import
+warning • Unused import: 'dart:math' • lib/ui/shadcn/shared/utils/util.dart:2:8 • unused_import
+

@@ -1,0 +1,27 @@
+{
+  "id": "027_doctor_json",
+  "name": "doctor json",
+  "category": "health",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "doctor",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 20,
+  "timedOut": false,
+  "durationSeconds": 1.221,
+  "status": "FAIL",
+  "notes": "",
+  "stdoutExcerpt": "{\n  \"status\": \"error\",\n  \"command\": \"doctor\",\n  \"data\": {\n    \"environment\": {\n      \"script\": \"/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart\",\n      \"cwd\": \"/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app\",\n      \"pubCache\": \"/Users/ibrar/.pub-cache\"\n    },\n    \"registry\": {\n      \"mode\": \"local\",\n      \"root\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\",\n      \"componentsJson\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg8000\n...<truncated>...\n1,\n      \"registryCount\": 0,\n      \"componentCount\": 0,\n      \"missingFiles\": [],\n      \"error\": null\n    }\n  },\n  \"errors\": [\n    {\n      \"code\": \"schema_invalid\",\n      \"message\": \"Schema validation failed.\",\n      \"details\": {\n        \"errorCount\": 1,\n        \"errors\": [\n          \"Failed to validate schema: Exception: File not found: /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry/components.schema.json\"\n        ]\n      }\n    }\n  ],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:54.607599Z\",\n    \"exitCode\": 20\n  }\n}\n",
+  "stderrExcerpt": ""
+}

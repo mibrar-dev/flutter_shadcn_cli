@@ -1,0 +1,31 @@
+{
+  "status": "ok",
+  "command": "validate",
+  "data": {
+    "schema": {
+      "found": true,
+      "valid": true,
+      "errorCount": 0,
+      "errors": []
+    },
+    "components": {
+      "total": 133,
+      "missingDependencies": []
+    },
+    "files": {
+      "checked": 1833,
+      "skipped": 0,
+      "missing": []
+    },
+    "fileDependencies": {
+      "missing": [],
+      "missingOptional": []
+    }
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T03:34:29.006094Z",
+    "exitCode": 0
+  }
+}

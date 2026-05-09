@@ -1,0 +1,4 @@
+Error: Invalid component address "@shadcn/button/extra". Use @namespace/component
+Error: Invalid component address "shadcn:". Use @namespace/component
+Error: Invalid component address "@shadcn". Use @namespace/component
+Error: l10n.yaml already exists.

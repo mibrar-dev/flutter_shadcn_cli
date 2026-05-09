@@ -1,0 +1,334 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Flutter Shadcn CLI QA Report</title>
+<style>
+@page { size: A4; margin: 14mm; }
+* { box-sizing: border-box; }
+body { font-family: Inter, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; color:#111827; margin:0; background:#f8fafc; }
+.page { background:white; min-height:100vh; padding:34px 42px; page-break-after: always; }
+.page:last-child { page-break-after:auto; }
+h1 { font-size:34px; margin:0 0 8px; letter-spacing:0; }
+h2 { font-size:22px; margin:0 0 18px; }
+h3 { margin:0; font-size:15px; }
+p { line-height:1.5; }
+.muted { color:#64748b; }
+.cover { background:linear-gradient(135deg,#0f172a,#1e293b); color:white; display:flex; flex-direction:column; justify-content:space-between; }
+.cover .muted { color:#cbd5e1; }
+.grid { display:grid; gap:14px; }
+.grid4 { grid-template-columns: repeat(4, 1fr); }
+.grid3 { grid-template-columns: repeat(3, 1fr); }
+.card { border:1px solid #e5e7eb; border-radius:10px; padding:16px; background:#fff; }
+.cover .card { background:rgba(255,255,255,.08); border-color:rgba(255,255,255,.16); }
+.metric { font-size:30px; font-weight:750; }
+.label { font-size:12px; text-transform:uppercase; color:#64748b; letter-spacing:.06em; }
+.cover .label { color:#cbd5e1; }
+.score-wrap { display:flex; align-items:center; gap:30px; margin-top:28px; }
+.score { width:210px; height:210px; border-radius:50%; background:conic-gradient(#22c55e 0 75%, rgba(255,255,255,.18) 75% 100%); display:grid; place-items:center; }
+.score > div { width:148px; height:148px; border-radius:50%; background:#0f172a; display:grid; place-items:center; text-align:center; }
+.score strong { font-size:42px; }
+.timeline { display:flex; gap:3px; align-items:flex-end; height:84px; border-bottom:1px solid #e5e7eb; padding-top:10px; }
+.tick { flex:1; min-width:4px; border-radius:2px 2px 0 0; background:#16a34a; }
+.tick.fail { background:#dc2626; }
+.tick.warn { background:#f59e0b; }
+.bar { height:8px; background:#e5e7eb; border-radius:999px; overflow:hidden; margin-top:8px; }
+.bar span { display:block; height:100%; border-radius:999px; }
+.cat { border:1px solid #e5e7eb; padding:12px; border-radius:8px; }
+.cat small { display:block; color:#64748b; margin-top:3px; }
+.badge { display:inline-block; padding:4px 8px; border-radius:999px; font-size:11px; font-weight:700; }
+.badge.pass { background:#dcfce7; color:#166534; }
+.badge.fail { background:#fee2e2; color:#991b1b; }
+table { width:100%; border-collapse:collapse; font-size:10.4px; }
+th,td { border-bottom:1px solid #e5e7eb; padding:7px 6px; vertical-align:top; text-align:left; }
+th { background:#f1f5f9; color:#334155; }
+code { font-family:"SFMono-Regular",Consolas,monospace; font-size:10px; overflow-wrap:anywhere; }
+.defect { border-left:4px solid #dc2626; background:#fff7f7; padding:14px; margin-bottom:12px; border-radius:8px; }
+.defect-head { display:flex; gap:10px; align-items:center; }
+.severity { font-size:11px; font-weight:800; color:white; background:#dc2626; border-radius:999px; padding:4px 8px; }
+pre { white-space:pre-wrap; background:#0f172a; color:#e2e8f0; padding:10px; border-radius:6px; max-height:150px; overflow:hidden; font-size:9px; }
+.risk { border:1px solid #fde68a; background:#fffbeb; border-radius:8px; padding:12px; }
+.footer { position:fixed; bottom:6mm; left:14mm; right:14mm; font-size:9px; color:#64748b; }
+</style></head><body>
+<section class="page cover">
+<div>
+<p class="label">Quality Assurance Report</p>
+<h1>Flutter Shadcn CLI Full Registry QA</h1>
+<p class="muted">Fresh Flutter project test run against local v1 registry manifests. Includes command logs, failed checks, scoring, and source-quality signals.</p>
+<div class="score-wrap"><div class="score"><div><strong>75</strong><span>/100</span><small>QA Score</small></div></div>
+<div class="grid grid3" style="flex:1">
+<div class="card"><div class="label">Raw Pass Rate</div><div class="metric">89.1%</div><p class="muted">41/46 checks passed</p></div>
+<div class="card"><div class="label">Components Installed</div><div class="metric">133</div><p class="muted">All registry components installed by ID</p></div>
+<div class="card"><div class="label">Defects</div><div class="metric">3</div><p class="muted">+ 2 expectation/UX mismatches</p></div>
+</div></div></div>
+<div class="muted">Generated from <code>/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/qa_reports/cli-full-qa-20260509-043135</code><br>CLI branch <b>branch-v1-full-cli-qa-report</b> · Kit branch <b>branch-v1-registry-button-shared-qa-fix</b></div>
+</section>
+<section class="page"><h2>Executive Summary</h2>
+<div class="grid grid4">
+<div class="card"><div class="label">Adjusted Pass Rate</div><div class="metric">93.5%</div><p>Passes plus expected-negative contract mismatches.</p></div>
+<div class="card"><div class="label">Validate</div><div class="metric">PASS</div><p>1833 registry source files checked.</p></div>
+<div class="card"><div class="label">Deps</div><div class="metric">PASS</div><p>12 package dependencies audited.</p></div>
+<div class="card"><div class="label">Audit Missing</div><div class="metric">47</div><p>Missing installed files reported by audit.</p></div>
+</div>
+<p>The core install path is substantially healthier than before: init, add, remove, sync, project reset/undo, dependency audit, full component installation, and registry validation passed in a fresh Flutter app. The remaining release blockers are command contract defects in <code>dry-run --all</code>, <code>doctor --json</code>, and <code>audit --json</code>, plus registry source analyzer errors after full install.</p>
+<div class="risk"><b>Release recommendation:</b> not a clean release candidate yet. Fix the three command defects and the high-impact analyzer missing-type/import errors before marking the v1 CLI/registry pair production-ready.</div>
+<h2 style="margin-top:24px">Score Model</h2>
+<table><tr><th>Area</th><th>Weight</th><th>Score</th><th>Evidence</th></tr>
+<tr><td>Command execution</td><td>30%</td><td>89.1</td><td>41/46 raw pass</td></tr>
+<tr><td>Full install</td><td>20%</td><td>100.0</td><td>133 components installed</td></tr>
+<tr><td>Health gates</td><td>20%</td><td>66.7</td><td>deps + validate pass; audit fails</td></tr>
+<tr><td>Repo gates</td><td>15%</td><td>100.0</td><td>CLI analyze/test and Kit analyze pass</td></tr>
+<tr><td>Generated source quality</td><td>15%</td><td>0.0</td><td>60 errors, 104 warnings, 74 infos</td></tr>
+</table></section>
+<section class="page"><h2>Visual QA Dashboard</h2>
+<div class="grid grid3">
+<div class="card"><div class="label">Pass/Fail Timeline</div><div class="timeline"><div title="dart version" class="tick " style="height:8px"></div><div title="flutter version" class="tick " style="height:8px"></div><div title="cli version" class="tick " style="height:8px"></div><div title="root help" class="tick " style="height:8px"></div><div title="advanced help" class="tick " style="height:8px"></div><div title="docs help advanced" class="tick " style="height:8px"></div><div title="install skill help advanced" class="tick " style="height:8px"></div><div title="upgrade help" class="tick " style="height:8px"></div><div title="feedback help" class="tick " style="height:8px"></div><div title="legacy registry flag rejected" class="tick fail" style="height:8px"></div><div title="missing registry path rejected" class="tick fail" style="height:8px"></div><div title="flutter create app" class="tick " style="height:8px"></div><div title="init yes local registry" class="tick " style="height:8px"></div><div title="registries json" class="tick " style="height:8px"></div><div title="list json" class="tick " style="height:8px"></div><div title="search button json" class="tick " style="height:8px"></div><div title="info button json" class="tick " style="height:8px"></div><div title="dry run button json" class="tick " style="height:8px"></div><div title="dry run all json" class="tick fail" style="height:8px"></div><div title="theme list" class="tick " style="height:69.316px"></div><div title="theme apply amber minimal" class="tick " style="height:70.32px"></div><div title="assets list" class="tick " style="height:8px"></div><div title="assets icons" class="tick " style="height:8px"></div><div title="platform list" class="tick " style="height:8px"></div><div title="platform set android permission" class="tick " style="height:8px"></div><div title="platform reset android permission" class="tick " style="height:8px"></div><div title="doctor json" class="tick fail" style="height:8px"></div><div title="locale init" class="tick " style="height:8px"></div><div title="locale init duplicate rejected" class="tick " style="height:8px"></div><div title="add button" class="tick " style="height:8px"></div><div title="add card alert" class="tick " style="height:8px"></div><div title="deps json installed" class="tick " style="height:8px"></div><div title="audit json installed" class="tick " style="height:8px"></div><div title="sync installed" class="tick " style="height:8px"></div><div title="project refresh repairs missing scaffold file" class="tick " style="height:32.876px"></div><div title="remove alert" class="tick " style="height:8px"></div><div title="project reset" class="tick " style="height:8px"></div><div title="project reset undo" class="tick " style="height:8px"></div><div title="add all components by id" class="tick " style="height:37.804px"></div><div title="deps all json" class="tick " style="height:8px"></div><div title="validate json local v1 registry" class="tick " style="height:8px"></div><div title="audit json full install" class="tick fail" style="height:8px"></div><div title="flutter analyze full installed app" class="tick warn" style="height:58.996px"></div><div title="cli dart analyze" class="tick " style="height:8px"></div><div title="cli dart test full suite" class="tick " style="height:80px"></div><div title="kit dart analyze" class="tick " style="height:17.304px"></div></div><p class="muted">Bar height is duration; red bars are failed checks.</p></div>
+<div class="card"><div class="label">Analyzer Quality</div><div class="metric">238</div><p>60 errors · 104 warnings · 74 infos</p><div class="bar"><span style="width:25.2%;background:#dc2626"></span></div><div class="bar"><span style="width:43.7%;background:#f59e0b"></span></div><div class="bar"><span style="width:31.1%;background:#64748b"></span></div></div>
+<div class="card"><div class="label">Evidence Volume</div><div class="metric">138</div><p>JSON/stdout/stderr evidence files captured for each command.</p></div>
+</div>
+<h2 style="margin-top:24px">Category Heatmap</h2><div class="grid grid3"><div class="cat"><div><b>assets</b><small>2/2 passed · 2.7s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>discovery</b><small>4/4 passed · 6.1s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>environment</b><small>3/3 passed · 1.6s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>health</b><small>4/6 passed · 7.7s</small></div><div class="bar"><span style="width:66.7%;background:#f59e0b"></span></div></div><div class="cat"><div><b>help</b><small>6/6 passed · 7.1s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>init</b><small>1/1 passed · 1.7s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>install</b><small>3/3 passed · 4.6s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>install-all</b><small>1/1 passed · 9.5s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>locale</b><small>1/1 passed · 1.2s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>negative</b><small>1/3 passed · 4.0s</small></div><div class="bar"><span style="width:33.3%;background:#f59e0b"></span></div></div><div class="cat"><div><b>planning</b><small>1/2 passed · 2.9s</small></div><div class="bar"><span style="width:50.0%;background:#f59e0b"></span></div></div><div class="cat"><div><b>platform</b><small>3/3 passed · 3.7s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>project</b><small>3/3 passed · 11.4s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>quality</b><small>1/1 passed · 14.7s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>remove</b><small>1/1 passed · 1.3s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>repo-gate</b><small>3/3 passed · 53.9s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>setup</b><small>1/1 passed · 1.4s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div><div class="cat"><div><b>theme</b><small>2/2 passed · 34.9s</small></div><div class="bar"><span style="width:100.0%;background:#16a34a"></span></div></div></div></section>
+<section class="page"><h2>Failures And Findings</h2><article class="defect">
+<div class="defect-head"><span class="severity">Low</span><h3>legacy registry flag rejected</h3></div>
+<p><b>Harness expectation mismatch.</b> The removed --registry flag is rejected correctly, but parser returns exit 2 rather than the harness expected 64.</p>
+<p><b>Exit:</b> 2; <b>Expected:</b> [64]; <b>Evidence:</b> <code>evidence/010_legacy_registry_flag_rejected.*</code></p>
+<pre>Error: FormatException: Could not find an option named &quot;--registry&quot;.
+</pre>
+</article><article class="defect">
+<div class="defect-head"><span class="severity">Low</span><h3>missing registry path rejected</h3></div>
+<p><b>Harness expectation mismatch / UX issue.</b> A missing local registry path fails with exit 40 and a remote URL error. It is rejected, but the message is not ideal.</p>
+<p><b>Exit:</b> 40; <b>Expected:</b> [41]; <b>Evidence:</b> <code>evidence/011_missing_registry_path_rejected.*</code></p>
+<pre>
+📦 Available Components
+✗ Failed to load components: baseUrl must be an absolute URL
+Tip: Check the configured registry URL and try again.
+</pre>
+</article><article class="defect">
+<div class="defect-head"><span class="severity">Medium</span><h3>dry run all json</h3></div>
+<p><b>CLI/registry contract defect.</b> dry-run --all exits 30 even though it returns a large plan. It injects missing pseudo IDs icon_fonts and typography_fonts as component warnings.</p>
+<p><b>Exit:</b> 30; <b>Expected:</b> [0]; <b>Evidence:</b> <code>evidence/019_dry_run_all_json.*</code></p>
+<pre>{
+  &quot;status&quot;: &quot;ok&quot;,
+  &quot;command&quot;: &quot;dry-run&quot;,
+  &quot;data&quot;: {
+    &quot;requested&quot;: [
+      &quot;icon_fonts&quot;,
+      &quot;typography_fonts&quot;,
+      &quot;button&quot;,
+      &quot;clickable&quot;,
+      &quot;card&quot;,
+      &quot;card_image&quot;,
+      &quot;alert&quot;,
+      &quot;alpha&quot;,
+      &quot;chat&quot;,
+      &quot;async&quot;,
+      &quot;autocomplete&quot;,
+      &quot;collapsible&quot;,
+      &quot;focus_outline&quot;,
+      &quot;group&quot;,
+      &quot;hidden&quot;,
+      &quot;accordion&quot;,
+      &quot;badge&quot;,
+      &quot;avatar&quot;,
+      &quot;basic&quot;,
+      &quot;chip&quot;,
+      &quot;color&quot;,
+      &quot;history&quot;,
+      &quot;color_picker&quot;,
+      &quot;color_input&quot;,
+      &quot;hsl&quot;,
+      &quot;hsv&quot;,
+      &quot;image&quot;,
+      &quot;eye_dropper&quot;,
+      &quot;chip_input&quot;,
+      &quot;select&quot;,
+  
+...&lt;truncated&gt;...
+tils/markdown_parser_streaming.dart&quot;,
+          &quot;registry/components/display/markdown/markdown.dart&quot;
+        ],
+        &quot;registryRoot&quot;: &quot;/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry&quot;
+      }
+    }
+  },
+  &quot;errors&quot;: [],
+  &quot;warnings&quot;: [
+    {
+      &quot;code&quot;: &quot;component_missing&quot;,
+      &quot;message&quot;: &quot;One or more components were not found.&quot;,
+      &quot;details&quot;: {
+        &quot;missing&quot;: [
+          &quot;icon_fonts&quot;,
+          &quot;typography_fonts&quot;
+        ]
+      }
+    }
+  ],
+  &quot;meta&quot;: {
+    &quot;timestamp&quot;: &quot;2026-05-09T03:33:12.055087Z&quot;,
+    &quot;exitCode&quot;: 30
+  }
+}
+</pre>
+</article><article class="defect">
+<div class="defect-head"><span class="severity">High</span><h3>doctor json</h3></div>
+<p><b>CLI schema path defect.</b> doctor --json validates against registry/components.schema.json instead of the v1 manifest schema path under manifests/.</p>
+<p><b>Exit:</b> 20; <b>Expected:</b> [0]; <b>Evidence:</b> <code>evidence/027_doctor_json.*</code></p>
+<pre>{
+  &quot;status&quot;: &quot;error&quot;,
+  &quot;command&quot;: &quot;doctor&quot;,
+  &quot;data&quot;: {
+    &quot;environment&quot;: {
+      &quot;script&quot;: &quot;/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart&quot;,
+      &quot;cwd&quot;: &quot;/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app&quot;,
+      &quot;pubCache&quot;: &quot;/Users/ibrar/.pub-cache&quot;
+    },
+    &quot;registry&quot;: {
+      &quot;mode&quot;: &quot;local&quot;,
+      &quot;root&quot;: &quot;/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry&quot;,
+      &quot;componentsJson&quot;: &quot;/var/folders/dt/p77q2g1j7190pw1cc_h07hg8000
+...&lt;truncated&gt;...
+1,
+      &quot;registryCount&quot;: 0,
+      &quot;componentCount&quot;: 0,
+      &quot;missingFiles&quot;: [],
+      &quot;error&quot;: null
+    }
+  },
+  &quot;errors&quot;: [
+    {
+      &quot;code&quot;: &quot;schema_invalid&quot;,
+      &quot;message&quot;: &quot;Schema validation failed.&quot;,
+      &quot;details&quot;: {
+        &quot;errorCount&quot;: 1,
+        &quot;errors&quot;: [
+          &quot;Failed to validate schema: Exception: File not found: /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry/components.schema.json&quot;
+        ]
+      }
+    }
+  ],
+  &quot;warnings&quot;: [],
+  &quot;meta&quot;: {
+    &quot;timestamp&quot;: &quot;2026-05-09T03:33:54.607599Z&quot;,
+    &quot;exitCode&quot;: 20
+  }
+}
+</pre>
+</article><article class="defect">
+<div class="defect-head"><span class="severity">High</span><h3>audit json full install</h3></div>
+<p><b>Audit/install policy defect.</b> audit expects preview-state files that default add does not install. Full install reports 47 missing files, mostly preview internals.</p>
+<p><b>Exit:</b> 50; <b>Expected:</b> [0]; <b>Evidence:</b> <code>evidence/042_audit_json_full_install.*</code></p>
+<pre>{
+  &quot;status&quot;: &quot;error&quot;,
+  &quot;command&quot;: &quot;audit&quot;,
+  &quot;data&quot;: {
+    &quot;installed&quot;: [
+      &quot;accordion&quot;,
+      &quot;alert&quot;,
+      &quot;alert_dialog&quot;,
+      &quot;alpha&quot;,
+      &quot;app&quot;,
+      &quot;async&quot;,
+      &quot;autocomplete&quot;,
+      &quot;avatar&quot;,
+      &quot;badge&quot;,
+      &quot;basic&quot;,
+      &quot;border_loading&quot;,
+      &quot;breadcrumb&quot;,
+      &quot;button&quot;,
+      &quot;calendar&quot;,
+      &quot;card&quot;,
+      &quot;card_image&quot;,
+      &quot;carousel&quot;,
+      &quot;chat&quot;,
+      &quot;checkbox&quot;,
+      &quot;chip&quot;,
+      &quot;chip_input&quot;,
+      &quot;circular_progress_indicator&quot;,
+      &quot;clickable&quot;,
+      &quot;code_snippet&quot;,
+      &quot;collapsible&quot;,
+      &quot;color&quot;,
+      &quot;color_input&quot;,
+      &quot;color_picker&quot;,
+    
+...&lt;truncated&gt;...
+nts/display/text_animate/_impl/state/_text_animate_preview_state.dart&quot;,
+          &quot;time_picker -&gt; /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/form/time_picker/_impl/state/_time_picker_preview_state.dart&quot;,
+          &quot;toast -&gt; /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/overlay/toast/_impl/state/_toast_preview_state.dart&quot;
+        ]
+      }
+    }
+  ],
+  &quot;warnings&quot;: [],
+  &quot;meta&quot;: {
+    &quot;timestamp&quot;: &quot;2026-05-09T03:34:30.307221Z&quot;,
+    &quot;exitCode&quot;: 50
+  }
+}
+</pre>
+</article></section>
+<section class="page"><h2>Dependency Audit Detail</h2><table><tr><th>Package</th><th>Required</th><th>Installed</th><th>Status</th></tr><tr><td>data_widget</td><td>^0.0.2</td><td>^0.0.2</td><td>ok</td></tr><tr><td>gap</td><td>^3.0.1</td><td>^3.0.1</td><td>ok</td></tr><tr><td>animation_kit</td><td>^0.0.2</td><td>^0.0.2</td><td>ok</td></tr><tr><td>country_flags</td><td>^4.1.0, ^4.1.1</td><td>^4.1.1</td><td>ok</td></tr><tr><td>cross_file</td><td>^0.3.4+2</td><td>^0.3.4+2</td><td>ok</td></tr><tr><td>phonecodes</td><td>^0.0.4</td><td>^0.0.4</td><td>ok</td></tr><tr><td>skeletonizer</td><td>^2.1.0+1</td><td>^2.1.0+1</td><td>ok</td></tr><tr><td>intl</td><td>^0.20.2, any</td><td>any</td><td>ok</td></tr><tr><td>web</td><td>^1.1.1</td><td>^1.1.1</td><td>ok</td></tr><tr><td>email_validator</td><td>^3.0.0</td><td>^3.0.0</td><td>ok</td></tr><tr><td>expressions</td><td>^0.2.5+2</td><td>^0.2.5+2</td><td>ok</td></tr><tr><td>flutter_localizations</td><td>sdk: flutter</td><td>sdk: flutter</td><td>ok</td></tr></table>
+<h2 style="margin-top:24px">Deferred Or Non-Destructive Coverage Notes</h2>
+<table><tr><th>Area</th><th>Reason</th><th>Coverage Used</th></tr>
+<tr><td><code>upgrade --force</code></td><td>Would mutate global installed CLI package and may require network.</td><td>Help parser + repo test suite.</td></tr>
+<tr><td><code>version --check</code></td><td>Network/update-check behavior is environment dependent.</td><td><code>version</code> command and help boundary.</td></tr>
+<tr><td><code>install-skill</code> real install</td><td>Would mutate user skill directories unless isolated separately.</td><td>Help boundary + full Dart test suite skill-manager coverage.</td></tr>
+<tr><td><code>feedback</code> submit</td><td>Would create/open external feedback URL.</td><td>Help/parser boundary.</td></tr>
+</table></section>
+<section class="page"><h2>Complete Command Matrix</h2><table><tr><th>#</th><th>Category</th><th>Status</th><th>Exit</th><th>Duration</th><th>Command</th><th>Notes</th></tr><tr>
+<td>001</td><td>environment</td><td><span class="badge pass">PASS</span></td><td>0</td><td>0.085s</td><td><code>dart --version</code></td><td></td></tr><tr>
+<td>002</td><td>environment</td><td><span class="badge pass">PASS</span></td><td>0</td><td>0.202s</td><td><code>flutter --version</code></td><td></td></tr><tr>
+<td>003</td><td>environment</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.334s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart version</code></td><td></td></tr><tr>
+<td>004</td><td>help</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.164s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --help</code></td><td></td></tr><tr>
+<td>005</td><td>help</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.166s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --help</code></td><td></td></tr><tr>
+<td>006</td><td>help</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.186s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced docs --help</code></td><td></td></tr><tr>
+<td>007</td><td>help</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.199s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced install-skill --help</code></td><td></td></tr><tr>
+<td>008</td><td>help</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.2s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart upgrade --help</code></td><td></td></tr><tr>
+<td>009</td><td>help</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.217s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart feedback --help</code></td><td></td></tr><tr>
+<td>010</td><td>negative</td><td><span class="badge fail">FAIL</span></td><td>2</td><td>1.155s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --registry local list</code></td><td>Removed public --registry flag must remain rejected.</td></tr><tr>
+<td>011</td><td>negative</td><td><span class="badge fail">FAIL</span></td><td>40</td><td>1.618s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced list --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/missing_registry</code></td><td></td></tr><tr>
+<td>012</td><td>setup</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.398s</td><td><code>flutter create --platforms=ios,android app</code></td><td></td></tr><tr>
+<td>013</td><td>init</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.679s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced init --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity --yes</code></td><td></td></tr><tr>
+<td>014</td><td>discovery</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.5s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity registries --json</code></td><td></td></tr><tr>
+<td>015</td><td>discovery</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.585s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity list --json</code></td><td></td></tr><tr>
+<td>016</td><td>discovery</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.52s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity search button --json</code></td><td></td></tr><tr>
+<td>017</td><td>discovery</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.521s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity info button --json</code></td><td></td></tr><tr>
+<td>018</td><td>planning</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.382s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity dry-run button --json</code></td><td></td></tr><tr>
+<td>019</td><td>planning</td><td><span class="badge fail">FAIL</span></td><td>30</td><td>1.489s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity dry-run --all --json</code></td><td></td></tr><tr>
+<td>020</td><td>theme</td><td><span class="badge pass">PASS</span></td><td>0</td><td>17.329s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart theme --list</code></td><td></td></tr><tr>
+<td>021</td><td>theme</td><td><span class="badge pass">PASS</span></td><td>0</td><td>17.58s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart theme --apply amber-minimal</code></td><td></td></tr><tr>
+<td>022</td><td>assets</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.223s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced assets --list</code></td><td></td></tr><tr>
+<td>023</td><td>assets</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.503s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced assets --icons</code></td><td></td></tr><tr>
+<td>024</td><td>platform</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.23s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart platform --list</code></td><td></td></tr><tr>
+<td>025</td><td>platform</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.226s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart platform --set android.permissions=android/app/src/main/AndroidManifest.xml</code></td><td></td></tr><tr>
+<td>026</td><td>platform</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.222s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart platform --reset android.permissions</code></td><td></td></tr><tr>
+<td>027</td><td>health</td><td><span class="badge fail">FAIL</span></td><td>20</td><td>1.221s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity doctor --json</code></td><td></td></tr><tr>
+<td>028</td><td>locale</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.234s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart locale init</code></td><td></td></tr><tr>
+<td>029</td><td>negative</td><td><span class="badge pass">PASS</span></td><td>60</td><td>1.206s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart locale init</code></td><td>Duplicate l10n initialization must fail clearly.</td></tr><tr>
+<td>030</td><td>install</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.673s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced add button --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity</code></td><td></td></tr><tr>
+<td>031</td><td>install</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.677s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced add card alert --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity</code></td><td></td></tr><tr>
+<td>032</td><td>health</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.252s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity deps --json</code></td><td></td></tr><tr>
+<td>033</td><td>health</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.242s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity audit --json</code></td><td></td></tr><tr>
+<td>034</td><td>install</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.267s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity sync</code></td><td></td></tr><tr>
+<td>035</td><td>project</td><td><span class="badge pass">PASS</span></td><td>0</td><td>8.219s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity project refresh</code></td><td></td></tr><tr>
+<td>036</td><td>remove</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.292s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity remove alert</code></td><td></td></tr><tr>
+<td>037</td><td>project</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.56s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart project reset</code></td><td></td></tr><tr>
+<td>038</td><td>project</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.617s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart project reset --undo</code></td><td></td></tr><tr>
+<td>039</td><td>install-all</td><td><span class="badge pass">PASS</span></td><td>0</td><td>9.451s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced add button clickable card card_image alert alpha chat async autocomplete collapsible focus_outline group hidden accordion badge avatar basic chip color history color_picker color_input hsl hsv image eye_dropper chip_input select checkbox divider dot_indicator circular_progress_indicator linear_progress_indicator locale_utils number_ticker spinner progress skeleton command control debug breadcrumb code_snippet carousel calendar date_picker file_input file_picker keyboard_shortcut fade_scroll text_field input input_otp form_field formatted_input form object_input outlined_container phone_input radio_group slider multiple_choice item_picker formatter switch text_area text selectable scrollbar scrollable_client scrollview triple_dots icon alert_dialog dialog popover overlay popup tooltip refresh_trigger tracker hover hover_card toast drawer menu menubar media_query context_menu dropdown_menu sortable navigation_bar navigation_menu pagination tabs tab_container tab_list tab_pane switcher table overflow_marquee patch time_picker validated stepper steps resizable shadcn_localizations shadcn_localizations_en shadcn_localizations_extensions star_rating subfocus swiper timeline scaffold stage_container tree wrapper window timeline_animation repeated_animation_builder feature_carousel dropzone empty_state error_system flex scrollable border_loading text_animate filter_bar app gooey_toast markdown --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity</code></td><td></td></tr><tr>
+<td>040</td><td>health</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.272s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity deps --all --json</code></td><td></td></tr><tr>
+<td>041</td><td>health</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.432s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity validate --json</code></td><td></td></tr><tr>
+<td>042</td><td>health</td><td><span class="badge fail">FAIL</span></td><td>50</td><td>1.286s</td><td><code>dart /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart --advanced --registry-path /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry --skip-integrity audit --json</code></td><td></td></tr><tr>
+<td>043</td><td>quality</td><td><span class="badge pass">PASS</span></td><td>1</td><td>14.749s</td><td><code>flutter analyze</code></td><td>Exit 1 is accepted here only to capture registry-source analyzer warnings/errors separately.</td></tr><tr>
+<td>044</td><td>repo-gate</td><td><span class="badge pass">PASS</span></td><td>0</td><td>1.038s</td><td><code>dart analyze</code></td><td></td></tr><tr>
+<td>045</td><td>repo-gate</td><td><span class="badge pass">PASS</span></td><td>0</td><td>48.55s</td><td><code>dart test --reporter=compact</code></td><td></td></tr><tr>
+<td>046</td><td>repo-gate</td><td><span class="badge pass">PASS</span></td><td>0</td><td>4.326s</td><td><code>dart analyze</code></td><td></td></tr></table></section>
+<section class="page"><h2>Environment And Evidence</h2>
+<table><tr><th>Field</th><th>Value</th></tr>
+<tr><td>Started</td><td>2026-05-09T03:32:48.491934+00:00</td></tr>
+<tr><td>Finished</td><td>2026-05-09T03:35:39.005262+00:00</td></tr>
+<tr><td>Temporary app</td><td><code>/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app</code></td></tr>
+<tr><td>Registry root</td><td><code>/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit/lib/registry</code></td></tr>
+<tr><td>Overlay registry root</td><td><code>/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry</code></td></tr>
+<tr><td>Evidence directory</td><td><code>/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/qa_reports/cli-full-qa-20260509-043135/evidence</code></td></tr>
+<tr><td>CLI repo</td><td><code>/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service</code></td></tr>
+<tr><td>Kit repo</td><td><code>/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit</code></td></tr>
+</table>
+<p class="muted">Every command has three evidence files: <code>.json</code>, <code>.stdout.txt</code>, and <code>.stderr.txt</code>. See <code>evidence_index.md</code> for a compact index.</p></section>
+</body></html>

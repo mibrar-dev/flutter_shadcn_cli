@@ -1,0 +1,27 @@
+{
+  "id": "041_validate_json_local_v1_registry",
+  "name": "validate json local v1 registry",
+  "category": "health",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "validate",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.432,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"validate\",\n  \"data\": {\n    \"schema\": {\n      \"found\": true,\n      \"valid\": true,\n      \"errorCount\": 0,\n      \"errors\": []\n    },\n    \"components\": {\n      \"total\": 133,\n      \"missingDependencies\": []\n    },\n    \"files\": {\n      \"checked\": 1833,\n      \"skipped\": 0,\n      \"missing\": []\n    },\n    \"fileDependencies\": {\n      \"missing\": [],\n      \"missingOptional\": []\n    }\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:29.006094Z\",\n    \"exitCode\": 0\n  }\n}\n",
+  "stderrExcerpt": ""
+}

@@ -1,0 +1,21 @@
+{
+  "id": "044_cli_dart_analyze",
+  "name": "cli dart analyze",
+  "category": "repo-gate",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "analyze"
+  ],
+  "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.038,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Analyzing branch-v1-installer-shared-service...\nNo issues found!\n",
+  "stderrExcerpt": ""
+}

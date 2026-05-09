@@ -1,0 +1,15 @@
+
+Platform targets
+  android:
+    permissions: android/app/src/main/AndroidManifest.xml
+    gradle: android/app/build.gradle
+    notes: .shadcn/platform/android.md
+  ios:
+    infoPlist: ios/Runner/Info.plist
+    podfile: ios/Podfile
+    notes: .shadcn/platform/ios.md
+  macos:
+    entitlements: macos/Runner/DebugProfile.entitlements
+    notes: .shadcn/platform/macos.md
+  desktop:
+    config: .shadcn/platform/desktop.md

@@ -1,0 +1,28 @@
+{
+  "id": "017_info_button_json",
+  "name": "info button json",
+  "category": "discovery",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "info",
+    "button",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.521,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "! index.json schema validation failed (42 issues).\n{\n  \"status\": \"ok\",\n  \"command\": \"info\",\n  \"data\": {\n    \"registry\": {\n      \"id\": \"_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_flutter_shadcn_pdf_qa.784yj_tl_\",\n      \"baseUrl\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\"\n    },\n    \"component\": {\n      \"id\": \"button\",\n      \"name\": \"Button\",\n      \"category\": \"control\",\n      \"description\": \"Shadcn-style button system with variants, toggles, and groups.\",\n      \"tags\": [\n        \"controls\",\n        \"forms\",\n        \"buttons\"\n\n...<truncated>...\n{},\\n  child: const Text('Save'),\\n)\"\n      },\n      \"dependencies\": {\n        \"pubspec\": {\n          \"data_widget\": \"^0.0.2\",\n          \"gap\": \"^3.0.1\"\n        },\n        \"shared\": [\n          \"theme\",\n          \"color_extensions\",\n          \"geometry_extensions\",\n          \"clickable\",\n          \"form_control\",\n          \"form_value_supplier\",\n          \"menu_group\"\n        ]\n      },\n      \"related\": [\n        \"clickable\",\n        \"hover\",\n        \"patch\"\n      ]\n    }\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:09.190028Z\",\n    \"exitCode\": 0\n  }\n}\n",
+  "stderrExcerpt": ""
+}

@@ -1,0 +1,1 @@
+Error: l10n.yaml already exists.

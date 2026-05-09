@@ -1,0 +1,24 @@
+{
+  "id": "038_project_reset_undo",
+  "name": "project reset undo",
+  "category": "project",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "project",
+    "reset",
+    "--undo"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.617,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Restored project reset snapshot from 2026-05-09T03:34:15.097242Z.\n",
+  "stderrExcerpt": ""
+}
