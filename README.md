@@ -55,6 +55,7 @@ flutter_shadcn doctor
 
 - Start here: [docs/index.md](docs/index.md)
 - User getting started: [docs/user/getting-started.md](docs/user/getting-started.md)
+- Testing and usage guide: [docs/testing-guide.md](docs/testing-guide.md)
 - Commands: [docs/user/commands.md](docs/user/commands.md)
 - Components: [docs/user/components.md](docs/user/components.md)
 - Registries: [docs/user/registries.md](docs/user/registries.md)
