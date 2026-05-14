@@ -37,9 +37,33 @@ void main() {
           await request.response.close();
           return;
         }
+        if (path == '/registry/shared/images/logo.svg') {
+          request.response.statusCode = 200;
+          request.response.write('<svg></svg>');
+          await request.response.close();
+          return;
+        }
         if (path == '/registry/shared/fonts/bootstrap.otf') {
           request.response.statusCode = 200;
           request.response.write('font-bytes');
+          await request.response.close();
+          return;
+        }
+        if (path == '/registry/shared/fonts/lucide.ttf') {
+          request.response.statusCode = 200;
+          request.response.write('lucide-font-bytes');
+          await request.response.close();
+          return;
+        }
+        if (path == '/registry/shared/fonts/geist/Geist-Regular.otf') {
+          request.response.statusCode = 200;
+          request.response.write('geist-regular-bytes');
+          await request.response.close();
+          return;
+        }
+        if (path == '/registry/shared/fonts/geist/Geist-BoldItalic.otf') {
+          request.response.statusCode = 200;
+          request.response.write('geist-bold-italic-bytes');
           await request.response.close();
           return;
         }
@@ -106,6 +130,8 @@ void main() {
       final pubspec =
           File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
       expect(pubspec.contains('gap: ^3.0.1'), isTrue);
+      expect(pubspec.contains('flutter_localizations:'), isTrue);
+      expect(pubspec.contains('    sdk: flutter'), isTrue);
       expect(pubspec.contains('dev_dependencies:'), isTrue);
       expect(pubspec.contains('lints: ^6.1.0'), isTrue);
       expect(pubspec.contains('assets/fonts/GeistSans-Regular.ttf'), isTrue);
@@ -114,6 +140,7 @@ void main() {
       final doc = loadYaml(pubspec) as YamlMap;
       final flutterSection = doc['flutter'] as YamlMap;
       final dependencies = doc['dependencies'] as YamlMap;
+      expect(dependencies['flutter_localizations']['sdk'], 'flutter');
       expect(flutterSection['assets'], isA<YamlList>());
       expect(flutterSection['fonts'], isA<YamlList>());
       expect(dependencies['assets'], isNull);
@@ -290,10 +317,10 @@ void main() {
             'to': 'assets',
             'groups': [
               {
-                'label': 'Fonts',
-                'description': 'Font assets',
+                'label': 'Images',
+                'description': 'Image assets',
                 'default': true,
-                'files': ['fonts/bootstrap.otf'],
+                'files': ['images/logo.svg'],
               },
               {
                 'label': 'Helpers',
@@ -318,7 +345,7 @@ void main() {
           groupPrompted = true;
           expect(action['promptLabel'], 'Install shared assets?');
           return groups
-              .where((group) => group['label'] == 'Fonts')
+              .where((group) => group['label'] == 'Images')
               .toList(growable: false);
         },
       );
@@ -333,7 +360,7 @@ void main() {
         isFalse,
       );
       expect(
-        File(p.join(projectRoot.path, 'assets', 'fonts', 'bootstrap.otf'))
+        File(p.join(projectRoot.path, 'assets', 'images', 'logo.svg'))
             .existsSync(),
         isTrue,
       );
@@ -344,13 +371,80 @@ void main() {
       );
       final pubspec =
           File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
-      expect(pubspec.contains('assets/fonts/bootstrap.otf'), isTrue);
+      expect(pubspec.contains('assets/images/logo.svg'), isTrue);
       expect(pubspec.contains('assets/theme/color_scheme.dart'), isFalse);
       expect(result.filesWritten, 1);
-      expect(result.record.filesWritten, ['assets/fonts/bootstrap.otf']);
-      expect(result.record.pubspecDelta.flutterAssets, [
-        'assets/fonts/bootstrap.otf'
-      ]);
+      expect(result.record.filesWritten, ['assets/images/logo.svg']);
+      expect(
+          result.record.pubspecDelta.flutterAssets, ['assets/images/logo.svg']);
+    });
+
+    test('derives known shadcn font files as flutter fonts, not assets',
+        () async {
+      final engine = InitActionEngine();
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'optional': true,
+            'promptLabel': 'Install font assets?',
+            'base': 'registry',
+            'destBase': '.',
+            'from': 'shared/fonts',
+            'to': 'assets/fonts',
+            'groups': [
+              {
+                'label': 'Geist Sans',
+                'default': true,
+                'files': [
+                  'geist/Geist-Regular.otf',
+                  'geist/Geist-BoldItalic.otf',
+                ],
+              },
+              {
+                'label': 'Lucide icon font',
+                'default': true,
+                'files': ['lucide.ttf'],
+              },
+            ],
+          },
+          {
+            'type': 'mergePubspec',
+            'deriveFlutterAssets': true,
+          },
+        ],
+        groupSelector: (action, groups) async => groups,
+      );
+
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      final doc = loadYaml(pubspec) as YamlMap;
+      final flutterSection = doc['flutter'] as YamlMap;
+      final assets = flutterSection['assets'] as YamlList?;
+      final fonts = flutterSection['fonts'] as YamlList;
+
+      expect(assets, isNull);
+      expect(pubspec.contains('family: GeistSans'), isTrue);
+      expect(pubspec.contains('asset: assets/fonts/geist/Geist-Regular.otf'),
+          isTrue);
+      expect(pubspec.contains('weight: 400'), isTrue);
+      expect(pubspec.contains('asset: assets/fonts/geist/Geist-BoldItalic.otf'),
+          isTrue);
+      expect(pubspec.contains('weight: 700'), isTrue);
+      expect(pubspec.contains('style: italic'), isTrue);
+      expect(pubspec.contains('family: LucideIcons'), isTrue);
+      expect(pubspec.contains('asset: assets/fonts/lucide.ttf'), isTrue);
+      expect(fonts, hasLength(2));
+      expect(result.record.pubspecDelta.flutterAssets, isEmpty);
+      expect(
+        result.record.pubspecDelta.flutterFonts
+            .map((entry) => entry['family'])
+            .toList(),
+        ['GeistSans', 'LucideIcons'],
+      );
     });
   });
 }

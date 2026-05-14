@@ -113,9 +113,13 @@ void main() {
         p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'app_components.dart'),
       );
       expect(aliasFile.existsSync(), isTrue);
+      final aliasContents = aliasFile.readAsStringSync();
+      expect(aliasContents,
+          contains("export 'package:flutter/material.dart' hide"));
+      expect(aliasContents, contains('    Button;'));
       expect(
-          aliasFile.readAsStringSync().contains('typedef AppButton = Button;'),
-          isTrue);
+          aliasContents, contains("export 'components/button/button.dart';"));
+      expect(aliasContents, contains('typedef AppButton = Button;'));
     });
 
     test('doctor runs without crashing', () async {
@@ -205,7 +209,8 @@ void main() {
       expect(jsonDecode(registriesResult.stdout), isA<Map<String, dynamic>>());
     });
 
-    test('list uses registries directory manifest paths without persisted config',
+    test(
+        'list uses registries directory manifest paths without persisted config',
         () async {
       final manifestRegistry =
           Directory(p.join(tempRoot.path, 'manifest_registry', 'registry'))
@@ -560,6 +565,16 @@ void main() {
         ).existsSync(),
         isTrue,
       );
+      final appComponents = File(
+        p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'app_components.dart'),
+      );
+      expect(appComponents.existsSync(), isTrue);
+      final appComponentsSource = appComponents.readAsStringSync();
+      expect(appComponentsSource,
+          contains("export 'package:flutter/material.dart' hide"));
+      expect(
+          appComponentsSource, contains("export 'components/app/app.dart';"));
+      expect(appComponentsSource, isNot(contains('typedef AppShadcnApp')));
     });
 
     test(
@@ -688,6 +703,80 @@ void main() {
             'shared',
             'theme',
             'color_scheme.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('init installs registry default components after inline actions',
+        () async {
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        {
+          'id': 'shadcn_entry',
+          'displayName': 'Shadcn',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/registry/',
+          'paths': {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json',
+          },
+          'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
+          'init': {
+            'version': 1,
+            'defaultComponents': ['app'],
+            'actions': [
+              {
+                'type': 'message',
+                'lines': ['Init defaults ready'],
+              }
+            ],
+          },
+        }
+      ]);
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          'init',
+          'shadcn',
+          '--yes',
+          '--registries-path',
+          registriesPath,
+          '--registry-path',
+          registryRoot.path,
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.success);
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'app',
+            'app.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'button',
+            'button.dart',
           ),
         ).existsSync(),
         isTrue,
@@ -912,8 +1001,7 @@ void main() {
       );
     });
 
-    test(
-        'init without flags uses persisted local registry mode from config',
+    test('init without flags uses persisted local registry mode from config',
         () async {
       final fixture = jsonDecode(
         File(
@@ -1025,7 +1113,8 @@ void main() {
         Map<String, dynamic>.from(fixture)
           ..['paths'] = {
             'componentsJson': 'components.json',
-            'themeConverterDart': 'https://example.com/tool/theme_converter.dart',
+            'themeConverterDart':
+                'https://example.com/tool/theme_converter.dart',
           },
       ]);
 
@@ -1233,7 +1322,8 @@ void main() {
             .existsSync(),
         isFalse,
       );
-      final pubspec = File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
+      final pubspec =
+          File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
       expect(pubspec, contains('assets/fonts/typography_fonts.otf'));
       expect(pubspec, isNot(contains('assets/theme/typography_fonts.dart')));
     });
@@ -1858,6 +1948,8 @@ void _writeRegistryFixtures(Directory registryRoot) {
   final componentsDir =
       Directory(p.join(root, 'registry', 'components', 'button'))
         ..createSync(recursive: true);
+  final appDir = Directory(p.join(root, 'registry', 'components', 'app'))
+    ..createSync(recursive: true);
   final dialogDir = Directory(p.join(root, 'registry', 'components', 'dialog'))
     ..createSync(recursive: true);
   final sharedThemeDir = Directory(p.join(root, 'registry', 'shared', 'theme'))
@@ -1889,6 +1981,9 @@ void _writeRegistryFixtures(Directory registryRoot) {
       .writeAsStringSync('class ButtonPreview {}');
   File(p.join(componentsDir.path, 'preview_state.dart'))
       .writeAsStringSync('class ButtonPreviewState {}');
+
+  File(p.join(appDir.path, 'app.dart')).writeAsStringSync('class ShadcnApp {}');
+  File(p.join(appDir.path, 'meta.json')).writeAsStringSync('{"id":"app"}');
 
   File(p.join(dialogDir.path, 'dialog.dart'))
       .writeAsStringSync('class Dialog {}');
@@ -2005,6 +2100,29 @@ void _writeRegistryFixtures(Directory registryRoot) {
         ],
         'shared': ['theme'],
         'dependsOn': [],
+        'pubspec': {'dependencies': {}},
+        'assets': [],
+        'postInstall': []
+      },
+      {
+        'id': 'app',
+        'name': 'App',
+        'description': 'App shell',
+        'category': 'layout',
+        'version': '1.0.0',
+        'tags': ['app'],
+        'files': [
+          {
+            'source': 'registry/components/app/app.dart',
+            'destination': '{installPath}/components/app/app.dart'
+          },
+          {
+            'source': 'registry/components/app/meta.json',
+            'destination': '{installPath}/components/app/meta.json'
+          }
+        ],
+        'shared': ['theme'],
+        'dependsOn': ['button'],
         'pubspec': {'dependencies': {}},
         'assets': [],
         'postInstall': []

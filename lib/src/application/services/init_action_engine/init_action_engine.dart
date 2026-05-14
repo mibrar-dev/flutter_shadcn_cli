@@ -356,8 +356,7 @@ class InitActionEngine {
 
   Future<InitPubspecDelta> _runMergePubspec(
     String projectRoot,
-    Map<String, dynamic> action,
-    {
+    Map<String, dynamic> action, {
     Set<String> derivedFlutterAssets = const <String>{},
   }) async {
     final file = File(
@@ -370,21 +369,31 @@ class InitActionEngine {
       throw InitActionEngineException('pubspec.yaml not found in project root');
     }
 
-    final dependencies = _stringMap(action['dependencies']);
-    final devDependencies = _stringMap(action['devDependencies']);
+    final dependencies = _pubspecMap(action['dependencies']);
+    final devDependencies = _pubspecMap(action['devDependencies']);
+    final explicitFonts = _fontFamilies(action['flutterFonts']);
+    final derivedFonts = _fontFamiliesFromAssets(derivedFlutterAssets);
+    final derivedFontAssets = derivedFonts
+        .expand((family) => family.fonts.map((font) => font.asset))
+        .toSet();
     final flutterAssets = <String>{
       ..._stringList(action['flutterAssets']),
-      if (action['deriveFlutterAssets'] == true) ...derivedFlutterAssets,
+      if (action['deriveFlutterAssets'] == true)
+        ...derivedFlutterAssets
+            .where((asset) => !derivedFontAssets.contains(asset)),
     }.toList()
       ..sort();
-    final flutterFonts = _fontFamilies(action['flutterFonts']);
+    final flutterFonts = _mergeFontFamilySpecs(
+      <_FontFamilySpec>[...explicitFonts, ...derivedFonts],
+    );
 
     final document = _loadPubspecDocument(file);
     final addedDeps =
         _mergeTopLevelMapEntries(document, 'dependencies', dependencies);
     final addedDevDeps =
         _mergeTopLevelMapEntries(document, 'dev_dependencies', devDependencies);
-    final addedAssets = _mergeFlutterAssetsIntoDocument(document, flutterAssets);
+    final addedAssets =
+        _mergeFlutterAssetsIntoDocument(document, flutterAssets);
     final addedFonts = _mergeFlutterFontsIntoDocument(document, flutterFonts);
 
     await file.writeAsString(_encodeYamlDocument(document));
@@ -495,7 +504,8 @@ class InitActionEngine {
   bool _isOptionalAction(Map<String, dynamic> action) =>
       action['optional'] == true;
 
-  bool _hasActionGroups(Map<String, dynamic> action) => action['groups'] is List;
+  bool _hasActionGroups(Map<String, dynamic> action) =>
+      action['groups'] is List;
 
   bool _isDerivableFlutterAssetPath(String relativePath) {
     final normalized = ResolverV1.normalizeRelativePath(relativePath);
@@ -550,11 +560,32 @@ class InitActionEngine {
     return utf8.decode(bytes);
   }
 
-  Map<String, String> _stringMap(dynamic value) {
+  Map<String, dynamic> _pubspecMap(dynamic value) {
     if (value is! Map) {
       return const {};
     }
-    return value.map((key, val) => MapEntry(key.toString(), val.toString()));
+    return value.map(
+      (key, val) => MapEntry(key.toString(), _pubspecValue(val)),
+    );
+  }
+
+  dynamic _pubspecValue(dynamic value) {
+    if (value is String) {
+      final sdkMatch = RegExp(r'^sdk:\s*(.+)$').firstMatch(value.trim());
+      if (sdkMatch != null) {
+        return {'sdk': sdkMatch.group(1)!.trim()};
+      }
+      return value;
+    }
+    if (value is Map) {
+      return value.map(
+        (key, val) => MapEntry(key.toString(), _pubspecValue(val)),
+      );
+    }
+    if (value is List) {
+      return value.map(_pubspecValue).toList();
+    }
+    return value;
   }
 
   List<String> _stringList(dynamic value) {
@@ -602,6 +633,154 @@ class InitActionEngine {
     return specs;
   }
 
+  List<_FontFamilySpec> _fontFamiliesFromAssets(Iterable<String> assets) {
+    final grouped = <String, List<_FontAssetSpec>>{};
+    for (final rawAsset in assets) {
+      final asset = ResolverV1.normalizeRelativePath(rawAsset);
+      final spec = _knownShadcnFontAsset(asset);
+      if (spec == null) {
+        continue;
+      }
+      grouped.putIfAbsent(spec.family, () => <_FontAssetSpec>[]).addAll(
+            spec.fonts,
+          );
+    }
+    final families = grouped.entries
+        .map(
+          (entry) => _FontFamilySpec(
+            family: entry.key,
+            fonts: entry.value..sort(_compareFontAssets),
+          ),
+        )
+        .toList()
+      ..sort((a, b) => a.family.compareTo(b.family));
+    return families;
+  }
+
+  _FontFamilySpec? _knownShadcnFontAsset(String asset) {
+    final basename = p.posix.basename(asset);
+    switch (basename) {
+      case 'lucide.ttf':
+        return _FontFamilySpec(
+          family: 'LucideIcons',
+          fonts: [_FontAssetSpec(asset: asset)],
+        );
+      case 'radix.otf':
+        return _FontFamilySpec(
+          family: 'RadixIcons',
+          fonts: [_FontAssetSpec(asset: asset)],
+        );
+      case 'bootstrap.otf':
+        return _FontFamilySpec(
+          family: 'BootstrapIcons',
+          fonts: [_FontAssetSpec(asset: asset)],
+        );
+      case 'NotoSansSymbols2-Regular.ttf':
+        return _FontFamilySpec(
+          family: 'NotoSansSymbols2',
+          fonts: [_FontAssetSpec(asset: asset)],
+        );
+    }
+
+    final geist = _geistFontAsset(asset, basename);
+    if (geist != null) {
+      return geist;
+    }
+    return null;
+  }
+
+  _FontFamilySpec? _geistFontAsset(String asset, String basename) {
+    final name = p.posix.basenameWithoutExtension(basename);
+    final family = name.startsWith('GeistMono-')
+        ? 'GeistMono'
+        : name.startsWith('Geist-')
+            ? 'GeistSans'
+            : null;
+    if (family == null) {
+      return null;
+    }
+
+    final suffix = family == 'GeistMono'
+        ? name.substring('GeistMono-'.length)
+        : name.substring('Geist-'.length);
+    final isItalic = suffix.endsWith('Italic') || suffix == 'Italic';
+    final weightName = suffix == 'Italic'
+        ? 'Regular'
+        : isItalic
+            ? suffix.substring(0, suffix.length - 'Italic'.length)
+            : suffix;
+    final weight = _geistWeight(weightName);
+    return _FontFamilySpec(
+      family: family,
+      fonts: [
+        _FontAssetSpec(
+          asset: asset,
+          weight: weight,
+          style: isItalic ? 'italic' : null,
+        ),
+      ],
+    );
+  }
+
+  int? _geistWeight(String weightName) {
+    switch (weightName) {
+      case 'Thin':
+        return 100;
+      case 'ExtraLight':
+      case 'UltraLight':
+        return 200;
+      case 'Light':
+        return 300;
+      case 'Regular':
+        return 400;
+      case 'Medium':
+        return 500;
+      case 'SemiBold':
+        return 600;
+      case 'Bold':
+        return 700;
+      case 'Black':
+        return 800;
+      case 'UltraBlack':
+        return 900;
+      default:
+        return null;
+    }
+  }
+
+  List<_FontFamilySpec> _mergeFontFamilySpecs(List<_FontFamilySpec> specs) {
+    final grouped = <String, Map<String, _FontAssetSpec>>{};
+    for (final spec in specs) {
+      final family = spec.family.trim();
+      if (family.isEmpty) {
+        continue;
+      }
+      final fonts = grouped.putIfAbsent(
+        family,
+        () => <String, _FontAssetSpec>{},
+      );
+      for (final font in spec.fonts) {
+        fonts.putIfAbsent(font.asset, () => font);
+      }
+    }
+    return grouped.entries
+        .map(
+          (entry) => _FontFamilySpec(
+            family: entry.key,
+            fonts: entry.value.values.toList()..sort(_compareFontAssets),
+          ),
+        )
+        .toList()
+      ..sort((a, b) => a.family.compareTo(b.family));
+  }
+
+  int _compareFontAssets(_FontAssetSpec a, _FontAssetSpec b) {
+    final byAsset = a.asset.compareTo(b.asset);
+    if (byAsset != 0) {
+      return byAsset;
+    }
+    return (a.weight ?? 0).compareTo(b.weight ?? 0);
+  }
 
   Future<void> _rollbackPubspec(
     String projectRoot,
@@ -617,7 +796,8 @@ class InitActionEngine {
       return;
     }
     final document = _loadPubspecDocument(file);
-    _removeTopLevelMapEntries(document, 'dependencies', delta.dependencies.keys);
+    _removeTopLevelMapEntries(
+        document, 'dependencies', delta.dependencies.keys);
     _removeTopLevelMapEntries(
       document,
       'dev_dependencies',
@@ -666,7 +846,7 @@ class InitActionEngine {
   Map<String, String> _mergeTopLevelMapEntries(
     Map<String, dynamic> document,
     String section,
-    Map<String, String> desired,
+    Map<String, dynamic> desired,
   ) {
     if (desired.isEmpty) {
       return const {};
@@ -678,7 +858,7 @@ class InitActionEngine {
       if (!sectionMap.containsKey(key)) {
         final value = desired[key]!;
         sectionMap[key] = value;
-        added[key] = value;
+        added[key] = value is String ? value : jsonEncode(value);
       }
     }
     return added;
@@ -740,7 +920,8 @@ class InitActionEngine {
         ? existingRaw.map((entry) => entry.toString()).toSet()
         : <String>{};
     final normalized = assets.toSet().toList()..sort();
-    final added = normalized.where((asset) => !existing.contains(asset)).toList();
+    final added =
+        normalized.where((asset) => !existing.contains(asset)).toList();
     if (added.isEmpty) {
       return const [];
     }
@@ -763,8 +944,8 @@ class InitActionEngine {
     if (existingRaw is List) {
       for (final entry in existingRaw) {
         if (entry is Map) {
-          final normalized = <String, dynamic>{}
-            ..addAll(entry.map((key, value) => MapEntry(key.toString(), value)));
+          final normalized = <String, dynamic>{}..addAll(
+              entry.map((key, value) => MapEntry(key.toString(), value)));
           mergedFonts.add(normalized);
           final family = normalized['family']?.toString();
           if (family != null && family.trim().isNotEmpty) {
@@ -1021,5 +1202,4 @@ class InitActionEngine {
     }
     return "'${stringValue.replaceAll("'", "''")}'";
   }
-
 }

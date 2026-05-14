@@ -92,6 +92,7 @@ Example:
   },
   "init": {
     "version": 1,
+    "defaultComponents": ["app"],
     "actions": []
   }
 }
@@ -114,6 +115,8 @@ When a registry supports themes, its published theme data should resolve to arti
 ## Inline Init
 
 `init.version` must be `1`. `init.actions` is executed by `flutter_shadcn init <namespace>` after the registry is resolved and validated.
+
+`init.defaultComponents` is optional. When present, the listed component IDs are installed after inline actions complete. The installer uses the selected namespace, so `"app"` behaves like `flutter_shadcn add @namespace/app` and pulls normal component dependencies.
 
 Supported actions are documented in [inline-init-actions.md](inline-init-actions.md).
 

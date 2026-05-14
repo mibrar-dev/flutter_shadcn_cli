@@ -135,6 +135,16 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       ),
     );
 
+    final defaultComponents = _defaultInitComponents(initEntry);
+    if (defaultComponents.isNotEmpty) {
+      logger.section('Installing default components');
+      await runAdd(
+        defaultComponents
+            .map((componentId) => '@$namespace/$componentId')
+            .toList(growable: false),
+      );
+    }
+
     if (!initEntry.hasInlineInit) {
       logger.info('No bootstrap actions defined for this registry.');
     } else {
@@ -150,6 +160,20 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       config: config,
       assumeYes: assumeYes,
     );
+  }
+
+  List<String> _defaultInitComponents(RegistryDirectoryEntry entry) {
+    final raw = entry.init?['defaultComponents'];
+    if (raw is! List) {
+      return const [];
+    }
+    final components = raw
+        .map((item) => item.toString().trim())
+        .where((item) => item.isNotEmpty)
+        .toSet()
+        .toList()
+      ..sort();
+    return components;
   }
 
   Future<ShadcnConfig> _maybePromptSharedPath({

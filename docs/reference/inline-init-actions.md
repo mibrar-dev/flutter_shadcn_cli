@@ -2,6 +2,8 @@
 
 Inline init actions live in `registries.json` under `registries[].init.actions`. They let a registry bootstrap directories, shared files, assets, fonts, dependencies, and user-facing messages during `flutter_shadcn init`.
 
+Registries can also declare `registries[].init.defaultComponents`. These component IDs are installed after the inline actions complete, using the selected registry namespace and the normal component dependency installer.
+
 The engine supports these action types:
 
 - `ensureDirs`
@@ -169,6 +171,33 @@ Fields:
 - `flutterFonts`: list merged under `flutter.fonts`
 
 Existing entries are not duplicated.
+
+When `deriveFlutterAssets` is true, written image/data assets are added to `flutter.assets`. Known shadcn font files such as Geist, Lucide, Radix, Bootstrap, and Noto symbols are derived as `flutter.fonts` entries instead of raw assets.
+
+## `defaultComponents`
+
+Installs component IDs after the init actions finish. Use this for first-run essentials that should go through normal component dependency resolution.
+
+```json
+{
+  "init": {
+    "version": 1,
+    "defaultComponents": ["app"],
+    "actions": [
+      {
+        "type": "mergePubspec",
+        "dependencies": {
+          "flutter_localizations": "sdk: flutter"
+        }
+      }
+    ]
+  }
+}
+```
+
+Fields:
+
+- `defaultComponents`: list of component IDs from the same registry namespace
 
 ## Rollback
 

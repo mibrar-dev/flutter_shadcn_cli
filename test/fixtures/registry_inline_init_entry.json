@@ -37,6 +37,7 @@
       {
         "type": "mergePubspec",
         "dependencies": {
+          "flutter_localizations": "sdk: flutter",
           "gap": "^3.0.1"
         },
         "devDependencies": {

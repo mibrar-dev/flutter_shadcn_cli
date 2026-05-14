@@ -244,6 +244,15 @@
         "description": {
           "type": "string"
         },
+        "defaultComponents": {
+          "type": "array",
+          "description": "Component IDs to install automatically after inline init actions complete, using the selected registry namespace.",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "default": []
+        },
         "actions": {
           "type": "array",
           "items": {
