@@ -510,7 +510,7 @@ void main() {
       await installer.init(
         skipPrompts: true,
         configOverrides: const InitConfigOverrides(
-          installPath: 'ui/shadcn',
+          installPath: 'lib/ui/shadcn',
           sharedPath: 'lib/ui/shadcn/shared',
           includeReadme: false,
           includeMeta: true,

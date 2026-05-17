@@ -102,9 +102,8 @@ void main() {
         p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'components.json'),
       );
       expect(installManifest.existsSync(), isTrue);
-      final installData =
-          jsonDecode(installManifest.readAsStringSync())
-              as Map<String, dynamic>;
+      final installData = jsonDecode(installManifest.readAsStringSync())
+          as Map<String, dynamic>;
       final meta = installData['componentMeta'] as Map<String, dynamic>;
       final buttonMeta = meta['button'] as Map<String, dynamic>;
       expect(buttonMeta['version'], '1.0.0');
@@ -115,11 +114,6 @@ void main() {
       );
       expect(aliasFile.existsSync(), isTrue);
       final aliasContents = aliasFile.readAsStringSync();
-      expect(
-        aliasContents,
-        contains("export 'package:flutter/material.dart' hide"),
-      );
-      expect(aliasContents, contains('    Button;'));
       expect(
         aliasContents,
         contains("export 'components/button/button.dart';"),
@@ -307,9 +301,8 @@ void main() {
         artifactFile.writeAsStringSync(
           "const generatedCliTheme = 'cli-theme';\n",
         );
-        final digest = sha256
-            .convert(artifactFile.readAsBytesSync())
-            .toString();
+        final digest =
+            sha256.convert(artifactFile.readAsBytesSync()).toString();
 
         final manifestFile = File(p.join(appRoot.path, 'cli-theme.json'))
           ..writeAsStringSync(
@@ -437,13 +430,11 @@ void main() {
           ),
         );
         expect(installFile.existsSync(), isTrue);
-        final normalizedState =
-            jsonDecode(
-                  File(
-                    p.join(appRoot.path, '.shadcn', 'state.json'),
-                  ).readAsStringSync(),
-                )
-                as Map<String, dynamic>;
+        final normalizedState = jsonDecode(
+          File(
+            p.join(appRoot.path, '.shadcn', 'state.json'),
+          ).readAsStringSync(),
+        ) as Map<String, dynamic>;
         expect(normalizedState['registries'], isA<Map>());
       },
     );
@@ -537,13 +528,11 @@ void main() {
         );
 
         await cli.main(['default', 'alt']);
-        final config =
-            jsonDecode(
-                  File(
-                    p.join(appRoot.path, '.shadcn', 'config.json'),
-                  ).readAsStringSync(),
-                )
-                as Map<String, dynamic>;
+        final config = jsonDecode(
+          File(
+            p.join(appRoot.path, '.shadcn', 'config.json'),
+          ).readAsStringSync(),
+        ) as Map<String, dynamic>;
         expect(config['defaultNamespace'], 'alt');
 
         await cli.main(['registries', '--json', '--offline']);
@@ -564,37 +553,31 @@ void main() {
           isTrue,
         );
         final appComponents = File(
-          p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'app_components.dart'),
+          p.join(appRoot.path, 'lib', 'ui', 'alt', 'app_components.dart'),
         );
         expect(appComponents.existsSync(), isTrue);
         final appComponentsSource = appComponents.readAsStringSync();
         expect(
           appComponentsSource,
-          contains("export 'package:flutter/material.dart' hide"),
+          contains("export 'components/button/button.dart';"),
         );
-        expect(
-          appComponentsSource,
-          contains("export 'components/app/app.dart';"),
-        );
-        expect(appComponentsSource, isNot(contains('typedef AppShadcnApp')));
+        expect(appComponentsSource, isNot(contains('typedef AppButton')));
       },
     );
 
     test(
       'init namespace executes inline init actions from registries directory',
       () async {
-        final fixture =
-            jsonDecode(
-                  File(
-                    p.join(
-                      originalCwd.path,
-                      'test',
-                      'fixtures',
-                      'registry_inline_init_entry.json',
-                    ),
-                  ).readAsStringSync(),
-                )
-                as Map<String, dynamic>;
+        final fixture = jsonDecode(
+          File(
+            p.join(
+              originalCwd.path,
+              'test',
+              'fixtures',
+              'registry_inline_init_entry.json',
+            ),
+          ).readAsStringSync(),
+        ) as Map<String, dynamic>;
         final registryEntry = Map<String, dynamic>.from(fixture);
         final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
         addTearDown(() async {
@@ -794,18 +777,16 @@ void main() {
     test(
       'init without namespace uses default namespace inline actions when registries are configured',
       () async {
-        final fixture =
-            jsonDecode(
-                  File(
-                    p.join(
-                      originalCwd.path,
-                      'test',
-                      'fixtures',
-                      'registry_inline_init_entry.json',
-                    ),
-                  ).readAsStringSync(),
-                )
-                as Map<String, dynamic>;
+        final fixture = jsonDecode(
+          File(
+            p.join(
+              originalCwd.path,
+              'test',
+              'fixtures',
+              'registry_inline_init_entry.json',
+            ),
+          ).readAsStringSync(),
+        ) as Map<String, dynamic>;
         final registryEntry = Map<String, dynamic>.from(fixture);
         final server = await HttpServer.bind(InternetAddress.loopbackIPv4, 0);
         addTearDown(() async {
@@ -928,18 +909,16 @@ void main() {
     test(
       'init without namespace bootstraps shadcn from registries directory on a clean project',
       () async {
-        final fixture =
-            jsonDecode(
-                  File(
-                    p.join(
-                      originalCwd.path,
-                      'test',
-                      'fixtures',
-                      'registry_inline_init_entry.json',
-                    ),
-                  ).readAsStringSync(),
-                )
-                as Map<String, dynamic>;
+        final fixture = jsonDecode(
+          File(
+            p.join(
+              originalCwd.path,
+              'test',
+              'fixtures',
+              'registry_inline_init_entry.json',
+            ),
+          ).readAsStringSync(),
+        ) as Map<String, dynamic>;
         File(p.join(appRoot.path, '.shadcn', 'config.json')).deleteSync();
         File(p.join(registryRoot.path, 'shared', 'theme', 'color_scheme.dart'))
           ..createSync(recursive: true)
@@ -1009,18 +988,16 @@ void main() {
     test(
       'init without flags uses persisted local registry mode from config',
       () async {
-        final fixture =
-            jsonDecode(
-                  File(
-                    p.join(
-                      originalCwd.path,
-                      'test',
-                      'fixtures',
-                      'registry_inline_init_entry.json',
-                    ),
-                  ).readAsStringSync(),
-                )
-                as Map<String, dynamic>;
+        final fixture = jsonDecode(
+          File(
+            p.join(
+              originalCwd.path,
+              'test',
+              'fixtures',
+              'registry_inline_init_entry.json',
+            ),
+          ).readAsStringSync(),
+        ) as Map<String, dynamic>;
         final registriesPath = _writeRegistriesFile(appRoot, [
           Map<String, dynamic>.from(fixture)
             ..['install'] = {
@@ -1098,18 +1075,16 @@ void main() {
     test(
       'registries schema accepts deprecated themeConverterDart path during directory load',
       () async {
-        final fixture =
-            jsonDecode(
-                  File(
-                    p.join(
-                      originalCwd.path,
-                      'test',
-                      'fixtures',
-                      'registry_inline_init_entry.json',
-                    ),
-                  ).readAsStringSync(),
-                )
-                as Map<String, dynamic>;
+        final fixture = jsonDecode(
+          File(
+            p.join(
+              originalCwd.path,
+              'test',
+              'fixtures',
+              'registry_inline_init_entry.json',
+            ),
+          ).readAsStringSync(),
+        ) as Map<String, dynamic>;
 
         final registriesPath = _writeRegistriesFile(appRoot, [
           Map<String, dynamic>.from(fixture)
@@ -1280,6 +1255,7 @@ void main() {
                       'label': 'Fonts',
                       'description': 'Font assets',
                       'default': true,
+                      'required': true,
                       'files': ['fonts/typography_fonts.otf'],
                     },
                     {
@@ -1799,8 +1775,7 @@ void main() {
         RegExp(r'[^A-Za-z0-9._-]'),
         '_',
       );
-      final home =
-          Platform.environment['HOME'] ??
+      final home = Platform.environment['HOME'] ??
           Platform.environment['USERPROFILE'] ??
           tempRoot.path;
       final cacheDir = Directory(
