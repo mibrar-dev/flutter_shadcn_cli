@@ -1914,6 +1914,31 @@ void main() {
         contains('"installPath":"lib/ui/shadcn"'),
       );
     });
+
+    test(
+      'app components hides material Stepper and Step when registry stepper is installed',
+      () async {
+        await cli.main(['add', 'stepper']);
+
+        final aliasFile = File(
+          p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'app_components.dart'),
+        );
+        expect(aliasFile.existsSync(), isTrue);
+        final aliasContents = aliasFile.readAsStringSync();
+        expect(
+          aliasContents,
+          contains("export 'package:flutter/material.dart' hide"),
+        );
+        expect(aliasContents, contains('    Step;'));
+        expect(aliasContents, contains('    Stepper;'));
+        expect(
+          aliasContents,
+          contains("export 'components/stepper/stepper.dart';"),
+        );
+        expect(aliasContents, contains('typedef AppStepper = Stepper;'));
+        expect(aliasContents, contains('typedef AppStep = Step;'));
+      },
+    );
   });
 }
 
@@ -1942,6 +1967,9 @@ void _writeRegistryFixtures(Directory registryRoot) {
         ..createSync(recursive: true);
   final iconDir =
       Directory(p.join(root, 'registry', 'components', 'icon_fonts'))
+        ..createSync(recursive: true);
+  final stepperDir =
+      Directory(p.join(root, 'registry', 'components', 'stepper'))
         ..createSync(recursive: true);
 
   File(p.join(componentsDir.path, 'button.dart'))
@@ -1978,6 +2006,10 @@ void _writeRegistryFixtures(Directory registryRoot) {
       .writeAsStringSync('class IconFonts {}');
   File(p.join(iconDir.path, 'meta.json'))
       .writeAsStringSync('{"id":"icon_fonts"}');
+  File(p.join(stepperDir.path, 'stepper.dart'))
+      .writeAsStringSync('class Stepper {}\nclass Step {}');
+  File(p.join(stepperDir.path, 'meta.json'))
+      .writeAsStringSync('{"id":"stepper"}');
 
   final registryJson = {
     'schemaVersion': 1,
@@ -2143,9 +2175,41 @@ void _writeRegistryFixtures(Directory registryRoot) {
         'pubspec': {'dependencies': {}},
         'assets': [],
         'postInstall': []
+      },
+      {
+        'id': 'stepper',
+        'name': 'Stepper',
+        'description': 'Stepper component',
+        'category': 'control',
+        'version': '1.0.0',
+        'tags': ['control'],
+        'files': [
+          {
+            'source': 'registry/components/stepper/stepper.dart',
+            'destination': '{installPath}/components/stepper/stepper.dart'
+          },
+          {
+            'source': 'registry/components/stepper/meta.json',
+            'destination': '{installPath}/components/stepper/meta.json'
+          }
+        ],
+        'shared': [],
+        'dependsOn': [],
+        'pubspec': {'dependencies': {}},
+        'assets': [],
+        'postInstall': []
       }
     ]
   };
+
+  for (final component
+      in (registryJson['components'] as List).cast<Map<String, dynamic>>()) {
+    final id = component['id'] as String;
+    File(p.join(root, 'registry', 'components', id, 'meta.json'))
+        .writeAsStringSync(
+      const JsonEncoder.withIndent('  ').convert(component),
+    );
+  }
 
   File(p.join(registryRoot.path, 'components.json')).writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(registryJson));
