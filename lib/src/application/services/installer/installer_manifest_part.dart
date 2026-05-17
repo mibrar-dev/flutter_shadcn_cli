@@ -7,12 +7,14 @@ extension InstallerManifestPart on Installer {
     await _ensureConfigLoaded();
     final installPath = _installPath(_cachedConfig);
     final installed = await _installedComponentIds();
-    final requiredDeps = _collectRequiredDependencies(installed);
+    final requiredDeps = await _collectRequiredDependencies(installed);
+    final componentMeta = await _collectComponentMeta(installed);
     await _manifestService.updateAggregateManifest(
       installPath: installPath,
       sharedPath: _sharedPath(_cachedConfig),
       installedComponentIds: installed,
       managedDependencies: requiredDeps,
+      componentMeta: componentMeta,
     );
   }
 
@@ -192,7 +194,7 @@ extension InstallerManifestPart on Installer {
   Future<void> _refreshComponentManifests() async {
     final installed = await _installedComponentIds();
     for (final id in installed) {
-      final component = registry.getComponent(id);
+      final component = await _manifestResolver.resolve(id);
       if (component != null) {
         await _writeComponentManifest(component);
       }
@@ -202,17 +204,18 @@ extension InstallerManifestPart on Installer {
   Future<void> _refreshLockfileRecords() async {
     final installed = await _installedComponentIds();
     for (final id in installed) {
-      final component = registry.getComponent(id);
+      final component = await _manifestResolver.resolve(id);
       if (component != null) {
         await _writeLockfileRecord(component);
       }
     }
   }
 
-  Map<String, dynamic> _collectRequiredDependencies(Set<String> installed) {
+  Future<Map<String, dynamic>> _collectRequiredDependencies(
+      Set<String> installed) async {
     final required = <String, dynamic>{};
     for (final id in installed) {
-      final component = registry.getComponent(id);
+      final component = await _manifestResolver.resolve(id);
       if (component == null || component.pubspec.isEmpty) {
         continue;
       }
@@ -227,6 +230,24 @@ extension InstallerManifestPart on Installer {
     return required;
   }
 
+  Future<Map<String, dynamic>> _collectComponentMeta(
+    Set<String> installed,
+  ) async {
+    final meta = <String, dynamic>{};
+    final installedList = installed.toList()..sort();
+    for (final id in installedList) {
+      final component = await _manifestResolver.resolve(id);
+      if (component == null) {
+        continue;
+      }
+      meta[id] = {
+        'version': component.version,
+        'tags': component.tags,
+      };
+    }
+    return meta;
+  }
+
   Future<void> _syncDependenciesWithInstalled({
     Set<String>? installedOverride,
     Set<String>? managedOverride,
@@ -236,7 +257,7 @@ extension InstallerManifestPart on Installer {
       return;
     }
     final installed = installedOverride ?? await _installedComponentIds();
-    final required = _collectRequiredDependencies(installed);
+    final required = await _collectRequiredDependencies(installed);
     final lock = await ShadcnLockRepository(targetDir).loadOrSynthesize();
     for (final component in lock.components) {
       component.dependencies.forEach((key, value) {
@@ -296,7 +317,7 @@ extension InstallerManifestPart on Installer {
     final config = _cachedConfig ?? const ShadcnConfig();
     final namespace = stateNamespace ?? config.effectiveDefaultNamespace;
     final installed = await _installedComponentIds();
-    final required = _collectRequiredDependencies(installed);
+    final required = await _collectRequiredDependencies(installed);
     final managed = <String>{...required.keys, ..._coreInitDependencies};
     final existingState = await ShadcnState.load(
       targetDir,

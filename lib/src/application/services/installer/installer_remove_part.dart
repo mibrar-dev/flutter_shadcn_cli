@@ -4,7 +4,7 @@ extension InstallerRemovePart on Installer {
   Future<void> removeComponent(String name, {bool force = false}) async {
     await ensureInitFiles(allowPrompts: false);
     await _ensureConfigLoaded();
-    final component = registry.getComponent(name);
+    final component = await _manifestResolver.resolve(name);
     if (component == null) {
       logger.warn('Component "$name" not found');
       return;
@@ -21,7 +21,7 @@ extension InstallerRemovePart on Installer {
       return;
     }
 
-    final dependents = _dependentComponents(component.id, installed);
+    final dependents = await _dependentComponents(component.id, installed);
     if (dependents.isNotEmpty && !force) {
       logger.warn(
         'Cannot remove ${component.id}; required by ${dependents.join(', ')}',
@@ -187,13 +187,14 @@ extension InstallerRemovePart on Installer {
     return installed;
   }
 
-  List<String> _dependentComponents(String id, Set<String> installed) {
+  Future<List<String>> _dependentComponents(
+      String id, Set<String> installed) async {
     final dependents = <String>[];
     for (final installedId in installed) {
       if (installedId == id) {
         continue;
       }
-      final component = registry.getComponent(installedId);
+      final component = await _manifestResolver.resolve(installedId);
       if (component != null && component.dependsOn.contains(id)) {
         dependents.add(installedId);
       }

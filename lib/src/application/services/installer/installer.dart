@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/component_manifest_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_plan.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/init_config_overrides.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
@@ -70,6 +71,7 @@ class Installer {
   bool _deferComponentManifest = false;
   Future<void> _lockfileWriteQueue = Future<void>.value();
   ShadcnConfig? _cachedConfig;
+  late final ComponentManifestResolver _manifestResolver;
   final InstallerConfigResolver _configResolver;
   final InstallerFileSelectionPolicy _fileSelectionPolicy;
   final InstallerManifestService _manifestService;
@@ -124,7 +126,12 @@ class Installer {
         _sharedService = InstallerSharedService(
           registry: registry,
           logger: logger ?? CliLogger(),
-        );
+        ) {
+    _manifestResolver = ComponentManifestResolver(
+      registry: registry,
+      logger: this.logger,
+    );
+  }
 
   Future<void> init({
     bool skipPrompts = false,
@@ -238,7 +245,9 @@ class Installer {
     bool installDependencies = true,
     Set<String>? ancestry,
   }) async {
-    final component = registry.getComponent(name);
+    await ensureInitFiles(allowPrompts: false);
+    await _ensureConfigLoaded();
+    final component = await _manifestResolver.resolve(name);
     if (component == null) {
       logger.warn('Component "$name" not found');
       return;
@@ -249,9 +258,6 @@ class Installer {
         registry,
       ).validateComponentInstall([component.id]);
     }
-
-    await ensureInitFiles(allowPrompts: false);
-    await _ensureConfigLoaded();
 
     final stack = ancestry ?? <String>{};
     if (stack.contains(component.id)) {

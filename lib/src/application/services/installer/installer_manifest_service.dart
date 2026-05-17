@@ -23,6 +23,7 @@ class InstallerManifestService {
     required String sharedPath,
     required Set<String> installedComponentIds,
     required Map<String, dynamic> managedDependencies,
+    Map<String, dynamic>? componentMeta,
   }) async {
     final manifestFile = File(
       _resolveProjectPath(p.join(installPath, 'components.json')),
@@ -36,6 +37,26 @@ class InstallerManifestService {
     }
 
     final installedList = installedComponentIds.toList()..sort();
+    final resolvedComponentMeta =
+        componentMeta ?? _componentMetaFromRegistry(installedList);
+    final payload = {
+      'schemaVersion': 1,
+      'installPath': installPath,
+      'sharedPath': sharedPath,
+      'installed': installedList,
+      'managedDependencies': managedDependencies.keys.toList()..sort(),
+      'componentMeta': resolvedComponentMeta,
+      'updatedAt': DateTime.now().toUtc().toIso8601String(),
+    };
+    if (!await manifestFile.parent.exists()) {
+      await manifestFile.parent.create(recursive: true);
+    }
+    await manifestFile.writeAsString(
+      const JsonEncoder.withIndent('  ').convert(payload),
+    );
+  }
+
+  Map<String, dynamic> _componentMetaFromRegistry(List<String> installedList) {
     final componentMeta = <String, dynamic>{};
     for (final id in installedList) {
       final component = registry.getComponent(id);
@@ -47,21 +68,7 @@ class InstallerManifestService {
         'tags': component.tags,
       };
     }
-    final payload = {
-      'schemaVersion': 1,
-      'installPath': installPath,
-      'sharedPath': sharedPath,
-      'installed': installedList,
-      'managedDependencies': managedDependencies.keys.toList()..sort(),
-      'componentMeta': componentMeta,
-      'updatedAt': DateTime.now().toUtc().toIso8601String(),
-    };
-    if (!await manifestFile.parent.exists()) {
-      await manifestFile.parent.create(recursive: true);
-    }
-    await manifestFile.writeAsString(
-      const JsonEncoder.withIndent('  ').convert(payload),
-    );
+    return componentMeta;
   }
 
   Directory componentManifestDirectory() {
