@@ -312,3 +312,12 @@ Date: 2026-02-22
   - kit-style relative file lists and grouped dependency metadata are normalized into the internal component install model
   - real-registry disposable Flutter smoke now passes init/add/file checks against `shadcn_flutter_kit/flutter_shadcn_kit/lib/registry`
   - final verification passed: `dart analyze`, `dart test --concurrency=1 --reporter=compact` (328/328), `git diff --check`, and `graphify update .`
+- Completed interactive CLI QA pass:
+  - ran `init` without `--yes` in a fresh Flutter project using an expect-driven terminal session
+  - confirmed init asks for component path, shared path, optional font/icon asset groups, and starter theme
+  - confirmed skipped optional font/icon groups do not create `assets/` files during init
+  - confirmed invalid theme input is rejected and re-prompts instead of silently choosing a default
+  - installed selected components and then all 133 real-registry components
+  - verified `shadcn.lock` installed file records: 1,497 checked, 0 missing
+  - verified real-registry `validate --json`, `audit --json`, `flutter pub get`, and `flutter analyze` pass after full install
+  - fixed kit registry markdown metadata to include `markdown_live_preview.dart` in both aggregate and per-component manifest file lists

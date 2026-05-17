@@ -1,0 +1,139 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.1">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1"># Interactive CLI QA Report</p>
+<p class="p2"><br></p>
+<p class="p1">Date: 2026-05-17</p>
+<p class="p1">Branch: `branch-v1-interactive-cli-qa`</p>
+<p class="p1">Fresh Flutter app: `/tmp/flutter_shadcn_interactive_qa.sTBPgm/app`</p>
+<p class="p1">Real registry root: `/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit/lib/registry`</p>
+<p class="p2"><br></p>
+<p class="p1">## Summary</p>
+<p class="p2"><br></p>
+<p class="p1">QA score: 100/100 after the registry metadata fix.</p>
+<p class="p2"><br></p>
+<p class="p1">This QA run tested the CLI like a normal user would: `init` was run interactively without `--yes`. The test then installed components, checked generated files, validated the registry, audited installed files, ran dependency checks, and verified the generated Flutter app with `flutter pub get` and `flutter analyze`.</p>
+<p class="p2"><br></p>
+<p class="p1">## Interactive Init Behavior</p>
+<p class="p2"><br></p>
+<p class="p1">Command:</p>
+<p class="p2"><br></p>
+<p class="p1">```bash</p>
+<p class="p1">dart bin/shadcn.dart --advanced init --registry-path /tmp/flutter_shadcn_interactive_qa.sTBPgm/source_overlay/registry</p>
+<p class="p1">```</p>
+<p class="p2"><br></p>
+<p class="p1">Inputs provided:</p>
+<p class="p2"><br></p>
+<p class="p1">- Component install path: Enter, keeping `lib/ui/shadcn`</p>
+<p class="p1">- Shared files path: Enter, keeping `lib/ui/shadcn/shared`</p>
+<p class="p1">- Optional font/icon asset groups: Enter, skipping all optional assets</p>
+<p class="p1">- Theme selection: `999`, then Enter after the CLI rejected the invalid value</p>
+<p class="p2"><br></p>
+<p class="p1">Observed behavior:</p>
+<p class="p2"><br></p>
+<p class="p1">- The CLI asked for component install path.</p>
+<p class="p1">- The CLI asked for shared files path.</p>
+<p class="p1">- The CLI asked whether to install optional font/icon asset groups.</p>
+<p class="p1">- The CLI listed 42 starter themes.</p>
+<p class="p1">- Invalid theme input `999` produced an error and re-prompted.</p>
+<p class="p1">- Pressing Enter skipped theme selection.</p>
+<p class="p1">- Init copied 48 core shared files and created 3 directories.</p>
+<p class="p1">- No `assets/` files were created when optional font/icon groups were skipped.</p>
+<p class="p2"><br></p>
+<p class="p1">Important init outputs:</p>
+<p class="p2"><br></p>
+<p class="p1">- `Install font assets?`</p>
+<p class="p1">- `Select numbers separated by comma, "a" for all, or Enter to skip:`</p>
+<p class="p1">- `Theme number or id (Enter to skip): 999`</p>
+<p class="p1">- `Invalid theme selection "999". Choose 1-42 or press Enter to skip.`</p>
+<p class="p1">- `Skipping theme selection.`</p>
+<p class="p2"><br></p>
+<p class="p1">## Component Install Checks</p>
+<p class="p2"><br></p>
+<p class="p1">Selected component install commands:</p>
+<p class="p2"><br></p>
+<p class="p1">```bash</p>
+<p class="p1">dart bin/shadcn.dart --advanced add button --registry-path &lt;registry&gt;</p>
+<p class="p1">dart bin/shadcn.dart --advanced add card --registry-path &lt;registry&gt;</p>
+<p class="p1">dart bin/shadcn.dart --advanced add alert --registry-path &lt;registry&gt;</p>
+<p class="p1">```</p>
+<p class="p2"><br></p>
+<p class="p1">Selected install result:</p>
+<p class="p2"><br></p>
+<p class="p1">- Component manifests created: `button.json`, `card.json`, `alert.json`</p>
+<p class="p1">- `shadcn.lock` installed file records checked: 77</p>
+<p class="p1">- Missing installed files: 0</p>
+<p class="p1">- Total project files after selected install: 213</p>
+<p class="p2"><br></p>
+<p class="p1">All-component install command:</p>
+<p class="p2"><br></p>
+<p class="p1">```bash</p>
+<p class="p1">dart bin/shadcn.dart --advanced add &lt;all 133 component ids&gt; --registry-path &lt;registry&gt;</p>
+<p class="p1">```</p>
+<p class="p2"><br></p>
+<p class="p1">All-component install result:</p>
+<p class="p2"><br></p>
+<p class="p1">- Components installed: 133</p>
+<p class="p1">- `shadcn.lock` installed file records checked: 1,497</p>
+<p class="p1">- Missing installed files: 0</p>
+<p class="p1">- Total project files after all install: 1,921</p>
+<p class="p2"><br></p>
+<p class="p1">## Issue Found And Fixed</p>
+<p class="p2"><br></p>
+<p class="p1">| ID | Before | Fix | After |</p>
+<p class="p1">| --- | --- | --- | --- |</p>
+<p class="p1">| INT-QA-01 | `validate --json` reported missing required file dependency `registry/components/display/markdown/_impl/state/markdown_live_preview.dart`. The source file existed, but registry manifests did not list it as a markdown component file. | Added `markdown_live_preview.dart` to both `/flutter_shadcn_kit/lib/registry/components/display/markdown/meta.json` and `/flutter_shadcn_kit/lib/registry/manifests/components.json`. | `validate --json` passes with 1,834 source files checked and no missing dependencies. Full all-component install includes `markdown_live_preview.dart`. |</p>
+<p class="p2"><br></p>
+<p class="p1">## Verification Evidence</p>
+<p class="p2"><br></p>
+<p class="p1">| Gate | Result |</p>
+<p class="p1">| --- | --- |</p>
+<p class="p1">| Interactive init without `--yes` | PASS |</p>
+<p class="p1">| Optional font/icon asset skip | PASS, no `assets/` files after init |</p>
+<p class="p1">| Invalid theme input re-prompt | PASS |</p>
+<p class="p1">| Selected install file existence | PASS, 77 checked, 0 missing |</p>
+<p class="p1">| All component install file existence | PASS, 1,497 checked, 0 missing |</p>
+<p class="p1">| `deps --all --json` | PASS |</p>
+<p class="p1">| `validate --json` | PASS, 1,834 source files checked |</p>
+<p class="p1">| `audit --json` | PASS, 133 installed, no missing files |</p>
+<p class="p1">| `flutter pub get` | PASS |</p>
+<p class="p1">| `flutter analyze` | PASS, no issues found |</p>
+<p class="p2"><br></p>
+<p class="p1">## Evidence Logs</p>
+<p class="p2"><br></p>
+<p class="p1">Log root:</p>
+<p class="p2"><br></p>
+<p class="p1">```text</p>
+<p class="p1">/tmp/flutter_shadcn_interactive_qa.sTBPgm/logs</p>
+<p class="p1">```</p>
+<p class="p2"><br></p>
+<p class="p1">Key files:</p>
+<p class="p2"><br></p>
+<p class="p1">- `interactive_init.log`</p>
+<p class="p1">- `files_after_init.txt`</p>
+<p class="p1">- `assets_after_init.txt`</p>
+<p class="p1">- `installed_file_check_selected.json`</p>
+<p class="p1">- `installed_file_check_all.json`</p>
+<p class="p1">- `validate_after_markdown_fix_json.log`</p>
+<p class="p1">- `validate_after_all_json.log`</p>
+<p class="p1">- `audit_after_all_json.log`</p>
+<p class="p1">- `deps_after_all_json.log`</p>
+<p class="p1">- `flutter_pub_get_after_all.log`</p>
+<p class="p1">- `flutter_analyze_after_all.log`</p>
+<p class="p2"><br></p>
+<p class="p1">## Current State</p>
+<p class="p2"><br></p>
+<p class="p1">The interactive CLI path is working for the tested production flow. Init does not silently install optional assets when the user skips them, invalid theme choices re-prompt, selected and full component installs produce complete file sets, and the generated Flutter app analyzes cleanly after all components are installed.</p>
+</body>
+</html>
