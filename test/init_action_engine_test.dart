@@ -43,6 +43,18 @@ void main() {
           await request.response.close();
           return;
         }
+        if (path == '/registry/shared/fonts/lucide.ttf') {
+          request.response.statusCode = 200;
+          request.response.write('lucide-bytes');
+          await request.response.close();
+          return;
+        }
+        if (path == '/registry/shared/images/logo.svg') {
+          request.response.statusCode = 200;
+          request.response.write('<svg></svg>');
+          await request.response.close();
+          return;
+        }
         if (path == '/registry/components/index.json') {
           request.response.statusCode = 200;
           request.response.write(
@@ -437,12 +449,14 @@ void main() {
       );
       final pubspec =
           File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
-      expect(pubspec.contains('assets/fonts/bootstrap.otf'), isTrue);
+      expect(pubspec.contains('family: BootstrapIcons'), isTrue);
+      expect(pubspec.contains('asset: assets/fonts/bootstrap.otf'), isTrue);
       expect(pubspec.contains('assets/theme/color_scheme.dart'), isFalse);
       expect(result.filesWritten, 1);
       expect(result.record.filesWritten, ['assets/fonts/bootstrap.otf']);
-      expect(result.record.pubspecDelta.flutterAssets,
-          ['assets/fonts/bootstrap.otf']);
+      expect(result.record.pubspecDelta.flutterAssets, isEmpty);
+      expect(result.record.pubspecDelta.flutterFonts.single['family'],
+          'BootstrapIcons');
     });
 
     test('inline init rejects code writes outside lib but allows assets',
@@ -659,7 +673,8 @@ void main() {
       final pubspec =
           File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
       expect(pubspec, contains('assets/images/logo.svg'));
-      expect(pubspec, contains('assets/fonts/bootstrap.otf'));
+      expect(pubspec, contains('family: BootstrapIcons'));
+      expect(pubspec, contains('asset: assets/fonts/bootstrap.otf'));
     });
   });
 }

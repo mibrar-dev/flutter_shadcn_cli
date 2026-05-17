@@ -245,8 +245,6 @@ class Installer {
     bool installDependencies = true,
     Set<String>? ancestry,
   }) async {
-    await ensureInitFiles(allowPrompts: false);
-    await _ensureConfigLoaded();
     final component = await _manifestResolver.resolve(name);
     if (component == null) {
       logger.warn('Component "$name" not found');
@@ -258,6 +256,9 @@ class Installer {
         registry,
       ).validateComponentInstall([component.id]);
     }
+
+    await ensureInitFiles(allowPrompts: false);
+    await _ensureConfigLoaded();
 
     final stack = ancestry ?? <String>{};
     if (stack.contains(component.id)) {

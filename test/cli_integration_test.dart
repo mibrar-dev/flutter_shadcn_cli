@@ -1700,7 +1700,11 @@ void main() {
       ]);
 
       await cli.main([
+        '--advanced',
+        '--offline',
         'sync',
+        '--registry-path',
+        registryRoot.path,
       ]);
 
       final manifestFile = File(
@@ -1918,7 +1922,14 @@ void main() {
     test(
       'app components hides material Stepper and Step when registry stepper is installed',
       () async {
-        await cli.main(['add', 'stepper']);
+        await cli.main([
+          '--advanced',
+          '--offline',
+          'add',
+          'stepper',
+          '--registry-path',
+          registryRoot.path,
+        ]);
 
         final aliasFile = File(
           p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'app_components.dart'),
@@ -1929,7 +1940,7 @@ void main() {
           aliasContents,
           contains("export 'package:flutter/material.dart' hide"),
         );
-        expect(aliasContents, contains('    Step;'));
+        expect(aliasContents, contains('    Step,'));
         expect(aliasContents, contains('    Stepper;'));
         expect(
           aliasContents,

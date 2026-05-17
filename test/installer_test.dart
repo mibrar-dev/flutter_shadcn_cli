@@ -1097,7 +1097,7 @@ output-localization-file: app_localizations.dart
       await installer.init(
         skipPrompts: true,
         configOverrides: const InitConfigOverrides(
-          installPath: 'ui/shadcn',
+          installPath: 'lib/ui/shadcn',
           sharedPath: 'lib/ui/shadcn/shared',
           includeReadme: false,
           includeMeta: true,
@@ -1679,6 +1679,19 @@ void _mutateRegistryJson(
   final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
   mutate(json);
   file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(json));
+  for (final component
+      in (json['components'] as List).cast<Map<String, dynamic>>()) {
+    final id = component['id'] as String;
+    final manifest = File(
+      p.join(p.dirname(registryRoot.path), 'registry', 'components', id,
+          'meta.json'),
+    );
+    if (manifest.existsSync()) {
+      manifest.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(component),
+      );
+    }
+  }
 }
 
 void _writeRawLock(

@@ -21,7 +21,11 @@ class InitPathMapper {
     if (stripped.isEmpty) {
       throw ResolverV1Exception('file path cannot map to empty destination');
     }
-    return p.posix.join(destBase!, stripped);
+    final destinationBase = _normalizeDestinationBase(destBase!);
+    if (destinationBase == '.') {
+      return stripped;
+    }
+    return p.posix.join(destinationBase, stripped);
   }
 
   static String mapSourcePath({
@@ -66,8 +70,22 @@ class InitPathMapper {
     }
     var destination = p.posix.join(to, relativeTail);
     if (destBase != null) {
-      destination = p.posix.join(destBase, destination);
+      final destinationBase = _normalizeDestinationBase(destBase);
+      if (destinationBase != '.') {
+        destination = p.posix.join(destinationBase, destination);
+      }
     }
-    return p.posix.normalize(destination);
+    return destination;
+  }
+
+  static String _normalizeDestinationBase(String destBase) {
+    var normalized = destBase.trim();
+    while (normalized.startsWith('./')) {
+      normalized = normalized.substring(2);
+    }
+    if (normalized.isEmpty || normalized == '.') {
+      return normalized;
+    }
+    return normalized;
   }
 }
