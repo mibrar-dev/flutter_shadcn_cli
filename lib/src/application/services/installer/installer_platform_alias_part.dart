@@ -164,7 +164,8 @@ extension InstallerPlatformAliasPart on Installer {
     final config = _cachedConfig ?? const ShadcnConfig();
     final prefix = config.classPrefix;
     final componentsDir = Directory(
-        _resolveProjectPath(p.join(_installPath(config), 'components')));
+      _resolveProjectPath(p.join(_installPath(config), 'components')),
+    );
     if (!componentsDir.existsSync()) {
       return;
     }
@@ -190,10 +191,13 @@ extension InstallerPlatformAliasPart on Installer {
       if (!mainFile.existsSync()) {
         continue;
       }
-      final relativeDir = p.relative(componentDir.path,
-          from: p.join(targetDir, _installPath(config)));
-      final importPath =
-          p.join(relativeDir, '$componentName.dart').replaceAll('\\', '/');
+      final relativeDir = p.relative(
+        componentDir.path,
+        from: p.join(targetDir, _installPath(config)),
+      );
+      final importPath = p
+          .join(relativeDir, '$componentName.dart')
+          .replaceAll('\\', '/');
       imports.add(importPath);
       final contents = <String>[];
       final mainContent = mainFile.readAsStringSync();
@@ -208,8 +212,9 @@ extension InstallerPlatformAliasPart on Installer {
           contents.add(partFile.readAsStringSync());
         }
       }
-      final matches =
-          contents.expand((content) => _classRegex.allMatches(content));
+      final matches = contents.expand(
+        (content) => _classRegex.allMatches(content),
+      );
       for (final match in matches) {
         final className = match.group(2);
         if (className == null || className.startsWith('_')) {
@@ -255,14 +260,16 @@ extension InstallerPlatformAliasPart on Installer {
           output.writeln('typedef $aliasName = $className;');
         } else {
           final typeArgs = _typeArgsFromParams(typeParams);
-          output
-              .writeln('typedef $aliasName$typeParams = $className$typeArgs;');
+          output.writeln(
+            'typedef $aliasName$typeParams = $className$typeArgs;',
+          );
         }
       }
     }
 
-    final outputFile = File(_resolveProjectPath(
-        p.join(_installPath(config), 'app_components.dart')));
+    final outputFile = File(
+      _resolveProjectPath(p.join(_installPath(config), 'app_components.dart')),
+    );
     await outputFile.writeAsString(output.toString());
   }
 
@@ -310,6 +317,10 @@ extension InstallerPlatformAliasPart on Installer {
       'ScaffoldState',
       'SelectableText',
       'Slider',
+      'Step',
+      'StepState',
+      'Stepper',
+      'StepperType',
       'Switch',
       'Tab',
       'TabBar',
@@ -322,6 +333,8 @@ extension InstallerPlatformAliasPart on Installer {
       'VerticalDivider',
       'showDialog',
     };
-    return materialExports.toList()..sort();
+    final installedSet = installedNames.toSet();
+    return materialExports.where((name) => installedSet.contains(name)).toList()
+      ..sort();
   }
 }
