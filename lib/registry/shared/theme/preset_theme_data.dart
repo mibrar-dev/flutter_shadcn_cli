@@ -1,7 +1,11 @@
-// Generated theme preset data used by the CLI.
-//
-// This file provides lightweight color and token maps so the CLI can apply
-// presets without depending on Flutter runtime libraries.
+/// Generated theme preset data used by the CLI and exported public API.
+///
+/// This library provides lightweight color and token maps so the CLI can apply
+/// presets without depending on Flutter runtime libraries. Consumers may also
+/// import it from `package:flutter_shadcn_cli/flutter_shadcn_cli.dart` to
+/// inspect available preset ids, names, color values, and design tokens.
+library;
+
 // GENERATED CODE - DO NOT MODIFY BY HAND.
 // Derived from Theme Presets.ts for CLI use.
 

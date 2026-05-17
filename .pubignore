@@ -6,4 +6,15 @@
 build/
 test/
 templates/
+docs/
+doc/api/
+graphify-out/
+qa_reports/
+.codex/
+PLAN.md
+PROGRESS.md
+run_tests.sh
+theme_example.json
+tool/
+pubspec.lock
 output.txt
