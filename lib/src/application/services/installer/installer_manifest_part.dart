@@ -17,11 +17,11 @@ extension InstallerManifestPart on Installer {
       await _clearComponentManifests();
       return;
     }
-    final requiredDeps = _collectRequiredDependencies(installed);
+    final requiredDeps = await _collectRequiredDependencies(installed);
     final installedList = installed.toList()..sort();
     final componentMeta = <String, dynamic>{};
     for (final id in installedList) {
-      final component = registry.getComponent(id);
+      final component = await _manifestResolver.resolve(id);
       if (component == null) {
         continue;
       }
@@ -110,17 +110,18 @@ extension InstallerManifestPart on Installer {
   Future<void> _refreshComponentManifests() async {
     final installed = await _installedComponentIds();
     for (final id in installed) {
-      final component = registry.getComponent(id);
+      final component = await _manifestResolver.resolve(id);
       if (component != null) {
         await _writeComponentManifest(component);
       }
     }
   }
 
-  Map<String, dynamic> _collectRequiredDependencies(Set<String> installed) {
+  Future<Map<String, dynamic>> _collectRequiredDependencies(
+      Set<String> installed) async {
     final required = <String, dynamic>{};
     for (final id in installed) {
-      final component = registry.getComponent(id);
+      final component = await _manifestResolver.resolve(id);
       if (component == null || component.pubspec.isEmpty) {
         continue;
       }
@@ -144,7 +145,7 @@ extension InstallerManifestPart on Installer {
       return;
     }
     final installed = installedOverride ?? await _installedComponentIds();
-    final required = _collectRequiredDependencies(installed);
+    final required = await _collectRequiredDependencies(installed);
 
     final managedDeps = managedOverride ?? await _loadManagedDependencies();
     final registryDeps = _collectAllRegistryDependencies();
@@ -220,7 +221,7 @@ extension InstallerManifestPart on Installer {
     final config = _cachedConfig ?? const ShadcnConfig();
     final namespace = stateNamespace ?? config.effectiveDefaultNamespace;
     final installed = await _installedComponentIds();
-    final required = _collectRequiredDependencies(installed);
+    final required = await _collectRequiredDependencies(installed);
     final managed = <String>{...required.keys, ..._coreInitDependencies};
     final existingState = await ShadcnState.load(
       targetDir,

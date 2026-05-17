@@ -601,7 +601,8 @@ void main() {
       );
     });
 
-    test('applies theme artifact manifest and updates config theme id', () async {
+    test('applies theme artifact manifest and updates config theme id',
+        () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -671,7 +672,8 @@ void main() {
       );
       final manifestData =
           jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
-      final files = (manifestData['files'] as List).cast<Map<String, dynamic>>();
+      final files =
+          (manifestData['files'] as List).cast<Map<String, dynamic>>();
       files[0] = {
         ...files[0],
         'sha256': '0' * 64,
@@ -809,8 +811,42 @@ void _writeRegistryFixtures(Directory registryRoot) {
   File(p.join(componentsDir.path, 'button.dart'))
       .writeAsStringSync('class Button {}');
   File(p.join(componentsDir.path, 'README.md')).writeAsStringSync('# Button');
-  File(p.join(componentsDir.path, 'meta.json'))
-      .writeAsStringSync('{"id":"button"}');
+  File(p.join(componentsDir.path, 'meta.json')).writeAsStringSync(
+    jsonEncode({
+      'id': 'button',
+      'name': 'Button',
+      'files': [
+        {
+          'source': 'registry/components/button/button.dart',
+          'destination': '{installPath}/components/button/button.dart'
+        },
+        {
+          'source': 'registry/components/button/README.md',
+          'destination': '{installPath}/components/button/README.md'
+        },
+        {
+          'source': 'registry/components/button/meta.json',
+          'destination': '{installPath}/components/button/meta.json'
+        },
+        {
+          'source': 'registry/components/button/preview.dart',
+          'destination': '{installPath}/components/button/preview.dart'
+        },
+        {
+          'source': 'registry/components/button/preview_state.dart',
+          'destination': '{installPath}/components/button/preview_state.dart'
+        }
+      ],
+      'shared': [],
+      'dependsOn': [],
+      'pubspec': {
+        'dependencies': {'skeletonizer': '^2.1.0+1'}
+      },
+      'assets': [],
+      'fonts': [],
+      'postInstall': [],
+    }),
+  );
   File(p.join(componentsDir.path, 'preview.dart'))
       .writeAsStringSync('void main() {}');
   File(p.join(componentsDir.path, 'preview_state.dart'))
@@ -818,8 +854,28 @@ void _writeRegistryFixtures(Directory registryRoot) {
 
   File(p.join(dialogDir.path, 'dialog.dart'))
       .writeAsStringSync('class Dialog {}');
-  File(p.join(dialogDir.path, 'meta.json'))
-      .writeAsStringSync('{"id":"dialog"}');
+  File(p.join(dialogDir.path, 'meta.json')).writeAsStringSync(
+    jsonEncode({
+      'id': 'dialog',
+      'name': 'Dialog',
+      'files': [
+        {
+          'source': 'registry/components/dialog/dialog.dart',
+          'destination': '{installPath}/components/dialog/dialog.dart'
+        },
+        {
+          'source': 'registry/components/dialog/meta.json',
+          'destination': '{installPath}/components/dialog/meta.json'
+        }
+      ],
+      'shared': [],
+      'dependsOn': ['button'],
+      'pubspec': {'dependencies': {}},
+      'assets': [],
+      'fonts': [],
+      'postInstall': [],
+    }),
+  );
 
   File(p.join(sharedThemeDir.path, 'theme.dart'))
       .writeAsStringSync('class ThemeHelper {}');
