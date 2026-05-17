@@ -11,6 +11,7 @@ extension MultiRegistryAddPart on MultiRegistryManager {
     }
     final projectRoot = _projectRoot;
     var config = await _loadProjectConfig();
+    logger.progress('Resolving add requests (${requested.length} requested)');
     final refs =
         await _resolveAddRequests(requested, config, projectRoot: projectRoot);
 
@@ -20,6 +21,10 @@ extension MultiRegistryAddPart on MultiRegistryManager {
     }
 
     for (final entry in grouped.entries) {
+      logger.progress(
+        'Preparing registry ${entry.key} '
+        '(${entry.value.length} ${entry.value.length == 1 ? 'component' : 'components'})',
+      );
       final source = await _resolveSourceForNamespace(
         entry.key,
         config,

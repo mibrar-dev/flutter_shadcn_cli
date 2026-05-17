@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter_shadcn_cli/src/init_action_engine.dart';
+import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 import 'package:path/path.dart' as p;
@@ -130,6 +131,35 @@ void main() {
       expect(flutterSection['fonts'], isA<YamlList>());
       expect(dependencies['assets'], isNull);
       expect(dependencies['fonts'], isNull);
+    });
+
+    test('reports inline init progress for copy and pubspec actions', () async {
+      final entry = await _loadFixtureEntry(
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+      );
+      final engine = InitActionEngine();
+      final lines = <String>[];
+
+      await engine.executeRegistryInit(
+        projectRoot: projectRoot.path,
+        registry: entry,
+        logger: CliLogger(useColor: false, writeLine: lines.add),
+      );
+
+      expect(
+        lines,
+        containsAllInOrder([
+          '... Running init action: ensureDirs',
+          '... Ensuring init directories (2 paths)',
+          '... Running init action: copyFiles',
+          '... Copying init files (1 file)',
+          '... Writing init file 1/1: lib/ui/shadcn/shared/theme/color_scheme.dart',
+          '... Running init action: copyDir',
+          '... Copying init files (1 file)',
+          '... Running init action: mergePubspec',
+          '... Merging init pubspec updates',
+        ]),
+      );
     });
 
     test('mergePubspec writes sdk dependencies as nested yaml maps', () async {

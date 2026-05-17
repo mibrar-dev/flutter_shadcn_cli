@@ -55,6 +55,10 @@ class InstallerSharedService {
 
     _installingSharedIds.add(resolvedId);
     try {
+      logger.progress(
+        'Installing shared module $resolvedId '
+        '(${sharedItem.files.length} ${sharedItem.files.length == 1 ? 'file' : 'files'})',
+      );
       final sharedDeps = await loadSharedDependencies(resolvedId);
       for (final depId in sharedDeps) {
         await installShared(

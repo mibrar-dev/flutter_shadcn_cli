@@ -38,24 +38,29 @@ extension InstallerSharedPart on Installer {
     try {
       await action();
     } finally {
+      logger.progress('Finalizing bulk install');
       _deferAliases = previousAlias;
       _deferDependencyUpdates = previousDeps;
       _deferComponentManifest = previousManifest;
       if (_pendingDependencies.isNotEmpty) {
         final pending = Map<String, dynamic>.from(_pendingDependencies);
         _pendingDependencies.clear();
+        logger.progress('Updating pubspec dependencies');
         await _updateDependencies(pending);
       }
       if (_pendingAssets.isNotEmpty) {
         final pending = _pendingAssets.toList()..sort();
         _pendingAssets.clear();
+        logger.progress('Registering pubspec assets');
         await _updateAssets(pending);
       }
       if (_pendingFonts.isNotEmpty) {
         final pending = List<FontEntry>.from(_pendingFonts);
         _pendingFonts.clear();
+        logger.progress('Registering pubspec fonts');
         await _updateFonts(pending);
       }
+      logger.progress('Syncing pubspec dependencies with installed components');
       await _syncDependenciesWithInstalled();
       if (!_deferAliases) {
         await generateAliases();

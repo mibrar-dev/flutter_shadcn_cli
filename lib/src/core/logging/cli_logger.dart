@@ -3,9 +3,14 @@ import 'dart:io';
 class CliLogger {
   final bool verbose;
   final bool useColor;
+  final void Function(String) _writeLine;
 
-  CliLogger({this.verbose = false, bool? useColor})
-      : useColor = useColor ?? stdout.supportsAnsiEscapes;
+  CliLogger({
+    this.verbose = false,
+    bool? useColor,
+    void Function(String)? writeLine,
+  })  : useColor = useColor ?? stdout.supportsAnsiEscapes,
+        _writeLine = writeLine ?? ((message) => stdout.writeln(message));
 
   static const _reset = '\u001b[0m';
   static const _bold = '\u001b[1m';
@@ -18,6 +23,8 @@ class CliLogger {
   void header(String message) => _write(_style('✨ $message', _bold + _cyan));
 
   void action(String message) => _write(_style('• $message', _cyan));
+
+  void progress(String message) => _write(_style('... $message', _dim));
 
   void success(String message) => _write(_style('✓ $message', _green));
 
@@ -43,6 +50,6 @@ class CliLogger {
   }
 
   void _write(String message) {
-    stdout.writeln(message);
+    _writeLine(message);
   }
 }

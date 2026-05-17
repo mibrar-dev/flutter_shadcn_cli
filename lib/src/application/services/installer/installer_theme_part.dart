@@ -46,6 +46,7 @@ extension InstallerThemePart on Installer {
   }
 
   Future<void> applyThemeById(String identifier, {bool refresh = false}) async {
+    logger.progress('Resolving theme preset: $identifier');
     final resolved = await _resolveThemeRegistry(refresh: refresh);
     if (resolved == null) {
       logger.info('This registry does not provide theme presets.');
@@ -58,6 +59,7 @@ extension InstallerThemePart on Installer {
       );
       return;
     }
+    logger.progress('Loading theme manifest for ${entry.name}');
     final manifest = await _loadThemeArtifactManifestById(
       resolved: resolved,
       entry: entry,
@@ -321,12 +323,18 @@ extension InstallerThemePart on Installer {
     String? themeId,
   }) async {
     await _ensureConfigLoaded();
+    logger.progress(
+      'Applying theme artifacts '
+      '(${manifest.files.length} ${manifest.files.length == 1 ? 'file' : 'files'})',
+    );
     final prepared = await _prepareThemeArtifacts(
       manifest: manifest,
       registryId: registryId,
       registryBaseUrl: registryBaseUrl,
     );
-    for (final artifact in prepared) {
+    for (var i = 0; i < prepared.length; i += 1) {
+      final artifact = prepared[i];
+      logger.progress('Writing theme artifact ${i + 1}/${prepared.length}');
       await _atomicWriteBytes(artifact.targetFile, artifact.bytes);
     }
     if (themeId != null && themeId.isNotEmpty) {
@@ -344,6 +352,7 @@ extension InstallerThemePart on Installer {
     final prepared = <_PreparedThemeArtifact>[];
     final seenTargets = <String>{};
     for (final file in manifest.files) {
+      logger.progress('Reading theme artifact: ${file.source}');
       final targetFile = File(_resolveDestinationPath(file.target));
       final normalizedTarget = p.normalize(targetFile.path);
       if (!seenTargets.add(normalizedTarget)) {

@@ -78,6 +78,49 @@ void main() {
       );
     });
 
+    test('reports component install progress in normal output', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final lines = <String>[];
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(useColor: false, writeLine: lines.add),
+        registryBaseUrlOverride: p.dirname(registryRoot.path),
+        themesPathOverride: 'registry/manifests/theme.index.json',
+      );
+
+      await installer.addComponent('button');
+
+      expect(
+        lines,
+        containsAllInOrder([
+          '... Resolving component: button',
+          '• Installing Button (button)',
+          '... Installing files for Button (2 files)',
+          '... Updating pubspec dependencies for Button',
+          '... Writing component manifest for Button',
+          '... Regenerating app component aliases',
+          '... Syncing component registry manifest',
+          '... Updating project state',
+        ]),
+      );
+    });
+
     test('rejects component file destinations outside install scope', () async {
       await _writeConfig(
         targetRoot,

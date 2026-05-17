@@ -121,9 +121,14 @@ class InitActionEngine {
         }
       }
 
+      logger?.progress('Running init action: $type');
       switch (type) {
         case 'ensureDirs':
-          final created = await _runEnsureDirs(projectRoot, action);
+          final created = await _runEnsureDirs(
+            projectRoot,
+            action,
+            logger: logger,
+          );
           dirsCreated += created.length;
           createdDirs.addAll(created);
           break;
@@ -133,6 +138,7 @@ class InitActionEngine {
             baseUrl: baseUrl,
             action: action,
             groupSelector: groupSelector,
+            logger: logger,
           );
           if (written.isEmpty && _hasActionGroups(action)) {
             continue;
@@ -149,6 +155,7 @@ class InitActionEngine {
             baseUrl: baseUrl,
             action: action,
             groupSelector: groupSelector,
+            logger: logger,
           );
           if (written.isEmpty && _hasActionGroups(action)) {
             continue;
@@ -164,6 +171,7 @@ class InitActionEngine {
             projectRoot,
             action,
             derivedFlutterAssets: writtenAssetCandidates,
+            logger: logger,
           );
           pubspecDelta = pubspecDelta.merge(delta);
           break;
@@ -245,9 +253,14 @@ class InitActionEngine {
 
   Future<List<String>> _runEnsureDirs(
     String projectRoot,
-    Map<String, dynamic> action,
-  ) async {
+    Map<String, dynamic> action, {
+    CliLogger? logger,
+  }) async {
     final dirs = (action['dirs'] as List<dynamic>? ?? const []);
+    logger?.progress(
+      'Ensuring init directories '
+      '(${dirs.length} ${dirs.length == 1 ? 'path' : 'paths'})',
+    );
     final created = <String>[];
     for (final entry in dirs) {
       final relPath = ResolverV1.normalizeRelativePath(entry.toString());
@@ -274,6 +287,7 @@ class InitActionEngine {
     required String baseUrl,
     required Map<String, dynamic> action,
     InitActionGroupSelector? groupSelector,
+    CliLogger? logger,
   }) async {
     final base = action['base']?.toString();
     final destBase = action['destBase']?.toString();
@@ -320,8 +334,13 @@ class InitActionEngine {
       groupSelector: groupSelector,
     );
 
+    logger?.progress(
+      'Copying init files '
+      '(${files.length} ${files.length == 1 ? 'file' : 'files'})',
+    );
     final written = <String>[];
-    for (final fileEntry in files) {
+    for (var i = 0; i < files.length; i += 1) {
+      final fileEntry = files[i];
       final filePath = ResolverV1.normalizeRelativePath(fileEntry.toString());
       final destinationRel = usesDirMapping
           ? InitPathMapper.mapCopyDirDestination(
@@ -357,6 +376,9 @@ class InitActionEngine {
         filePath: filePath,
         base: base,
       );
+      logger?.progress(
+        'Writing init file ${i + 1}/${files.length}: $destinationRel',
+      );
       final bytes = await _readRemoteBytes(
         baseUrl: baseUrl,
         relativePath: sourceRel,
@@ -371,7 +393,9 @@ class InitActionEngine {
     String projectRoot,
     Map<String, dynamic> action, {
     Set<String> derivedFlutterAssets = const <String>{},
+    CliLogger? logger,
   }) async {
+    logger?.progress('Merging init pubspec updates');
     final file = File(
       ProjectPathGuard.resolveSafeWritePath(
         projectRoot: projectRoot,

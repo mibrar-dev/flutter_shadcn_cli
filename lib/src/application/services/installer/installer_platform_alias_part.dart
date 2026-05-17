@@ -11,6 +11,7 @@ extension InstallerPlatformAliasPart on Installer {
   }
 
   Future<void> generateAliases() async {
+    logger.progress('Regenerating app component aliases');
     await _ensureConfigLoaded();
     final config = _cachedConfig ?? const ShadcnConfig();
     final prefix = config.classPrefix;

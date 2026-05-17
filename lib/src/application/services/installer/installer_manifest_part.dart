@@ -4,6 +4,7 @@ const Set<String> _coreInitDependencies = {'data_widget', 'gap'};
 
 extension InstallerManifestPart on Installer {
   Future<void> _updateComponentManifest() async {
+    logger.progress('Syncing component registry manifest');
     await _ensureConfigLoaded();
     final installPath = _installPath(_cachedConfig);
     final installed = await _installedComponentIds();
@@ -370,6 +371,7 @@ extension InstallerManifestPart on Installer {
   }
 
   Future<void> _updateState() async {
+    logger.progress('Updating project state');
     await _ensureConfigLoaded();
     final config = _cachedConfig ?? const ShadcnConfig();
     final namespace = stateNamespace ?? config.effectiveDefaultNamespace;

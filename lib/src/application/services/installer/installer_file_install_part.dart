@@ -32,13 +32,27 @@ extension InstallerFileInstallPart on Installer {
     if (files.isEmpty) {
       return;
     }
+    await _ensureConfigLoaded();
+    final installableCount =
+        files.where((file) => _shouldInstallFile(file.destination)).length;
+    logger.progress(
+      'Installing files for ${component.name} '
+      '($installableCount ${installableCount == 1 ? 'file' : 'files'})',
+    );
     var index = 0;
     Future<void> worker() async {
       while (true) {
         if (index >= files.length) {
           return;
         }
+        final fileNumber = index + 1;
         final file = files[index++];
+        if (_shouldInstallFile(file.destination)) {
+          logger.progress(
+            'Installing file $fileNumber/${files.length}: '
+            '${_progressFileLabel(file.destination)}',
+          );
+        }
         await _installComponentFile(component, file, files);
       }
     }
@@ -47,12 +61,24 @@ extension InstallerFileInstallPart on Installer {
     await Future.wait(List.generate(workerCount, (_) => worker()));
   }
 
+  String _progressFileLabel(String destination) {
+    final normalized = destination.replaceAll('\\', '/');
+    if (normalized.length <= 90) {
+      return normalized;
+    }
+    return '...${normalized.substring(normalized.length - 87)}';
+  }
+
   Future<void> _installFileWithDependencies(
     RegistryFile file,
     List<RegistryFile> availableFiles, {
     String? sharedId,
   }) async {
     await _ensureConfigLoaded();
+    if (_shouldInstallFile(file.destination)) {
+      logger.progress(
+          'Installing shared file: ${_progressFileLabel(file.destination)}');
+    }
     await _installSharedFileDependencies(
       file,
       availableFiles,

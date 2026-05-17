@@ -216,7 +216,7 @@ class Installer {
       totalFiles += shared.files.length;
     }
     logger.detail('  Total: $totalFiles files');
-    print('');
+    logger.info('');
 
     for (final sharedId in sharedList) {
       await installShared(sharedId);
@@ -265,6 +265,7 @@ class Installer {
     bool installDependencies = true,
     Set<String>? ancestry,
   }) async {
+    logger.progress('Resolving component: $name');
     final component = await _manifestResolver.resolve(name);
     if (component == null) {
       logger.warn('Component "$name" not found');
@@ -318,12 +319,20 @@ class Installer {
       logger.action('Installing ${component.name} (${component.id})');
       _installingComponentIds.add(component.id);
       if (installDependencies) {
+        logger.progress(
+          'Resolving dependencies for ${component.name} '
+          '(${component.dependsOn.length} dependencies)',
+        );
         for (final dep in component.dependsOn) {
           await addComponent(dep, ancestry: stack);
         }
       }
 
       if (enableSharedGroups) {
+        logger.progress(
+          'Installing shared modules for ${component.name} '
+          '(${component.shared.length} modules)',
+        );
         for (final sharedId in component.shared) {
           await installShared(sharedId);
         }
@@ -340,18 +349,22 @@ class Installer {
 
       if (component.pubspec.isNotEmpty) {
         final deps = component.pubspec['dependencies'] as Map<String, dynamic>;
+        logger.progress('Updating pubspec dependencies for ${component.name}');
         await _queueDependencyUpdates(deps);
       }
       if (component.assets.isNotEmpty) {
+        logger.progress('Registering assets for ${component.name}');
         await _queueAssetUpdates(component.assets);
       }
       if (component.fonts.isNotEmpty) {
+        logger.progress('Registering fonts for ${component.name}');
         await _queueFontUpdates(component.fonts);
       }
       if (component.postInstall.isNotEmpty) {
         _reportPostInstall(component);
       }
       try {
+        logger.progress('Writing component manifest for ${component.name}');
         await _writeComponentManifest(
           component,
           localeResourcesInstalled: installedLocaleResources,
@@ -400,6 +413,7 @@ class Installer {
     if (ids.isEmpty) {
       return;
     }
+    logger.progress('Installing all components (${ids.length} total)');
     await RegistryDependencyGraph(registry).validateComponentInstall(ids);
 
     var index = 0;
