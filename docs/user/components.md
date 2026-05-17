@@ -75,6 +75,18 @@ The CLI may update:
 - `pubspec.yaml`, when the component declares managed dependencies or assets
 - generated alias files, when alias generation is enabled by config
 
+## Generated Aliases
+
+The generated alias file exports installed components and keeps Flutter framework
+name collisions out of the consumer app. When an installed component has a class
+name that also exists in `package:flutter/material.dart`, the CLI hides the
+Material symbol from the generated Material export and creates an app-prefixed
+typedef for the registry component.
+
+For example, installing a registry `Stepper` component also handles Material's
+`Stepper` and `Step` names so the app can import the generated aliases without
+manually editing export conflicts.
+
 ## Removing Components
 
 ```bash

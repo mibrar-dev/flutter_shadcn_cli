@@ -18,6 +18,7 @@ extension InstallerFileInstallPart on Installer {
     await _ensureConfigLoaded();
     await _installFileDependencies(component, file, availableFiles);
     final destination = _resolveComponentDestination(component, file);
+    _validateComponentFileDestination(destination);
     final patched = RegistryFile(
       source: file.source,
       destination: destination,
@@ -57,6 +58,7 @@ extension InstallerFileInstallPart on Installer {
       availableFiles,
       sharedId: sharedId,
     );
+    _validateSharedFileDestination(file.destination);
     await _installFile(file);
   }
 
@@ -91,6 +93,7 @@ extension InstallerFileInstallPart on Installer {
           RegistryFile(source: dep.source, destination: dep.source);
       final destination =
           _resolveComponentDestination(component, resolvedMapping);
+      _validateComponentFileDestination(destination);
       final target = File(destination);
       if (await target.exists()) {
         continue;
@@ -134,6 +137,7 @@ extension InstallerFileInstallPart on Installer {
       final resolvedMapping = mapping ??
           owner?.file ??
           RegistryFile(source: dep.source, destination: dep.source);
+      _validateSharedFileDestination(resolvedMapping.destination);
       final target = File(_resolveDestinationPath(resolvedMapping.destination));
       if (await target.exists()) {
         continue;
@@ -183,4 +187,54 @@ extension InstallerFileInstallPart on Installer {
 
     return _resolveDestinationPath(file.destination);
   }
+
+  void _validateComponentInstallTargets(Component component) {
+    for (final file in component.files) {
+      _validateComponentFileDestination(
+        _resolveComponentDestination(component, file),
+      );
+    }
+    for (final asset in component.assets) {
+      _validateAssetPath(asset);
+    }
+    for (final font in component.fonts) {
+      for (final asset in font.fonts) {
+        _validateAssetPath(asset.asset);
+      }
+    }
+  }
+
+  void _validateComponentFileDestination(String destination) {
+    final config = _cachedConfig;
+    _installTargetPolicy.validateFileDestination(
+      projectRoot: targetDir,
+      namespace: _targetNamespace,
+      installRoot: _installPath(config),
+      sharedRoot: _sharedPath(config),
+      destinationPath: destination,
+      kind: InstallTargetKind.componentFile,
+    );
+  }
+
+  void _validateSharedFileDestination(String destination) {
+    final config = _cachedConfig;
+    _installTargetPolicy.validateFileDestination(
+      projectRoot: targetDir,
+      namespace: _targetNamespace,
+      installRoot: _installPath(config),
+      sharedRoot: _sharedPath(config),
+      destinationPath: _resolveDestinationPath(destination),
+      kind: InstallTargetKind.sharedFile,
+    );
+  }
+
+  void _validateAssetPath(String assetPath) {
+    _installTargetPolicy.validateAssetPath(
+      namespace: _targetNamespace,
+      assetPath: assetPath,
+    );
+  }
+
+  String get _targetNamespace =>
+      registryNamespace ?? stateNamespace ?? 'shadcn';
 }

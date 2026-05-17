@@ -7,6 +7,7 @@ import 'package:crypto/crypto.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/component_manifest_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_plan.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/init_config_overrides.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/install_target_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
@@ -77,6 +78,7 @@ class Installer {
   final InstallerManifestService _manifestService;
   final InstallerFileWriterService _fileWriter;
   final InstallerSharedService _sharedService;
+  final InstallTargetPolicy _installTargetPolicy;
 
   Installer({
     required this.registry,
@@ -97,6 +99,7 @@ class Installer {
     InstallerFileSelectionPolicy? fileSelectionPolicy,
     InstallerManifestService? manifestService,
     InstallerFileWriterService? fileWriter,
+    InstallTargetPolicy? installTargetPolicy,
   })  : logger = logger ?? CliLogger(),
         _configResolver = configResolver ??
             InstallerConfigResolver(
@@ -126,7 +129,9 @@ class Installer {
         _sharedService = InstallerSharedService(
           registry: registry,
           logger: logger ?? CliLogger(),
-        ) {
+        ),
+        _installTargetPolicy =
+            installTargetPolicy ?? const InstallTargetPolicy() {
     _manifestResolver = ComponentManifestResolver(
       registry: registry,
       logger: this.logger,
@@ -287,11 +292,13 @@ class Installer {
       final installed = await _installedComponentIds();
       if (installed.contains(component.id)) {
         logger.detail('Skipping ${component.id} (already installed)');
+        _validateComponentInstallTargets(component);
         await _preflightNamespaceCollisions(component);
         await _writeLockfileRecord(component);
         return;
       }
 
+      _validateComponentInstallTargets(component);
       await _preflightNamespaceCollisions(component);
       logger.action('Installing ${component.name} (${component.id})');
       _installingComponentIds.add(component.id);
@@ -340,7 +347,10 @@ class Installer {
         }
         logger.warn('Failed to write component manifest: $e');
       }
-      await _writeLockfileRecord(component);
+      await _writeLockfileRecord(
+        component,
+        localeResourcesInstalled: installedLocaleResources,
+      );
       _installedComponentCache?.add(component.id);
       if (!_deferAliases) {
         await generateAliases();

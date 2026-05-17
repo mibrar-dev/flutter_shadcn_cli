@@ -36,11 +36,17 @@ extension InstallerManifestPart on Installer {
     );
   }
 
-  Future<void> _writeLockfileRecord(Component component) async {
+  Future<void> _writeLockfileRecord(
+    Component component, {
+    List<Map<String, dynamic>> localeResourcesInstalled = const [],
+  }) async {
     await _withLockfileWriteLock(() async {
       await _ensureConfigLoaded();
       final namespace = _effectiveNamespace();
       final manifestHash = _registryManifestHash();
+      final localeKeys = localeResourcesInstalled.isNotEmpty
+          ? _localeLockKeys(localeResourcesInstalled)
+          : _existingLocaleLockKeys(component.id);
       final repository = ShadcnLockRepository(targetDir);
       final existing = await repository.loadOrSynthesize();
       final lock = existing
@@ -53,7 +59,12 @@ extension InstallerManifestPart on Installer {
             ),
           )
           .upsertComponent(
-            _pendingLockfileRecord(component, namespace, manifestHash),
+            _pendingLockfileRecord(
+              component,
+              namespace,
+              manifestHash,
+              localeKeys: localeKeys,
+            ),
           );
       await repository.save(lock);
     });
@@ -139,8 +150,9 @@ extension InstallerManifestPart on Installer {
   ShadcnLockComponent _pendingLockfileRecord(
     Component component,
     String namespace,
-    String manifestHash,
-  ) {
+    String manifestHash, {
+    List<String> localeKeys = const [],
+  }) {
     return ShadcnLockComponent(
       namespace: namespace,
       componentId: component.id,
@@ -151,7 +163,7 @@ extension InstallerManifestPart on Installer {
       installedFiles: _installedLockFiles(component),
       dependencies: _componentDependencies(component),
       postInstall: component.postInstall,
-      localeKeys: const [],
+      localeKeys: localeKeys,
       assetPaths: component.assets,
       manifestKeys: component.manifestKeys,
       postInstallNamespaces: component.postInstallNamespaces,
@@ -185,6 +197,51 @@ extension InstallerManifestPart on Installer {
       return const {};
     }
     return Map<String, dynamic>.from(raw);
+  }
+
+  List<String> _localeLockKeys(List<Map<String, dynamic>> resources) {
+    final keys = <String>{};
+    for (final resource in resources) {
+      final destination = resource['destination']?.toString();
+      final addedKeys = resource['addedKeys'];
+      if (destination == null || destination.isEmpty || addedKeys is! List) {
+        continue;
+      }
+      for (final key in addedKeys) {
+        keys.add('$destination:${key.toString()}');
+      }
+    }
+    return keys.toList()..sort();
+  }
+
+  List<String> _existingLocaleLockKeys(String componentId) {
+    final manifestFile = _componentManifestFile(componentId);
+    if (!manifestFile.existsSync()) {
+      return const [];
+    }
+    try {
+      final decoded = jsonDecode(manifestFile.readAsStringSync());
+      if (decoded is! Map) {
+        return const [];
+      }
+      final locale = decoded['locale'];
+      final resources = locale is Map ? locale['resourcesInstalled'] : null;
+      if (resources is! List) {
+        return const [];
+      }
+      return _localeLockKeys(
+        resources
+            .whereType<Map>()
+            .map(
+              (entry) => entry.map(
+                (key, value) => MapEntry(key.toString(), value),
+              ),
+            )
+            .toList(),
+      );
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<void> _removeComponentManifest(String componentId) async {

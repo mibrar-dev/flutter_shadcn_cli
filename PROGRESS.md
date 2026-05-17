@@ -282,3 +282,9 @@ Date: 2026-02-22
   - local v1 registry roots with `manifests/components.json` are accepted by registry root validation
   - `validate` carries the selected manifest schema path through the loaded registry and no longer falls back to root `components.schema.json`
   - real-registry fresh app verification installs all 133 components, passes `deps`, and passes `validate --json`
+- Completed remaining install safety hardening:
+  - component file destinations are rejected unless they stay under the configured install root or shared root
+  - shared file destinations are rejected unless they stay under the configured shared root
+  - registry-managed asset and font pubspec paths are rejected unless they stay under `assets/`
+  - lockfile records now preserve installed locale key ownership from merged component locale resources
+  - documented generated alias handling for Material name collisions such as Stepper/Step

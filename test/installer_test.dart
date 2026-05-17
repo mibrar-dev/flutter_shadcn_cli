@@ -78,6 +78,165 @@ void main() {
       );
     });
 
+    test('rejects component file destinations outside install scope', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(p.dirname(registryRoot.path), 'external_button.dart'))
+          .writeAsStringSync('class ExternalButton {}');
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['files'] = [
+          {
+            'source': 'external_button.dart',
+            'destination': 'lib/escape/button.dart',
+          }
+        ];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('outside allowed install scope') &&
+                error.toString().contains('lib/escape/button.dart'),
+          ),
+        ),
+      );
+      expect(
+        File(p.join(targetRoot.path, 'lib', 'escape', 'button.dart'))
+            .existsSync(),
+        isFalse,
+      );
+    });
+
+    test('rejects component asset paths outside assets root', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['assets'] = ['lib/secret.txt'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('Asset path must be under assets/'),
+          ),
+        ),
+      );
+      final pubspec =
+          File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('lib/secret.txt')));
+      expect(
+        File(p.join(targetRoot.path, 'lib', 'ui', 'shadcn', 'components',
+                'button', 'button.dart'))
+            .existsSync(),
+        isFalse,
+      );
+    });
+
+    test('rejects shared file destinations outside shared root', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(p.dirname(registryRoot.path), 'external_shared.dart'))
+          .writeAsStringSync('class ExternalShared {}');
+      _mutateRegistryJson(registryRoot, (json) {
+        final sharedItems = (json['shared'] as List).cast<Map>();
+        final util = sharedItems.firstWhere((item) => item['id'] == 'util');
+        util['files'] = [
+          {
+            'source': 'external_shared.dart',
+            'destination': 'pubspec.yaml',
+          }
+        ];
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['shared'] = ['util'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error
+                    .toString()
+                    .contains('cannot write reserved project file') &&
+                error.toString().contains('pubspec.yaml'),
+          ),
+        ),
+      );
+      expect(
+        File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync(),
+        contains('name: test_app'),
+      );
+    });
+
     test('merges component-local JSON locale resources into app ARB', () async {
       await _writeConfig(
         targetRoot,
@@ -163,6 +322,16 @@ output-localization-file: app_localizations.dart
       expect(resources.single['destination'], 'lib/l10n/app_en.arb');
       expect(resources.single['addedKeys'], contains('buttonCancel'));
       expect(resources.single['addedKeys'], isNot(contains('buttonSave')));
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      final record = lock.componentFor(
+        namespace: 'shadcn',
+        componentId: 'button',
+      );
+      expect(record?.localeKeys, [
+        'lib/l10n/app_en.arb:@buttonCancel',
+        'lib/l10n/app_en.arb:buttonCancel',
+      ]);
 
       await installer.removeComponent('button', force: true);
 
