@@ -403,6 +403,127 @@ void main() {
       expect(installed.readAsStringSync(), contains('LocalOverrideToken'));
     });
 
+    test('assume yes skips optional init asset groups by default', () async {
+      final overrideBase =
+          Directory(p.join(tempRoot.path, 'inline_optional_skip'))
+            ..createSync();
+      Directory(p.join(overrideBase.path, 'registry', 'shared', 'fonts'))
+          .createSync(recursive: true);
+      _writeEmptyRegistryManifest(
+          Directory(p.join(overrideBase.path, 'registry')));
+      File(p.join(
+              overrideBase.path, 'registry', 'shared', 'fonts', 'optional.otf'))
+          .writeAsStringSync('optional-font');
+
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        _inlineRegistryEntry(
+          baseUrl: 'https://example.com/remote/',
+          actions: [
+            {
+              'type': 'copyFiles',
+              'optional': true,
+              'promptLabel': 'Install font assets?',
+              'base': 'registry',
+              'destBase': '.',
+              'from': 'shared',
+              'to': 'assets',
+              'groups': [
+                {
+                  'label': 'Optional font',
+                  'default': true,
+                  'files': ['fonts/optional.otf'],
+                }
+              ],
+            }
+          ],
+        ),
+      ]);
+
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: true,
+        logger: CliLogger(),
+        directoryPath: registriesPath,
+        registryPathOverride: p.join(overrideBase.path, 'registry'),
+      );
+
+      await manager.runNamespaceInit('shadcn', assumeYes: true);
+
+      expect(
+        File(p.join(appRoot.path, 'assets', 'fonts', 'optional.otf'))
+            .existsSync(),
+        isFalse,
+      );
+    });
+
+    test('assume yes installs only optional init groups marked required',
+        () async {
+      final overrideBase =
+          Directory(p.join(tempRoot.path, 'inline_optional_required'))
+            ..createSync();
+      Directory(p.join(overrideBase.path, 'registry', 'shared', 'fonts'))
+          .createSync(recursive: true);
+      _writeEmptyRegistryManifest(
+          Directory(p.join(overrideBase.path, 'registry')));
+      File(p.join(
+              overrideBase.path, 'registry', 'shared', 'fonts', 'required.otf'))
+          .writeAsStringSync('required-font');
+      File(p.join(
+              overrideBase.path, 'registry', 'shared', 'fonts', 'optional.otf'))
+          .writeAsStringSync('optional-font');
+
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        _inlineRegistryEntry(
+          baseUrl: 'https://example.com/remote/',
+          actions: [
+            {
+              'type': 'copyFiles',
+              'optional': true,
+              'promptLabel': 'Install font assets?',
+              'base': 'registry',
+              'destBase': '.',
+              'from': 'shared',
+              'to': 'assets',
+              'groups': [
+                {
+                  'label': 'Required font',
+                  'required': true,
+                  'default': false,
+                  'files': ['fonts/required.otf'],
+                },
+                {
+                  'label': 'Optional font',
+                  'default': true,
+                  'files': ['fonts/optional.otf'],
+                }
+              ],
+            }
+          ],
+        ),
+      ]);
+
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: true,
+        logger: CliLogger(),
+        directoryPath: registriesPath,
+        registryPathOverride: p.join(overrideBase.path, 'registry'),
+      );
+
+      await manager.runNamespaceInit('shadcn', assumeYes: true);
+
+      expect(
+        File(p.join(appRoot.path, 'assets', 'fonts', 'required.otf'))
+            .existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(appRoot.path, 'assets', 'fonts', 'optional.otf'))
+            .existsSync(),
+        isFalse,
+      );
+    });
+
     test('offline inline init requires components manifest validation',
         () async {
       await ShadcnConfig.save(appRoot.path, const ShadcnConfig());
