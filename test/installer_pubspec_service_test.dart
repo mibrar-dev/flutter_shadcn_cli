@@ -80,13 +80,16 @@ dependencies:
       await expectLater(
         service.preflightDependencies({'gap': '^3.0.1'}),
         throwsA(
-          predicate(
-            (Object error) =>
-                error.toString().contains('pubspec.yaml dependency conflict') &&
-                error.toString().contains(
-                      'gap existing ^2.0.0, requested ^3.0.1',
-                    ),
-          ),
+          isA<PubspecUpdateException>()
+              .having((error) => error.code, 'code', 'dependency-conflict')
+              .having(
+                (error) => error.message,
+                'message',
+                allOf(
+                  contains('pubspec.yaml dependency conflict'),
+                  contains('gap existing ^2.0.0, requested ^3.0.1'),
+                ),
+              ),
         ),
       );
       expect(pubspecFile.readAsStringSync(), contains('  gap: ^2.0.0'));

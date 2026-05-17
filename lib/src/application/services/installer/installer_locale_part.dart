@@ -58,8 +58,10 @@ extension InstallerLocalePart on Installer {
     for (final resource in locale.resources) {
       final normalizedFormat = resource.format.trim().toLowerCase();
       if (normalizedFormat != 'arb' && normalizedFormat != 'json') {
-        throw Exception(
-          'Unsupported locale resource format "${resource.format}" for ${component.id}.',
+        throw LocaleInstallException(
+          code: 'unsupported-format',
+          message:
+              'Unsupported locale resource format "${resource.format}" for ${component.id}.',
         );
       }
       final data = await _readLocaleResource(resource);
@@ -82,28 +84,42 @@ extension InstallerLocalePart on Installer {
   _L10nConfig _loadL10nConfig() {
     final file = File(_resolveProjectPath('l10n.yaml'));
     if (!file.existsSync()) {
-      throw Exception(
-        'Locale resources require l10n.yaml. Run flutter_shadcn locale init, '
-        'or create l10n.yaml with arb-dir, template-arb-file, and '
-        'output-localization-file before installing locale-aware components.',
+      throw const LocaleInstallException(
+        code: 'missing-l10n-config',
+        message:
+            'Locale resources require l10n.yaml. Run flutter_shadcn locale init, '
+            'or create l10n.yaml with arb-dir, template-arb-file, and '
+            'output-localization-file before installing locale-aware components.',
       );
     }
     final parsed = loadYaml(file.readAsStringSync());
     if (parsed is! YamlMap) {
-      throw Exception('l10n.yaml must be a YAML map.');
+      throw const LocaleInstallException(
+        code: 'invalid-l10n-config',
+        message: 'l10n.yaml must be a YAML map.',
+      );
     }
     final arbDir = parsed['arb-dir']?.toString().trim();
     final templateArbFile = parsed['template-arb-file']?.toString().trim();
     final outputLocalizationFile =
         parsed['output-localization-file']?.toString().trim();
     if (arbDir == null || arbDir.isEmpty) {
-      throw Exception('l10n.yaml must define arb-dir.');
+      throw const LocaleInstallException(
+        code: 'missing-l10n-arb-dir',
+        message: 'l10n.yaml must define arb-dir.',
+      );
     }
     if (templateArbFile == null || templateArbFile.isEmpty) {
-      throw Exception('l10n.yaml must define template-arb-file.');
+      throw const LocaleInstallException(
+        code: 'missing-l10n-template-arb-file',
+        message: 'l10n.yaml must define template-arb-file.',
+      );
     }
     if (outputLocalizationFile == null || outputLocalizationFile.isEmpty) {
-      throw Exception('l10n.yaml must define output-localization-file.');
+      throw const LocaleInstallException(
+        code: 'missing-l10n-output-localization-file',
+        message: 'l10n.yaml must define output-localization-file.',
+      );
     }
     ProjectPathGuard.resolveSafeWritePath(
       projectRoot: targetDir,
@@ -123,15 +139,17 @@ extension InstallerLocalePart on Installer {
     if (resource.sha256 != null && resource.sha256!.isNotEmpty) {
       final digest = sha256.convert(bytes).toString().toLowerCase();
       if (digest != resource.sha256!.toLowerCase()) {
-        throw Exception(
-          'Locale resource hash mismatch for ${resource.source}.',
+        throw LocaleInstallException(
+          code: 'hash-mismatch',
+          message: 'Locale resource hash mismatch for ${resource.source}.',
         );
       }
     }
     final decoded = jsonDecode(utf8.decode(bytes));
     if (decoded is! Map) {
-      throw Exception(
-        'Locale resource ${resource.source} must be a JSON object.',
+      throw LocaleInstallException(
+        code: 'invalid-resource-json',
+        message: 'Locale resource ${resource.source} must be a JSON object.',
       );
     }
     return decoded.map((key, value) => MapEntry(key.toString(), value));
@@ -183,7 +201,10 @@ extension InstallerLocalePart on Installer {
   Map<String, dynamic> _readJsonObjectFile(File file, String label) {
     final decoded = jsonDecode(file.readAsStringSync());
     if (decoded is! Map) {
-      throw Exception('$label must contain a JSON object.');
+      throw LocaleInstallException(
+        code: 'invalid-json-object',
+        message: '$label must contain a JSON object.',
+      );
     }
     return decoded.map((key, value) => MapEntry(key.toString(), value));
   }
@@ -311,4 +332,17 @@ extension InstallerLocalePart on Installer {
     }
     return value.map((entry) => entry.toString()).toList();
   }
+}
+
+class LocaleInstallException implements Exception {
+  final String code;
+  final String message;
+
+  const LocaleInstallException({
+    required this.code,
+    required this.message,
+  });
+
+  @override
+  String toString() => 'LocaleInstallException($code): $message';
 }

@@ -335,7 +335,10 @@ extension InstallerManifestPart on Installer {
 
     final addPlan = planner.planAddDependencies(lines, required);
     if (addPlan.conflicts.isNotEmpty) {
-      throw Exception(_formatDependencyConflicts(addPlan.conflicts));
+      throw PubspecUpdateException(
+        code: 'dependency-conflict',
+        message: _formatDependencyConflicts(addPlan.conflicts),
+      );
     }
     lines = addPlan.lines;
 

@@ -1,0 +1,88 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.1">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1"># Flutter Shadcn CLI QA Report</p>
+<p class="p2"><br></p>
+<p class="p1">Date: 2026-05-17 23:06 Europe/London</p>
+<p class="p1">Branch: `branch-v1-final-cleanups-qa-report`</p>
+<p class="p1">Base commit at report time: `ccfbe77`</p>
+<p class="p1">Scope: final future cleanups variant covering loading feedback, typed theme artifact errors, typed locale install errors, typed pubspec dependency conflicts, and regression verification of the full CLI.</p>
+<p class="p2"><br></p>
+<p class="p1">## Executive Summary</p>
+<p class="p2"><br></p>
+<p class="p1">QA score: 100/100</p>
+<p class="p1">Pass rate: 100%</p>
+<p class="p1">Automated tests: 327 passed, 0 failed</p>
+<p class="p1">Static analysis: passed</p>
+<p class="p1">Diff hygiene: passed</p>
+<p class="p2"><br></p>
+<p class="p1">This variant is production-ready from the automated QA evidence collected in this run. The CLI now gives deterministic progress feedback during long install/init/theme operations and exposes typed errors for key install failure classes without changing existing human-readable messages.</p>
+<p class="p2"><br></p>
+<p class="p1">## Test Evidence</p>
+<p class="p2"><br></p>
+<p class="p1">| Gate | Command | Result |</p>
+<p class="p1">| --- | --- | --- |</p>
+<p class="p1">| Static analysis | `dart analyze` | Passed: `No issues found!` |</p>
+<p class="p1">| Full CLI/unit suite | `dart test --concurrency=1 --reporter=compact` | Passed: `327` tests |</p>
+<p class="p1">| Diff hygiene | `git diff --check` | Passed |</p>
+<p class="p1">| Code graph update | `graphify update .` | Passed |</p>
+<p class="p2"><br></p>
+<p class="p1">Full test log:</p>
+<p class="p1">`/tmp/shadcn_cli_final_full_test.log`</p>
+<p class="p2"><br></p>
+<p class="p1">Analyze log:</p>
+<p class="p1">`/tmp/shadcn_cli_final_analyze.log`</p>
+<p class="p2"><br></p>
+<p class="p1">## Areas Covered</p>
+<p class="p2"><br></p>
+<p class="p1">| Area | Coverage Evidence | Result |</p>
+<p class="p1">| --- | --- | --- |</p>
+<p class="p1">| CLI parser and command matrix | command matrix tests, CLI integration tests | Passed |</p>
+<p class="p1">| Multi-registry add/init flows | multi-registry manager tests and CLI integration tests | Passed |</p>
+<p class="p1">| Inline init engine | init action engine tests | Passed |</p>
+<p class="p1">| Component install/remove | installer tests | Passed |</p>
+<p class="p1">| Locale merge/remove | installer locale tests | Passed |</p>
+<p class="p1">| Pubspec mutation preservation | pubspec editor and installer pubspec service tests | Passed |</p>
+<p class="p1">| Theme preset/artifact install | installer theme tests | Passed |</p>
+<p class="p1">| Lockfile/state/config migration | lockfile, config/state, integration tests | Passed |</p>
+<p class="p1">| Path traversal and symlink safety | resolver/init/installer safety tests | Passed |</p>
+<p class="p1">| JSON command safety | CLI integration JSON tests | Passed |</p>
+<p class="p2"><br></p>
+<p class="p1">## Current Behavior In This Variant</p>
+<p class="p2"><br></p>
+<p class="p1">- `flutter_shadcn add` and multi-registry add now show deterministic progress lines for request resolution, registry preparation, component resolution, file copy, shared modules, pubspec updates, manifests, aliases, and state sync.</p>
+<p class="p1">- Inline `init` actions now show progress for action execution, directory creation, file copying, and pubspec merges.</p>
+<p class="p1">- Theme install now shows progress for preset resolution, manifest loading, artifact reading, and artifact writing.</p>
+<p class="p1">- Theme artifact failures now throw `ThemeInstallException` with stable codes such as `hash-mismatch`, `unsupported-source`, `source-not-found`, `duplicate-target`, `offline-remote-source`, and `fetch-failed`.</p>
+<p class="p1">- Locale install failures now throw `LocaleInstallException` with stable codes such as `missing-l10n-config`, `unsupported-format`, `hash-mismatch`, `invalid-resource-json`, and invalid `l10n.yaml` field codes.</p>
+<p class="p1">- Pubspec dependency conflicts now throw `PubspecUpdateException` with code `dependency-conflict`.</p>
+<p class="p1">- Existing user-facing error text is preserved so command output and current tests remain compatible.</p>
+<p class="p2"><br></p>
+<p class="p1">## QA Scoring</p>
+<p class="p2"><br></p>
+<p class="p1">| Category | Score | Notes |</p>
+<p class="p1">| --- | ---: | --- |</p>
+<p class="p1">| Build/static analysis | 20/20 | `dart analyze` clean |</p>
+<p class="p1">| Automated test pass rate | 35/35 | 327/327 passed |</p>
+<p class="p1">| Install/init behavior coverage | 15/15 | Installer, init engine, multi-registry, CLI integration covered |</p>
+<p class="p1">| Error contract quality | 10/10 | Theme, locale, and pubspec install failures now typed |</p>
+<p class="p1">| Regression safety | 10/10 | Full suite and targeted suites passed |</p>
+<p class="p1">| Reporting and traceability | 10/10 | QA and changelog reports created |</p>
+<p class="p1">| Total | 100/100 | Production QA gate passed |</p>
+<p class="p2"><br></p>
+<p class="p1">## Remaining Notes</p>
+<p class="p2"><br></p>
+<p class="p1">Direct `print(...)` usage remains intentionally present in help text, JSON output, discovery renderers, feedback prompts, and studio-oriented terminal UI. Those paths are terminal-rendering surfaces rather than install mutation flows. The install/init/theme mutation flows now use `CliLogger` progress/error patterns where it matters for production behavior.</p>
+</body>
+</html>

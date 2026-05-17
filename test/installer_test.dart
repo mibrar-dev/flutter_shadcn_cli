@@ -386,6 +386,77 @@ output-localization-file: app_localizations.dart
       expect(afterRemove.containsKey('buttonCancel'), isFalse);
     });
 
+    test('locale install failures expose typed error codes', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['locale'] = {
+          'defaultLocale': 'en',
+          'resources': [
+            {
+              'locale': 'en',
+              'format': 'yaml',
+              'source': 'registry/components/button/locales/en.yaml',
+            }
+          ],
+        };
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          isA<LocaleInstallException>()
+              .having((error) => error.code, 'code', 'missing-l10n-config')
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Locale resources require l10n.yaml'),
+              ),
+        ),
+      );
+
+      File(p.join(targetRoot.path, 'l10n.yaml')).writeAsStringSync('''
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+''');
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          isA<LocaleInstallException>()
+              .having((error) => error.code, 'code', 'unsupported-format')
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Unsupported locale resource format'),
+              ),
+        ),
+      );
+    });
+
     test('registry includeFiles=preview installs preview and preview_state',
         () async {
       await _writeConfig(

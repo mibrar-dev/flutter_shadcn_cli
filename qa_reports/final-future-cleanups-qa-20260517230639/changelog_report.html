@@ -1,0 +1,145 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.1">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1"># Future Cleanups Changelog Report</p>
+<p class="p2"><br></p>
+<p class="p1">Date: 2026-05-17</p>
+<p class="p1">Branch: `branch-v1-final-cleanups-qa-report`</p>
+<p class="p2"><br></p>
+<p class="p1">## Summary</p>
+<p class="p2"><br></p>
+<p class="p1">This report explains the issues found in the future cleanup pass, how they were resolved, and what the CLI does now in this variant.</p>
+<p class="p2"><br></p>
+<p class="p1">## Issues And Resolutions</p>
+<p class="p2"><br></p>
+<p class="p1">### 1. CLI looked idle during long installs</p>
+<p class="p2"><br></p>
+<p class="p1">Before:</p>
+<p class="p1">- Component installs showed only a high-level install line.</p>
+<p class="p1">- Long phases such as dependency resolution, file copying, shared module installation, pubspec updates, alias generation, manifest writes, and state sync could appear stuck.</p>
+<p class="p1">- Inline init and theme installs had similar gaps.</p>
+<p class="p2"><br></p>
+<p class="p1">Resolution:</p>
+<p class="p1">- Added `CliLogger.progress(...)` as deterministic, non-spinner progress output.</p>
+<p class="p1">- Wired progress output into:</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- multi-registry add request resolution</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- registry preparation</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- component resolution</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- component file installation</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- shared module and shared file installation</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- bulk install finalization</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- pubspec dependency, asset, and font updates</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- alias generation</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- component manifest sync</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- state update</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- inline init action execution</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- theme preset and artifact installation</p>
+<p class="p2"><br></p>
+<p class="p1">Current behavior:</p>
+<p class="p1">- Users see stable `...` progress lines while work is happening.</p>
+<p class="p1">- Output is deterministic and testable; no animated spinner or timing-dependent output was introduced.</p>
+<p class="p2"><br></p>
+<p class="p1">### 2. Theme artifact failures used generic exceptions</p>
+<p class="p2"><br></p>
+<p class="p1">Before:</p>
+<p class="p1">- Duplicate theme targets, SHA-256 mismatch, missing source files, unsupported artifact schemes, offline remote artifact use, and failed HTTP fetches all used generic exceptions.</p>
+<p class="p1">- Callers had to inspect message strings to understand the failure category.</p>
+<p class="p2"><br></p>
+<p class="p1">Resolution:</p>
+<p class="p1">- Added `ThemeInstallException`.</p>
+<p class="p1">- Added stable error codes:</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `duplicate-target`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `hash-mismatch`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `source-not-found`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `unsupported-source`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `offline-remote-source`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `fetch-failed`</p>
+<p class="p1">- Kept the existing readable message text.</p>
+<p class="p2"><br></p>
+<p class="p1">Current behavior:</p>
+<p class="p1">- CLI output remains understandable.</p>
+<p class="p1">- Programmatic callers and tests can now identify exact theme install failure categories.</p>
+<p class="p2"><br></p>
+<p class="p1">### 3. Locale resource failures used generic exceptions</p>
+<p class="p2"><br></p>
+<p class="p1">Before:</p>
+<p class="p1">- Missing `l10n.yaml`, invalid `l10n.yaml`, unsupported locale formats, hash mismatches, and non-object JSON/ARB resources used generic exceptions.</p>
+<p class="p1">- Locale install errors were harder to classify reliably.</p>
+<p class="p2"><br></p>
+<p class="p1">Resolution:</p>
+<p class="p1">- Added `LocaleInstallException`.</p>
+<p class="p1">- Added stable error codes:</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `missing-l10n-config`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `invalid-l10n-config`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `missing-l10n-arb-dir`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `missing-l10n-template-arb-file`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `missing-l10n-output-localization-file`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `unsupported-format`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `hash-mismatch`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `invalid-resource-json`</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- `invalid-json-object`</p>
+<p class="p2"><br></p>
+<p class="p1">Current behavior:</p>
+<p class="p1">- Locale-aware component installs fail with typed errors and preserved human-readable messages.</p>
+<p class="p1">- Existing locale merge/remove behavior remains unchanged.</p>
+<p class="p2"><br></p>
+<p class="p1">### 4. Pubspec dependency conflicts used generic exceptions</p>
+<p class="p2"><br></p>
+<p class="p1">Before:</p>
+<p class="p1">- Dependency conflicts during pubspec preflight/update/sync were generic exceptions.</p>
+<p class="p1">- Tests and callers could only rely on message text.</p>
+<p class="p2"><br></p>
+<p class="p1">Resolution:</p>
+<p class="p1">- Added `PubspecUpdateException`.</p>
+<p class="p1">- Used stable code `dependency-conflict`.</p>
+<p class="p1">- Preserved existing conflict message text and remediation guidance.</p>
+<p class="p2"><br></p>
+<p class="p1">Current behavior:</p>
+<p class="p1">- Dependency conflicts remain user-readable and are now machine-classifiable.</p>
+<p class="p1">- Pubspec formatting/comment preservation behavior remains unchanged.</p>
+<p class="p2"><br></p>
+<p class="p1">### 5. Progress and typed error changes needed regression safety</p>
+<p class="p2"><br></p>
+<p class="p1">Before:</p>
+<p class="p1">- The cleanup work touched common install paths, so regressions could affect component install, init, themes, locale resources, and pubspec mutation.</p>
+<p class="p2"><br></p>
+<p class="p1">Resolution:</p>
+<p class="p1">- Added and updated tests for:</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- logger progress behavior</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- component install progress output</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- inline init progress output</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- typed theme artifact errors</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- typed locale install errors</p>
+<p class="p1"><span class="Apple-converted-space">  </span>- typed pubspec conflict errors</p>
+<p class="p1">- Ran the full CLI test suite.</p>
+<p class="p2"><br></p>
+<p class="p1">Current behavior:</p>
+<p class="p1">- `dart analyze` passes.</p>
+<p class="p1">- Full CLI test suite passes: 327/327.</p>
+<p class="p1">- The current branch is verified by automated regression coverage.</p>
+<p class="p2"><br></p>
+<p class="p1">## Intentional Non-Changes</p>
+<p class="p2"><br></p>
+<p class="p1">Direct `print(...)` calls remain in command help, JSON output, discovery rendering, feedback prompts, and studio terminal UI. Those are dedicated terminal rendering surfaces and were not changed in this pass because replacing them wholesale would be a broad UI-output refactor with higher regression risk. Install, init, theme, locale, and pubspec mutation paths were prioritized because they affect production workflows directly.</p>
+<p class="p2"><br></p>
+<p class="p1">## Verification Snapshot</p>
+<p class="p2"><br></p>
+<p class="p1">| Check | Result |</p>
+<p class="p1">| --- | --- |</p>
+<p class="p1">| `dart analyze` | Passed |</p>
+<p class="p1">| `dart test --concurrency=1 --reporter=compact` | Passed, 327/327 |</p>
+<p class="p1">| `git diff --check` | Passed |</p>
+<p class="p1">| `graphify update .` | Passed |</p>
+</body>
+</html>

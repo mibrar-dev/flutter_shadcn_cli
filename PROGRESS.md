@@ -302,3 +302,7 @@ Date: 2026-02-22
   - added `ThemeInstallException` with stable error codes for theme artifact failures
   - replaced generic theme artifact exceptions for duplicate targets, SHA-256 mismatches, missing sources, unsupported schemes, offline remote sources, and failed HTTP fetches
   - added tests for hash mismatch and unsupported source error codes
+- Completed future cleanup pass: typed locale and pubspec install errors:
+  - added `LocaleInstallException` with stable error codes for locale resource and `l10n.yaml` failures
+  - added `PubspecUpdateException` for dependency conflict failures during preflight/update/sync
+  - kept existing user-facing error messages while giving callers typed error contracts

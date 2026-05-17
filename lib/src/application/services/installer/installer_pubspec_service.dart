@@ -32,7 +32,10 @@ class InstallerPubspecService {
     final content = pubspecFile.readAsStringSync();
     final result = applyDependencies(content.split('\n'), deps);
     if (result.conflicts.isNotEmpty) {
-      throw Exception(formatDependencyConflicts(result.conflicts));
+      throw PubspecUpdateException(
+        code: 'dependency-conflict',
+        message: formatDependencyConflicts(result.conflicts),
+      );
     }
     if (result.added.isEmpty) {
       logger.detail('Dependencies already present.');
@@ -56,7 +59,10 @@ class InstallerPubspecService {
     final lines = pubspecFile.readAsLinesSync();
     final result = applyDependencies(lines, deps);
     if (result.conflicts.isNotEmpty) {
-      throw Exception(formatDependencyConflicts(result.conflicts));
+      throw PubspecUpdateException(
+        code: 'dependency-conflict',
+        message: formatDependencyConflicts(result.conflicts),
+      );
     }
   }
 
@@ -154,4 +160,17 @@ class InstallerPubspecService {
       destinationRelativePath: relativePath,
     );
   }
+}
+
+class PubspecUpdateException implements Exception {
+  final String code;
+  final String message;
+
+  const PubspecUpdateException({
+    required this.code,
+    required this.message,
+  });
+
+  @override
+  String toString() => 'PubspecUpdateException($code): $message';
 }
