@@ -414,10 +414,10 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     if (description != null && description.isNotEmpty) {
       stdout.writeln(description);
     }
-    stdout.write('Install? [Y/n]: ');
+    stdout.write('Install? [y/N]: ');
     final input = stdin.readLineSync()?.trim().toLowerCase();
     if (input == null || input.isEmpty) {
-      return true;
+      return false;
     }
     return input == 'y' || input == 'yes';
   }
@@ -431,7 +431,10 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       return const [];
     }
     if (assumeYes) {
-      return groups.where((group) => group['required'] == true).toList();
+      if (action['optional'] == true) {
+        return groups.where((group) => group['required'] == true).toList();
+      }
+      return groups.where((group) => group['default'] != false).toList();
     }
     final label = action['promptLabel']?.toString().trim();
     final description = action['promptDescription']?.toString().trim();
@@ -441,8 +444,6 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     if (description != null && description.isNotEmpty) {
       stdout.writeln(description);
     }
-    stdout.writeln(
-        'Select groups (comma-separated numbers, Enter for defaults):');
     for (var i = 0; i < groups.length; i++) {
       final group = groups[i];
       final suffix = group['default'] == false ? '' : ' [default]';
@@ -452,20 +453,34 @@ extension MultiRegistryInitPart on MultiRegistryManager {
         stdout.writeln('     $groupDescription');
       }
     }
-    stdout.write('Groups: ');
-    final input = stdin.readLineSync()?.trim() ?? '';
-    if (input.isEmpty) {
-      return groups.where((group) => group['default'] != false).toList();
-    }
-    final selected = <Map<String, dynamic>>[];
-    for (final token in input.split(',')) {
-      final index = int.tryParse(token.trim());
-      if (index == null || index < 1 || index > groups.length) {
-        continue;
+    while (true) {
+      stdout.write(
+        'Select numbers separated by comma, "a" for all, or Enter to skip: ',
+      );
+      final input = stdin.readLineSync()?.trim() ?? '';
+      if (input.isEmpty) {
+        return const [];
       }
-      selected.add(groups[index - 1]);
+      if (input.toLowerCase() == 'a') {
+        return groups.toList();
+      }
+      final selected = <Map<String, dynamic>>[];
+      var valid = true;
+      for (final token in input.split(',')) {
+        final index = int.tryParse(token.trim());
+        if (index == null || index < 1 || index > groups.length) {
+          valid = false;
+          break;
+        }
+        selected.add(groups[index - 1]);
+      }
+      if (valid) {
+        return selected;
+      }
+      logger.warn(
+        'Invalid selection. Enter numbers (1-${groups.length}) separated by comma, "a" for all, or press Enter to skip.',
+      );
     }
-    return selected;
   }
 
   ThemeIndexEntry _defaultThemeEntry(
@@ -509,23 +524,25 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       final preset = entries[i];
       logger.info('  ${i + 1}) ${preset.name} (${preset.id})');
     }
-    stdout.write('Theme number: ');
-    final input = stdin.readLineSync()?.trim();
-    if (input == null || input.isEmpty) {
-      return null;
-    }
-    final index = int.tryParse(input);
-    if (index != null && index >= 1 && index <= entries.length) {
-      return entries[index - 1];
-    }
-    for (final entry in entries) {
-      if (entry.id == input) {
-        return entry;
+    while (true) {
+      stdout.write('Theme number or id (Enter to skip): ');
+      final input = stdin.readLineSync()?.trim() ?? '';
+      if (input.isEmpty) {
+        return null;
       }
+      final index = int.tryParse(input);
+      if (index != null && index >= 1 && index <= entries.length) {
+        return entries[index - 1];
+      }
+      for (final entry in entries) {
+        if (entry.id == input) {
+          return entry;
+        }
+      }
+      logger.warn(
+        'Invalid theme selection "$input". Choose 1-${entries.length} or press Enter to skip.',
+      );
     }
-    final defaultEntry = _defaultThemeEntry(indexData, entries);
-    logger.warn('Invalid theme selection. Using default: ${defaultEntry.id}.');
-    return defaultEntry;
   }
 
   String _themeRegistryId(String namespace, String baseUrl) {
