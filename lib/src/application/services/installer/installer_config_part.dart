@@ -105,12 +105,22 @@ extension InstallerConfigPart on Installer {
     _cachedConfig = await ShadcnConfig.load(targetDir);
   }
 
+  String _normalizeLibPathInput(String value, {required String fallback, Map<String, String>? aliases}) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) return fallback;
+    final expanded = _expandAliases(trimmed, aliases);
+    final normalized = p.posix.normalize(expanded.replaceAll('\\', '/'));
+    if (normalized == 'lib' || normalized.startsWith('lib/')) {
+      return normalized;
+    }
+    throw ResolverV1Exception('Path must start with lib/: $value');
+  }
+
   String _normalizePathOverride(String? value, String fallback) {
     if (value == null || value.trim().isEmpty) {
       return fallback;
     }
-    final trimmed = _stripLibPrefix(value.trim());
-    return p.join('lib', trimmed);
+    return _normalizeLibPathInput(value, fallback: fallback);
   }
 
   String _stripLibPrefix(String value) {
@@ -172,15 +182,14 @@ extension InstallerConfigPart on Installer {
       if (input == null || input.isEmpty) {
         return current;
       }
-      final resolved = _expandAliases(input, aliases);
       if (!requireLib) {
         return input;
       }
-      final normalized = p.normalize(resolved);
-      if (normalized == 'lib' || normalized.startsWith('lib${p.separator}')) {
-        return input;
+      try {
+        return _normalizeLibPathInput(input, fallback: current, aliases: aliases);
+      } on ResolverV1Exception catch (e) {
+        logger.warn(e.message);
       }
-      logger.warn('Path must start with lib/. Try again.');
     }
   }
 
