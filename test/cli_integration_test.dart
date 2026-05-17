@@ -1940,6 +1940,37 @@ void main() {
         contains("const buttonThemeTarget = '__BUTTON_THEME_TARGET__';"),
       );
     });
+
+    test(
+        'app components hides material Stepper and Step when registry stepper is installed',
+        () async {
+      await cli.main([
+        '--advanced',
+        '--offline',
+        'add',
+        'stepper',
+        '--registry-path',
+        registryRoot.path,
+      ]);
+
+      final aliasFile = File(
+        p.join(
+          appRoot.path,
+          'lib',
+          'ui',
+          'shadcn',
+          'app_components.dart',
+        ),
+      );
+      expect(aliasFile.existsSync(), isTrue);
+      final aliasContents = aliasFile.readAsStringSync();
+      expect(aliasContents,
+          contains("export 'package:flutter/material.dart' hide"));
+      expect(aliasContents, contains('    Stepper;'));
+      expect(aliasContents, contains('    Step,'));
+      expect(
+          aliasContents, contains("export 'components/stepper/stepper.dart';"));
+    });
   });
 }
 
@@ -1970,6 +2001,9 @@ void _writeRegistryFixtures(Directory registryRoot) {
         ..createSync(recursive: true);
   final iconDir =
       Directory(p.join(root, 'registry', 'components', 'icon_fonts'))
+        ..createSync(recursive: true);
+  final stepperDir =
+      Directory(p.join(root, 'registry', 'components', 'stepper'))
         ..createSync(recursive: true);
 
   File(p.join(componentsDir.path, 'button.dart'))
@@ -2009,6 +2043,11 @@ void _writeRegistryFixtures(Directory registryRoot) {
       .writeAsStringSync('class IconFonts {}');
   File(p.join(iconDir.path, 'meta.json'))
       .writeAsStringSync('{"id":"icon_fonts"}');
+
+  File(p.join(stepperDir.path, 'stepper.dart'))
+      .writeAsStringSync('class Stepper {}\nclass Step {}');
+  File(p.join(stepperDir.path, 'meta.json'))
+      .writeAsStringSync('{"id":"stepper"}');
 
   final registryJson = {
     'schemaVersion': 1,
@@ -2190,6 +2229,29 @@ void _writeRegistryFixtures(Directory registryRoot) {
           {
             'source': 'registry/components/icon_fonts/meta.json',
             'destination': '{installPath}/components/icon_fonts/meta.json'
+          }
+        ],
+        'shared': [],
+        'dependsOn': [],
+        'pubspec': {'dependencies': {}},
+        'assets': [],
+        'postInstall': []
+      },
+      {
+        'id': 'stepper',
+        'name': 'Stepper',
+        'description': 'Stepper component',
+        'category': 'navigation',
+        'version': '1.0.0',
+        'tags': ['navigation'],
+        'files': [
+          {
+            'source': 'registry/components/stepper/stepper.dart',
+            'destination': '{installPath}/components/stepper/stepper.dart'
+          },
+          {
+            'source': 'registry/components/stepper/meta.json',
+            'destination': '{installPath}/components/stepper/meta.json'
           }
         ],
         'shared': [],

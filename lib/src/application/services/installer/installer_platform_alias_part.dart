@@ -310,6 +310,10 @@ extension InstallerPlatformAliasPart on Installer {
       'ScaffoldState',
       'SelectableText',
       'Slider',
+      'Step',
+      'StepState',
+      'Stepper',
+      'StepperType',
       'Switch',
       'Tab',
       'TabBar',
@@ -322,6 +326,7 @@ extension InstallerPlatformAliasPart on Installer {
       'VerticalDivider',
       'showDialog',
     };
-    return materialExports.toList()..sort();
+    final installedSet = installedNames.toSet();
+    return materialExports.where((name) => installedSet.contains(name)).toList()..sort();
   }
 }
