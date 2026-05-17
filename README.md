@@ -18,7 +18,7 @@ flutter_shadcn add @shadcn/button
 
 ## Documentation
 
-- User docs: [docs/user/](docs/user/getting-started.md)
-- Complete guide: [docs/user/complete-guide.md](docs/user/complete-guide.md)
-- Developer docs: [docs/developer/](docs/developer/local-registry-development.md)
-- Command reference: [docs/reference/commands/](docs/reference/commands/index.md)
+- User doc: [doc/user/](doc/user/getting-started.md)
+- Complete guide: [doc/user/complete-guide.md](doc/user/complete-guide.md)
+- Developer doc: [doc/developer/](doc/developer/local-registry-development.md)
+- Command reference: [doc/reference/commands/](doc/reference/commands/index.md)
