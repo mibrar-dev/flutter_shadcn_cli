@@ -65,6 +65,70 @@ void main() {
       expect(resolved.pubspec['dependencies']['gap'], '^3.0.1');
     });
 
+    test('normalizes kit-style component meta and skips docs meta', () async {
+      _writeComponentsJson(
+        registryRoot,
+        component: _componentJson(
+          id: 'button',
+          name: 'Button From Components Json',
+          category: 'control',
+          shared: const [],
+          dependencies: const {},
+        ),
+      );
+      final metaDir = Directory(
+          p.join(registryRoot.path, 'components', 'control', 'button'))
+        ..createSync(recursive: true);
+      File(p.join(metaDir.path, 'button.meta.json')).writeAsStringSync(
+        jsonEncode({
+          r'$schema': '../../../manifests/readme_meta.schema.json',
+          'id': 'button',
+          'name': 'Button Docs',
+          'whenToUse': {
+            'use': ['documentation only'],
+          },
+        }),
+      );
+      File(p.join(metaDir.path, 'meta.json')).writeAsStringSync(
+        jsonEncode({
+          'id': 'button',
+          'name': 'Button From Local Meta',
+          'description': 'Kit registry install metadata.',
+          'category': 'control',
+          'tags': ['controls'],
+          'dependencies': {
+            'shared': ['theme', 'clickable'],
+            'components': ['spinner'],
+            'pubspec': {'gap': '^3.0.1'},
+          },
+          'files': [
+            '_impl/core/button_core.dart',
+            'button.dart',
+          ],
+          'postInstall': ['Use the shared theme.'],
+        }),
+      );
+
+      final registry = await _loadRegistry(registryRoot);
+      final resolver = ComponentManifestResolver(registry: registry);
+
+      final resolved = await resolver.resolve('button');
+
+      expect(resolved, isNotNull);
+      expect(resolved!.name, 'Button From Local Meta');
+      expect(resolved.shared, ['theme', 'clickable']);
+      expect(resolved.dependsOn, ['spinner']);
+      expect(resolved.pubspec['dependencies']['gap'], '^3.0.1');
+      expect(
+        resolved.files.first.source,
+        'registry/components/control/button/_impl/core/button_core.dart',
+      );
+      expect(
+        resolved.files.first.destination,
+        '{installPath}/components/control/button/_impl/core/button_core.dart',
+      );
+    });
+
     test('falls back to components.json when registry has no local manifests',
         () async {
       _writeComponentsJson(

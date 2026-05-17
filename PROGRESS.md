@@ -306,3 +306,9 @@ Date: 2026-02-22
   - added `LocaleInstallException` with stable error codes for locale resource and `l10n.yaml` failures
   - added `PubspecUpdateException` for dependency conflict failures during preflight/update/sync
   - kept existing user-facing error messages while giving callers typed error contracts
+- Completed whole-CLI final QA pass:
+  - fixed component-local manifest resolution for the real kit registry shape
+  - `meta.json` is now preferred as install metadata, `*.meta.json` documentation metadata is skipped when it uses `readme_meta.schema.json`
+  - kit-style relative file lists and grouped dependency metadata are normalized into the internal component install model
+  - real-registry disposable Flutter smoke now passes init/add/file checks against `shadcn_flutter_kit/flutter_shadcn_kit/lib/registry`
+  - final verification passed: `dart analyze`, `dart test --concurrency=1 --reporter=compact` (328/328), `git diff --check`, and `graphify update .`
