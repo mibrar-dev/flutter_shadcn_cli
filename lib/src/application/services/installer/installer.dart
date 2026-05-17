@@ -11,15 +11,13 @@ import 'package:flutter_shadcn_cli/src/application/services/installer/installer_
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_entry.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_assets_update_result.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dependency_update_result.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_fonts_update_result.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_registry_file_owner.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_section_range.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_shared_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
+import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_editor.dart';
 import 'package:flutter_shadcn_cli/src/application/services/registry_dependency_graph.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
