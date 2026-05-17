@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_editor.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
@@ -27,10 +28,6 @@ part 'installer_pubspec_part.dart';
 part 'installer_dry_run_plan_part.dart';
 part 'installer_registry_file_owner_part.dart';
 part 'installer_alias_entry_part.dart';
-part 'installer_dependency_update_result_part.dart';
-part 'installer_assets_update_result_part.dart';
-part 'installer_fonts_update_result_part.dart';
-part 'installer_section_range_part.dart';
 part 'installer_init_config_overrides_part.dart';
 
 class Installer {
