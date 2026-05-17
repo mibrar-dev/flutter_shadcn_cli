@@ -527,6 +527,142 @@ void main() {
         throwsA(isA<ResolverV1Exception>()),
       );
     });
+
+    test('empty group selection skips grouped copyFiles (Enter to skip)',
+        () async {
+      final engine = InitActionEngine();
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'optional': true,
+            'promptLabel': 'Install shared assets?',
+            'base': 'registry',
+            'destBase': '.',
+            'from': 'shared',
+            'to': 'assets',
+            'groups': [
+              {
+                'label': 'Fonts',
+                'default': true,
+                'files': ['fonts/bootstrap.otf'],
+              },
+            ],
+          },
+          {
+            'type': 'mergePubspec',
+            'deriveFlutterAssets': true,
+          },
+        ],
+        groupSelector: (action, groups) async => const [],
+      );
+
+      expect(result.filesWritten, 0);
+      expect(result.record.filesWritten, isEmpty);
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'fonts', 'bootstrap.otf'))
+            .existsSync(),
+        isFalse,
+      );
+    });
+
+    test(
+        'optional action decider returning false skips non-grouped optional action',
+        () async {
+      final engine = InitActionEngine();
+      final prompts = <String>[];
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'ensureDirs',
+            'optional': true,
+            'promptLabel': 'Create optional assets dir?',
+            'dirs': ['assets/optional'],
+          },
+          {
+            'type': 'ensureDirs',
+            'dirs': ['lib/ui/shadcn'],
+          },
+        ],
+        optionalActionDecider: (action) async {
+          prompts.add(action['promptLabel']!.toString());
+          return false;
+        },
+      );
+
+      expect(
+        prompts,
+        ['Create optional assets dir?'],
+      );
+      expect(result.dirsCreated, 1);
+      expect(
+        Directory(p.join(projectRoot.path, 'assets', 'optional')).existsSync(),
+        isFalse,
+      );
+      expect(
+        Directory(p.join(projectRoot.path, 'lib', 'ui', 'shadcn')).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('group selector selects all groups with "a"', () async {
+      final engine = InitActionEngine();
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'optional': true,
+            'promptLabel': 'Install shared assets?',
+            'base': 'registry',
+            'destBase': '.',
+            'from': 'shared',
+            'to': 'assets',
+            'groups': [
+              {
+                'label': 'Images',
+                'default': true,
+                'files': ['images/logo.svg'],
+              },
+              {
+                'label': 'Fonts',
+                'default': false,
+                'files': ['fonts/bootstrap.otf'],
+              },
+            ],
+          },
+          {
+            'type': 'mergePubspec',
+            'deriveFlutterAssets': true,
+          },
+        ],
+        groupSelector: (action, groups) async => groups.toList(),
+      );
+
+      expect(result.filesWritten, 2);
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'images', 'logo.svg'))
+            .existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'fonts', 'bootstrap.otf'))
+            .existsSync(),
+        isTrue,
+      );
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, contains('assets/images/logo.svg'));
+      expect(pubspec, contains('assets/fonts/bootstrap.otf'));
+    });
   });
 }
 

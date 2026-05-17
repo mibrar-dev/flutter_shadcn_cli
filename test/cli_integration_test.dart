@@ -2470,47 +2470,6 @@ Future<ProcessResult> _runCli({
   );
 }
 
-Future<_CliInteractiveResult> _runCliInteractive({
-  required String cwd,
-  required List<String> args,
-  required List<String> stdinLines,
-}) async {
-  final process = await Process.start(
-    Platform.resolvedExecutable,
-    [_cliEntrypoint, ...args],
-    workingDirectory: cwd,
-    environment: {
-      ...Platform.environment,
-      'CI': 'true',
-    },
-  );
-  for (final line in stdinLines) {
-    process.stdin.writeln(line);
-  }
-  await process.stdin.flush();
-  await process.stdin.close();
-  final stdout = await process.stdout.transform(utf8.decoder).join();
-  final stderr = await process.stderr.transform(utf8.decoder).join();
-  final exitCode = await process.exitCode;
-  return _CliInteractiveResult(
-    exitCode: exitCode,
-    stdout: stdout,
-    stderr: stderr,
-  );
-}
-
-class _CliInteractiveResult {
-  final int exitCode;
-  final String stdout;
-  final String stderr;
-
-  _CliInteractiveResult({
-    required this.exitCode,
-    required this.stdout,
-    required this.stderr,
-  });
-}
-
 void _writePubspec(Directory targetRoot) {
   final buffer = StringBuffer()
     ..writeln('name: test_app')
