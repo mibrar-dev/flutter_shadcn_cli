@@ -1,7 +1,9 @@
 import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/cli_parser.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/registry_bootstrap_exception.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/registry_selection.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
 import 'package:path/path.dart' as p;
@@ -66,6 +68,71 @@ void main() {
       expect(selection.registryRoot.isRemote, isFalse);
       expect(selection.registryRoot.root, registryRoot.path);
       expect(selection.componentsPath, 'manifests/components.json');
+    });
+
+    test('missing registry namespace throws bootstrap exception', () {
+      final args = buildCliParser().parse(
+        normalizeCliArgs([
+          '--registry-name',
+          'missing',
+          'list',
+        ]),
+      );
+
+      expect(
+        () => resolveRegistrySelection(
+          args,
+          const ResolvedRoots(localRegistryRoot: null, cliRoot: null),
+          const ShadcnConfig(
+            defaultNamespace: 'shadcn',
+            registries: {
+              'shadcn': RegistryConfigEntry(baseUrl: 'https://example.com'),
+            },
+          ),
+          false,
+        ),
+        throwsA(
+          isA<RegistryBootstrapException>()
+              .having((error) => error.exitCode(), 'exitCode',
+                  ExitCodes.configInvalid)
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Registry namespace "missing" not found'),
+              ),
+        ),
+      );
+    });
+
+    test('missing explicit local registry throws bootstrap exception', () {
+      final missingPath = p.join(tempRoot.path, 'missing-registry');
+      final args = buildCliParser().parse(
+        normalizeCliArgs([
+          '--advanced',
+          '--registry-path',
+          missingPath,
+          'list',
+        ]),
+      );
+
+      expect(
+        () => resolveRegistrySelection(
+          args,
+          const ResolvedRoots(localRegistryRoot: null, cliRoot: null),
+          const ShadcnConfig(defaultNamespace: 'shadcn'),
+          false,
+        ),
+        throwsA(
+          isA<RegistryBootstrapException>()
+              .having((error) => error.exitCode(), 'exitCode',
+                  ExitCodes.registryNotFound)
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Local registry not found'),
+              ),
+        ),
+      );
     });
   });
 }

@@ -1,9 +1,21 @@
-import 'dart:io';
-
 import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
-import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:path/path.dart' as p;
+
+class CliArgumentException implements Exception {
+  final String message;
+  final String optionName;
+  final String token;
+
+  const CliArgumentException({
+    required this.message,
+    required this.optionName,
+    required this.token,
+  });
+
+  @override
+  String toString() => message;
+}
 
 String? optionalStringOption(ArgResults? args, String name) {
   if (args == null) {
@@ -76,10 +88,12 @@ Set<String> parseFileKindOptions(
     for (final part in parts) {
       final normalized = normalizeFileKindToken(part);
       if (normalized == null) {
-        stderr.writeln(
-          'Error: --$optionName supports only readme, preview, meta (got "$part").',
+        throw CliArgumentException(
+          message:
+              'Error: --$optionName supports only readme, preview, meta (got "$part").',
+          optionName: optionName,
+          token: part,
         );
-        exit(ExitCodes.usage);
       }
       result.add(normalized);
     }

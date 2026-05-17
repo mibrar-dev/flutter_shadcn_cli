@@ -106,11 +106,13 @@ void main() {
             },
           ),
           throwsA(
-            predicate(
-              (Object error) =>
-                  error.toString().contains('Invalid component address'),
-              'invalid component address error',
-            ),
+            isA<ComponentResolutionException>()
+                .having((error) => error.token, 'token', token)
+                .having(
+                  (error) => error.message,
+                  'message',
+                  contains('Invalid component address'),
+                ),
           ),
         );
         expect(probed, isEmpty, reason: token);
@@ -127,16 +129,18 @@ void main() {
               (namespace == 'shadcn' || namespace == 'alt'),
         ),
         throwsA(
-          predicate(
-            (Object error) {
-              final message = error.toString();
-              return message.contains('Use @namespace/component') &&
-                  !message.contains('@<namespace>') &&
-                  !message.contains('namespace:component') &&
-                  !message.contains('namespace-qualified');
-            },
-            'canonical ambiguity error',
-          ),
+          isA<ComponentResolutionException>()
+              .having((error) => error.token, 'token', 'button')
+              .having(
+                (error) => error.message,
+                'message',
+                allOf(
+                  contains('Use @namespace/component'),
+                  isNot(contains('@<namespace>')),
+                  isNot(contains('namespace:component')),
+                  isNot(contains('namespace-qualified')),
+                ),
+              ),
         ),
       );
     });

@@ -19,6 +19,10 @@ Future<int> runUpgradeCommand({
     return ExitCodes.success;
   }
   final versionMgr = VersionManager(logger: logger);
-  await versionMgr.upgrade(force: command['force'] == true);
-  return ExitCodes.success;
+  try {
+    await versionMgr.upgrade(force: command['force'] == true);
+    return ExitCodes.success;
+  } on VersionManagerException catch (e) {
+    return e.exitCode;
+  }
 }

@@ -1,0 +1,137 @@
+00:00 +0: loading test/installer_test.dart
+00:00 +0: test/installer_test.dart: Installer installs component files with optional filters
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +1: test/installer_test.dart: Installer rejects component file destinations outside install scope
+00:00 +2: test/installer_test.dart: Installer rejects component asset paths outside assets root
+00:00 +3: test/installer_test.dart: Installer rejects shared file destinations outside shared root
+• Installing Button (button)
+00:00 +4: test/installer_test.dart: Installer merges component-local JSON locale resources into app ARB
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:00 +5: test/installer_test.dart: Installer registry includeFiles=preview installs preview and preview_state
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +6: test/installer_test.dart: Installer registry excludeFiles=preview excludes preview and preview_state
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +7: test/installer_test.dart: Installer supports @alias paths for install locations
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +8: test/installer_test.dart: Installer adds missing dependencies to pubspec.yaml
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +9: test/installer_test.dart: Installer writes lockfile record without changing managed dependencies
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +10: test/installer_test.dart: Installer fails before writes when another component owns generated target
+00:00 +11: test/installer_test.dart: Installer fails when manifest namespace ownership collides
+00:00 +12: test/installer_test.dart: Installer reinstalling same qualified component updates ownership record
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+✓ Added assets: assets/fonts/shared.ttf
+00:00 +13: test/installer_test.dart: Installer remove deletes lockfile record for removed component
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:00 +14: test/installer_test.dart: Installer inserts dependencies when section missing
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +15: test/installer_test.dart: Installer fails when dependency is already present in dev_dependencies
+• Installing Button (button)
+00:00 +16: test/installer_test.dart: Installer fails when existing dependency constraint conflicts
+• Installing Button (button)
+00:00 +17: test/installer_test.dart: Installer fails before writes when component dependency graph has a cycle
+00:00 +18: test/installer_test.dart: Installer dry-run fails when component dependency graph has a cycle
+00:00 +19: test/installer_test.dart: Installer skips meta.json when includeMeta is false
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +20: test/installer_test.dart: Installer remove uses lockfile when meta tracking is disabled
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:00 +21: test/installer_test.dart: Installer installs dependencies before component
+• Installing Dialog (dialog)
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +22: test/installer_test.dart: Installer remove blocks when dependents exist
+• Installing Dialog (dialog)
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+! Cannot remove button; required by dialog
+00:00 +23: test/installer_test.dart: Installer force remove deletes component files
+• Installing Dialog (dialog)
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:00 +24: test/installer_test.dart: Installer init with overrides normalizes paths and aliases
+✨ Initializing flutter_shadcn
+
+Installing core shared modules
+
+! pubspec.yaml not found; skipping dependency updates.
+✓ Initialization complete
+00:00 +25: test/installer_test.dart: Installer init auto-reuses existing config/state without prompts
+✨ Initializing flutter_shadcn
+Detected existing .shadcn config/state. Re-initializing with saved settings.
+
+Installing core shared modules
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+00:00 +26: test/installer_test.dart: Installer applies theme artifact manifest and updates config theme id
+✨ Initializing flutter_shadcn
+
+Installing core shared modules
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+✓ Applied theme: Modern Minimal
+00:00 +27: test/installer_test.dart: Installer aborts theme install before writes when artifact hash mismatches
+✨ Initializing flutter_shadcn
+
+Installing core shared modules
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+00:00 +28: test/installer_test.dart: Installer rejects dangerous theme manifest targets before writes
+00:00 +29: loading test/installer_pubspec_service_test.dart
+00:00 +29: test/installer_pubspec_service_test.dart: InstallerPubspecService preserves comments while adding dependencies, assets, and fonts
+✓ Added dependencies: gap
+✓ Added assets: assets/generated/
+✓ Added font families: Inter
+00:00 +30: test/installer_pubspec_service_test.dart: InstallerPubspecService preflight reports dependency conflicts without rewriting pubspec
+00:00 +31: loading test/installer_dry_run_service_test.dart
+00:00 +31: test/installer_dry_run_service_test.dart: InstallerDryRunService builds dependency-aware plan with configured destinations
+00:00 +32: loading test/installer_platform_service_test.dart
+00:01 +32: test/installer_platform_service_test.dart: InstallerPlatformService writes marked platform sections once using configured targets
+00:01 +33: test/installer_platform_service_test.dart: InstallerPlatformService reports post-install notes through logger without throwing
+
+Post-install notes for Camera
+  • Enable camera permissions in your store profile.
+00:01 +34: loading test/arg_helpers_test.dart
+00:01 +34: test/arg_helpers_test.dart: arg helpers parseFileKindOptions throws typed usage error for invalid kind
+00:01 +35: loading test/add_resolution_service_test.dart
+00:01 +35: test/add_resolution_service_test.dart: AddResolutionService @namespace/component parses to canonical component ref
+00:01 +36: test/add_resolution_service_test.dart: AddResolutionService @namespace/component@version preserves requested version
+00:01 +37: test/add_resolution_service_test.dart: AddResolutionService namespace:component parses to the same canonical component ref
+00:01 +38: test/add_resolution_service_test.dart: AddResolutionService colon alias splits on the first colon only
+00:01 +39: test/add_resolution_service_test.dart: AddResolutionService malformed component refs are rejected
+00:01 +40: test/add_resolution_service_test.dart: AddResolutionService qualified colon aliases resolve without probing raw input
+00:01 +41: test/add_resolution_service_test.dart: AddResolutionService malformed qualified refs fail before component probing
+00:01 +42: test/add_resolution_service_test.dart: AddResolutionService ambiguity errors show only canonical address form
+00:01 +43: loading test/registry_selection_test.dart
+00:01 +43: test/registry_selection_test.dart: registry selection accepts v1 registry roots with manifests components json
+00:01 +44: test/registry_selection_test.dart: registry selection explicit registry path overrides persisted remote mode
+00:01 +45: test/registry_selection_test.dart: registry selection missing registry namespace throws bootstrap exception
+00:01 +46: test/registry_selection_test.dart: registry selection missing explicit local registry throws bootstrap exception
+00:01 +47: loading test/filesystem_guard_test.dart
+00:01 +47: test/filesystem_guard_test.dart: FilesystemGuard throws typed exception when target escapes root
+00:01 +48: loading test/path_utils_test.dart
+00:01 +48: test/path_utils_test.dart: path utils throws typed exception when project root cannot be found
+00:01 +49: All tests passed!

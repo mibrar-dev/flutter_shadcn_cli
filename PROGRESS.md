@@ -288,3 +288,9 @@ Date: 2026-02-22
   - registry-managed asset and font pubspec paths are rejected unless they stay under `assets/`
   - lockfile records now preserve installed locale key ownership from merged component locale resources
   - documented generated alias handling for Material name collisions such as Stepper/Step
+- Completed final optional refactor and hardening pass:
+  - extracted `InstallerPubspecService`, `InstallerDryRunService`, and `InstallerPlatformService` from remaining installer part modules
+  - kept installer public API compatibility while moving pubspec mutation, dry-run planning, and platform instruction writes behind discrete services
+  - added direct service coverage for pubspec preservation, dry-run dependency projection, and platform marker idempotency
+  - replaced process exits in registry selection, argument parsing, version upgrade, and studio service paths with typed exceptions or command-level exit-code returns
+  - added typed exceptions for component resolution, filesystem root escapes, and missing Flutter project roots

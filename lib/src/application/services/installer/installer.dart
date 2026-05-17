@@ -9,17 +9,18 @@ import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_pl
 import 'package:flutter_shadcn_cli/src/application/services/installer/init_config_overrides.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/install_target_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dry_run_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_entry.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dependency_update_result.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_platform_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_pubspec_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_registry_file_owner.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_shared_service.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
-import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_editor.dart';
 import 'package:flutter_shadcn_cli/src/application/services/registry_dependency_graph.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
@@ -78,6 +79,8 @@ class Installer {
   final InstallerManifestService _manifestService;
   final InstallerFileWriterService _fileWriter;
   final InstallerSharedService _sharedService;
+  final InstallerPubspecService _pubspecService;
+  final InstallerPlatformService _platformService;
   final InstallTargetPolicy _installTargetPolicy;
 
   Installer({
@@ -99,6 +102,8 @@ class Installer {
     InstallerFileSelectionPolicy? fileSelectionPolicy,
     InstallerManifestService? manifestService,
     InstallerFileWriterService? fileWriter,
+    InstallerPubspecService? pubspecService,
+    InstallerPlatformService? platformService,
     InstallTargetPolicy? installTargetPolicy,
   })  : logger = logger ?? CliLogger(),
         _configResolver = configResolver ??
@@ -124,6 +129,16 @@ class Installer {
         _fileWriter = fileWriter ??
             InstallerFileWriterService(
               registry: registry,
+              logger: logger ?? CliLogger(),
+            ),
+        _pubspecService = pubspecService ??
+            InstallerPubspecService(
+              targetDir: targetDir,
+              logger: logger ?? CliLogger(),
+            ),
+        _platformService = platformService ??
+            InstallerPlatformService(
+              targetDir: targetDir,
               logger: logger ?? CliLogger(),
             ),
         _sharedService = InstallerSharedService(

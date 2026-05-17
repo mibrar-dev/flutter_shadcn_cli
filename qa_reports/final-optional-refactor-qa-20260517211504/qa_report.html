@@ -1,0 +1,63 @@
+<!doctype html>
+<html><head><meta charset="utf-8"><title>Final Optional Refactor QA Report</title>
+<style>
+body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",sans-serif;line-height:1.45;margin:40px;max-width:980px;color:#17202a}
+h1{font-size:30px;border-bottom:2px solid #1f6feb;padding-bottom:10px}h2{margin-top:28px;color:#1f3a5f}
+pre{background:#f6f8fa;border:1px solid #d0d7de;border-radius:6px;padding:8px;overflow:auto}p{margin:8px 0}
+</style></head><body><h1>Final Optional Refactor QA Report</h1>
+<br>
+<pre>| Field | Value |</pre>
+<pre>|---|---|</pre>
+<pre>| Branch | `branch-v1-final-optional-refactor-qa` |</pre>
+<pre>| Base commit | `8f90105` |</pre>
+<pre>| Generated | `2026-05-17T21:15:04Z` |</pre>
+<pre>| Scope | Remaining optional installer refactor, exit-path hardening, typed error contracts |</pre>
+<pre>| Score | `100/100` |</pre>
+<pre>| Pass rate | `4/4 automated gates` |</pre>
+<br>
+<h2>Result Matrix</h2>
+<br>
+<pre>| Gate | Command | Result | Evidence |</pre>
+<pre>|---|---|---|---|</pre>
+<pre>| Static analysis | `dart analyze` | PASS | `evidence/dart_analyze.txt` |</pre>
+<pre>| Full repository tests | `dart test --concurrency=1 --reporter=expanded` | PASS, `318` tests | `evidence/dart_test.txt` |</pre>
+<pre>| Targeted refactor regression tests | installer service, argument, registry, path, and resolution tests | PASS, `49` tests | `evidence/targeted_refactor_tests.txt` |</pre>
+<pre>| CLI integration tests | `dart test test/cli_integration_test.dart --concurrency=1 --reporter=expanded` | PASS, `38` tests | `evidence/cli_integration_test.txt` |</pre>
+<br>
+<h2>Issues Resolved</h2>
+<br>
+<pre>| Issue | Before | After |</pre>
+<pre>|---|---|---|</pre>
+<pre>| Remaining installer part surface | Pubspec mutation, dry-run planning, and platform instruction writes lived inside installer part extensions. | Added `InstallerPubspecService`, `InstallerDryRunService`, and `InstallerPlatformService`; part files now delegate to these services. |</pre>
+<pre>| Pubspec mutation coupling | Installer owned dependency, asset, and font writes directly. | Pubspec edits are handled by `InstallerPubspecService` while preserving comments and formatting through `PubspecEditor`. |</pre>
+<pre>| Dry-run logic coupling | Dry-run plan construction and rendering were embedded in an installer part. | `InstallerDryRunService` owns dependency-aware plan construction and dry-run output rendering. |</pre>
+<pre>| Platform instruction coupling | Platform marker writes and post-install note reporting were embedded beside alias generation. | `InstallerPlatformService` owns platform targets, marker idempotency, and post-install note output. Alias generation remains isolated in the alias part. |</pre>
+<pre>| Generic component resolution errors | `AddResolutionService` threw generic `Exception` values and tests matched message text. | Added `ComponentResolutionException` with `message` and `token`, and updated tests to assert the typed contract. |</pre>
+<pre>| Path guard error typing | Filesystem root escape and missing project root errors used generic exceptions. | Added `PathEscapeException` and `ProjectRootNotFoundException`; root containment now uses canonical path boundary checks instead of prefix matching. |</pre>
+<pre>| Library/service process exits | Registry selection, file-kind parsing, version upgrade, and studio service paths could call `exit()` directly. | These paths now throw typed exceptions or return command-level exit codes; `upgrade` preserves the same numeric exit behavior through `runUpgradeCommand`. |</pre>
+<pre>| Explicit local registry fallback | A bad explicit `--registry-path` could fall through to auto-discovery. | Explicit bad local paths now fail with `RegistryBootstrapException` and `ExitCodes.registryNotFound`. |</pre>
+<br>
+<h2>OpenCode Agent Work</h2>
+<br>
+<p>Three OpenCode agents were run in read-only mode:</p>
+<br>
+<pre>| Agent | Focus | Applied Result |</pre>
+<pre>|---|---|---|</pre>
+<pre>| Refactor audit | Remaining installer part extraction candidates | Implemented the low-risk dry-run and platform extraction recommendations; also extracted pubspec mutation with direct tests. |</pre>
+<pre>| Hygiene audit | Generic exceptions, `exit()` usage, logger/print risks | Fixed production-relevant exit paths and typed core/component/path errors. Broader logger-print normalization remains cleanup, not a functional blocker. |</pre>
+<pre>| QA/report audit | Final report and changelog structure | Used the proposed evidence matrix and before/after inventory for this report and `changelog_report.md`. |</pre>
+<br>
+<h2>Residual Risk</h2>
+<br>
+<p>No production-blocking CLI issue remains in this branch based on the verified gates. Remaining cleanup opportunities are architectural only:</p>
+<br>
+<p>- Further split high-coupling installer parts such as theme, remove, locale, and manifest logic after path resolution is extracted into a shared resolver abstraction.</p>
+<p>- Standardize all application-layer `print()` output behind `CliLogger` or a dedicated output abstraction.</p>
+<p>- Continue replacing generic exceptions in theme/schema/registry loaders with typed domain exceptions over future cleanup branches.</p>
+<br>
+<h2>Evidence Summary</h2>
+<br>
+<p>- `dart analyze`: `No issues found!`</p>
+<p>- Full suite: `All tests passed!` with `318` tests.</p>
+<p>- Targeted refactor suite: `All tests passed!` with `49` tests.</p>
+<p>- CLI integration suite: `All tests passed!` with `38` tests.</p></body></html>

@@ -2,7 +2,17 @@
 
 ## Unreleased
 
-- (empty)
+### Internal Refactors
+- Extracted installer pubspec mutation, dry-run planning, and platform instruction writes into dedicated services.
+- Added direct service tests for pubspec preservation, dry-run dependency projection, and platform marker idempotency.
+
+### Safety & Errors
+- Replaced service/helper `exit()` paths in registry selection, file-kind parsing, version upgrade, and studio management with typed exceptions or command-level exit-code returns.
+- Added typed exceptions for component resolution failures, filesystem root escapes, and missing Flutter project roots.
+- Tightened explicit `--registry-path` handling so a bad explicit local path fails instead of falling back to auto-discovery.
+
+### QA
+- Added final optional-refactor QA and changelog reporting artifacts under `qa_reports/`.
 
 ## 0.2.0
 

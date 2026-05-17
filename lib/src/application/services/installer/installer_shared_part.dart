@@ -105,10 +105,6 @@ extension InstallerSharedPart on Installer {
     return _sharedService.coreSharedIdsForInit();
   }
 
-  String _normalizeSharedId(String id) {
-    return _sharedService.normalizeSharedId(id);
-  }
-
   Future<Set<String>> _resolveSharedDependencyClosure(
     Set<String> seedIds,
   ) async {

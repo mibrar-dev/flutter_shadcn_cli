@@ -63,132 +63,24 @@ extension InstallerPubspecPart on Installer {
   }
 
   Future<void> _updateDependencies(Map<String, dynamic> deps) async {
-    if (deps.isEmpty) {
-      return;
-    }
-
-    final pubspecFile = File(_resolveProjectPath('pubspec.yaml'));
-    if (!pubspecFile.existsSync()) {
-      logger.warn('pubspec.yaml not found; skipping dependency updates.');
-      return;
-    }
-
-    final content = pubspecFile.readAsStringSync();
-    final result = _applyDependencies(content.split('\n'), deps);
-    if (result.conflicts.isNotEmpty) {
-      throw Exception(_formatDependencyConflicts(result.conflicts));
-    }
-    if (result.added.isEmpty) {
-      logger.detail('Dependencies already present.');
-      return;
-    }
-
-    final editor = PubspecEditor(content);
-    editor.addDependencies(deps);
-    await pubspecFile.writeAsString(editor.toString());
-    logger.success('Added dependencies: ${result.added.join(', ')}');
+    await _pubspecService.updateDependencies(deps);
   }
 
   Future<void> _preflightDependencies(Map<String, dynamic> deps) async {
-    if (deps.isEmpty) {
-      return;
-    }
-    final pubspecFile = File(_resolveProjectPath('pubspec.yaml'));
-    if (!pubspecFile.existsSync()) {
-      return;
-    }
-    final lines = pubspecFile.readAsLinesSync();
-    final result = _applyDependencies(lines, deps);
-    if (result.conflicts.isNotEmpty) {
-      throw Exception(_formatDependencyConflicts(result.conflicts));
-    }
+    await _pubspecService.preflightDependencies(deps);
   }
 
   Future<void> _updateAssets(List<String> assets) async {
-    if (assets.isEmpty) {
-      return;
-    }
-    final pubspecFile = File(_resolveProjectPath('pubspec.yaml'));
-    if (!pubspecFile.existsSync()) {
-      logger.warn('pubspec.yaml not found; skipping asset updates.');
-      return;
-    }
-
-    final content = pubspecFile.readAsStringSync();
-    final editor = PubspecEditor(content);
-    editor.addFlutterAssets(assets);
-    final delta = editor.recordDelta();
-    if (delta.flutterAssets.isEmpty) {
-      logger.detail('Assets already present.');
-      return;
-    }
-
-    await pubspecFile.writeAsString(editor.toString());
-    logger.success('Added assets: ${delta.flutterAssets.join(', ')}');
+    await _pubspecService.updateAssets(assets);
   }
 
   Future<void> _updateFonts(List<FontEntry> fonts) async {
-    if (fonts.isEmpty) {
-      return;
-    }
-    final pubspecFile = File(_resolveProjectPath('pubspec.yaml'));
-    if (!pubspecFile.existsSync()) {
-      logger.warn('pubspec.yaml not found; skipping font updates.');
-      return;
-    }
-
-    final content = pubspecFile.readAsStringSync();
-    final editor = PubspecEditor(content);
-    editor.addFlutterFonts(
-      fonts
-          .map(
-            (entry) => PubspecFontFamily(
-              entry.family,
-              entry.fonts
-                  .map(
-                    (font) => PubspecFontAsset(
-                      font.asset,
-                      weight: font.weight,
-                      style: font.style,
-                    ),
-                  )
-                  .toList(),
-            ),
-          )
-          .toList(),
-    );
-    final delta = editor.recordDelta();
-    if (delta.flutterFonts.isEmpty) {
-      logger.detail('Fonts already present.');
-      return;
-    }
-
-    await pubspecFile.writeAsString(editor.toString());
-    logger.success('Added font families: ${delta.flutterFonts.join(', ')}');
-  }
-
-  InstallerDependencyUpdateResult _applyDependencies(
-    List<String> lines,
-    Map<String, dynamic> deps,
-  ) {
-    final plan = const PubspecChangePlanner().planAddDependencies(lines, deps);
-    return InstallerDependencyUpdateResult(
-      plan.lines,
-      plan.added.keys.toList()..sort(),
-      plan.conflicts,
-    );
+    await _pubspecService.updateFonts(fonts);
   }
 
   String _formatDependencyConflicts(
     List<PubspecDependencyConflict> conflicts,
   ) {
-    final details = conflicts
-        .map(
-          (conflict) =>
-              '${conflict.package} existing ${conflict.existing}, requested ${conflict.requested}',
-        )
-        .join('; ');
-    return 'pubspec.yaml dependency conflict: $details. '
-        'Keep the existing constraint, update it manually, or remove it before retrying.';
+    return _pubspecService.formatDependencyConflicts(conflicts);
   }
 }

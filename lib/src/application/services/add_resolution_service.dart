@@ -8,6 +8,16 @@ typedef ComponentExistsInNamespace = Future<bool> Function(
   String componentId,
 );
 
+class ComponentResolutionException implements Exception {
+  final String message;
+  final String token;
+
+  const ComponentResolutionException(this.message, {required this.token});
+
+  @override
+  String toString() => message;
+}
+
 class AddResolutionService {
   const AddResolutionService();
 
@@ -45,8 +55,9 @@ class AddResolutionService {
         continue;
       }
       if (ComponentRefNormalizer.looksQualified(token)) {
-        throw Exception(
+        throw ComponentResolutionException(
           'Invalid component address "$token". Use @namespace/component',
+          token: token,
         );
       }
 
@@ -58,13 +69,17 @@ class AddResolutionService {
       }
 
       if (candidates.isEmpty) {
-        throw Exception('Component "$token" not found.');
+        throw ComponentResolutionException(
+          'Component "$token" not found.',
+          token: token,
+        );
       }
       if (candidates.length > 1) {
         candidates.sort();
-        throw Exception(
+        throw ComponentResolutionException(
           'Component "$token" is ambiguous across registries (${candidates.join(', ')}). '
           'Use @namespace/component',
+          token: token,
         );
       }
       resolved.add(

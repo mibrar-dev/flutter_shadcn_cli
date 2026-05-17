@@ -10,14 +10,21 @@ Future<int> runAddCommand({
   required ArgResults addCommand,
   required MultiRegistryManager multiRegistry,
 }) async {
-  final includeFileKinds = parseFileKindOptions(
-    addCommand['include-files'] as List,
-    optionName: 'include-files',
-  );
-  final excludeFileKinds = parseFileKindOptions(
-    addCommand['exclude-files'] as List,
-    optionName: 'exclude-files',
-  );
+  final Set<String> includeFileKinds;
+  final Set<String> excludeFileKinds;
+  try {
+    includeFileKinds = parseFileKindOptions(
+      addCommand['include-files'] as List,
+      optionName: 'include-files',
+    );
+    excludeFileKinds = parseFileKindOptions(
+      addCommand['exclude-files'] as List,
+      optionName: 'exclude-files',
+    );
+  } on CliArgumentException catch (e) {
+    stderr.writeln(e.message);
+    return ExitCodes.usage;
+  }
   if (includeFileKinds.isNotEmpty && excludeFileKinds.isNotEmpty) {
     stderr.writeln(
       'Error: --include-files and --exclude-files cannot be used together.',

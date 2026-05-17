@@ -4,6 +4,16 @@ import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 
+class StudioManagerException implements Exception {
+  final String message;
+  final int exitCode;
+
+  const StudioManagerException(this.message, {required this.exitCode});
+
+  @override
+  String toString() => message;
+}
+
 /// Manages the shadcn_flutter Studio lifecycle:
 /// - install: scaffolds studio app and registry package
 /// - sync: regenerates preview registry from installed components
@@ -68,9 +78,10 @@ class StudioManager {
 
     final studioDir = Directory(p.join(projectRoot, '.shadcn', 'studio'));
     if (!studioDir.existsSync()) {
-      print(
-          'Error: Studio not installed. Run: flutter_shadcn studio --install');
-      exit(ExitCodes.configInvalid);
+      throw const StudioManagerException(
+        'Studio not installed. Run: flutter_shadcn studio --install',
+        exitCode: ExitCodes.configInvalid,
+      );
     }
 
     // 1. Ensure tokens.json exists
@@ -97,9 +108,10 @@ class StudioManager {
 
     final studioDir = Directory(p.join(projectRoot, '.shadcn', 'studio'));
     if (!studioDir.existsSync()) {
-      print(
-          'Error: Studio not installed. Run: flutter_shadcn studio --install');
-      exit(ExitCodes.configInvalid);
+      throw const StudioManagerException(
+        'Studio not installed. Run: flutter_shadcn studio --install',
+        exitCode: ExitCodes.configInvalid,
+      );
     }
 
     // Check if sync is needed
@@ -184,16 +196,20 @@ class StudioManager {
   Future<String> _getAppPackageName() async {
     final pubspecFile = File(p.join(projectRoot, 'pubspec.yaml'));
     if (!pubspecFile.existsSync()) {
-      print('Error: pubspec.yaml not found in project root');
-      exit(ExitCodes.configInvalid);
+      throw const StudioManagerException(
+        'pubspec.yaml not found in project root',
+        exitCode: ExitCodes.configInvalid,
+      );
     }
 
     final content = await pubspecFile.readAsString();
     final nameMatch =
         RegExp(r'^name:\s*(.+)$', multiLine: true).firstMatch(content);
     if (nameMatch == null) {
-      print('Error: Could not find package name in pubspec.yaml');
-      exit(ExitCodes.configInvalid);
+      throw const StudioManagerException(
+        'Could not find package name in pubspec.yaml',
+        exitCode: ExitCodes.configInvalid,
+      );
     }
 
     return nameMatch.group(1)!.trim();
@@ -206,8 +222,10 @@ class StudioManager {
     final templateDir = Directory(p.join(cliRoot, 'templates', 'studio'));
 
     if (!templateDir.existsSync()) {
-      print('Error: Studio template not found at: ${templateDir.path}');
-      exit(ExitCodes.ioError);
+      throw StudioManagerException(
+        'Studio template not found at: ${templateDir.path}',
+        exitCode: ExitCodes.ioError,
+      );
     }
 
     print('  Copying studio template...');
