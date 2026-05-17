@@ -9,8 +9,8 @@ echo "1. Running version_manager_test.dart..."
 dart test test/version_manager_test.dart
 
 echo ""
-echo "2. Running skill_manager_test.dart..."
-dart test test/skill_manager_test.dart
+echo "2. Running command_matrix_test.dart..."
+dart test test/command_matrix_test.dart
 
 echo ""
 echo "3. Running all tests..."

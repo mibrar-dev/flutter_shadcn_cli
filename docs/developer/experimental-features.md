@@ -5,7 +5,6 @@ Experimental features must be documented as advanced workflows until they are st
 Current advanced-only surfaces:
 
 - `flutter_shadcn --advanced docs --generate`
-- `flutter_shadcn --advanced install-skill`
 - `flutter_shadcn --advanced theme --apply-file <path>`
 - `flutter_shadcn --advanced theme --apply-url <url>`
 - `flutter_shadcn --advanced theme widget <target> --apply-file <path>`

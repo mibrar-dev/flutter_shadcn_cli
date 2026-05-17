@@ -64,7 +64,6 @@ Date: 2026-02-22
   - `version` -> `presentation/cli/commands/version_command.dart`
   - `upgrade` -> `presentation/cli/commands/upgrade_command.dart`
   - `feedback` -> `presentation/cli/commands/feedback_command.dart`
-  - `install-skill` -> `presentation/cli/commands/install_skill_command.dart`
 - Deleted temporary/legacy extraction artifacts:
   - `presentation/cli/commands/ops_command.dart`
   - `presentation/cli/commands/*_command_entry.dart` placeholders
@@ -121,8 +120,6 @@ Date: 2026-02-22
   - `docs_generator.dart` -> `application/services/docs/docs_generator.dart`
   - `feedback_manager.dart` -> `application/services/feedback/feedback_manager.dart`
   - `version_manager.dart` -> `application/services/version/version_manager.dart`
-  - `skill_manager.dart` -> `application/services/skills/skill_manager.dart`
-  - `skills_loader.dart` -> `infrastructure/skills/skills_loader.dart`
   - `studio_manager.dart` -> `application/services/studio/studio_manager.dart`
   - `theme_css.dart` -> `application/services/theme/theme_css.dart`
   - `audit_command.dart` / `deps_command.dart` / `validate_command.dart` -> `application/services/legacy_commands/*`

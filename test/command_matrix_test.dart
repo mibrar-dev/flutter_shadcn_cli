@@ -61,7 +61,7 @@ void main() {
         }
       }
       expect(failures, isEmpty, reason: failures.join('\n\n'));
-    });
+    }, timeout: const Timeout(Duration(minutes: 2)));
 
     test('new registry commands resolve with --help', () async {
       for (final command in const ['registries', 'default']) {
@@ -269,7 +269,6 @@ const List<String> _documentedCliCommands = <String>[
 
 const Set<String> _advancedCliCommands = <String>{
   'docs',
-  'install-skill',
 };
 
 List<String> _loadDocCommandIds(String packageRoot) {

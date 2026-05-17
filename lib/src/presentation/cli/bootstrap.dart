@@ -289,7 +289,7 @@ String? _advancedGateError(ArgResults argResults, bool advanced) {
     return null;
   }
   final commandName = argResults.command?.name;
-  if (commandName == 'docs' || commandName == 'install-skill') {
+  if (commandName == 'docs') {
     return 'The $commandName command requires --advanced.';
   }
   for (final name in const [

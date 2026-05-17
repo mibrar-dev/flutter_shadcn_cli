@@ -513,7 +513,7 @@ enum FeedbackType {
 
 ## Environment Details
 <!-- Additional context that might be relevant -->
-- **Component/Feature**: <!-- e.g., init, add, theme, install-skill -->
+- **Component/Feature**: <!-- e.g., init, add, theme -->
 - **Project Type**: <!-- e.g., new project, existing project -->
 - **Error Messages**: 
 ```

@@ -42,4 +42,3 @@ Generated from CLI command metadata. Do not edit these files by hand.
 Advanced commands require `--advanced`.
 
 - [`flutter_shadcn docs`](./advanced/docs.md) - Regenerate command reference documentation.
-- [`flutter_shadcn install-skill`](./advanced/install-skill.md) - Install AI skills for local model workflows.

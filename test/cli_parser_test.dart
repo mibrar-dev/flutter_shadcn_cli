@@ -126,7 +126,6 @@ void main() {
       final output = _capturePrint(() => printCliUsage(advanced: true));
 
       expect(output, contains('docs'));
-      expect(output, contains('install-skill'));
       expect(output, contains('--advanced'));
       expect(output, contains('--registry-path'));
       expect(output, contains('--registry-url'));

@@ -273,41 +273,6 @@ ArgParser buildCliParser() {
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
-      'install-skill',
-      ArgParser()
-        ..addOption('skill', abbr: 's', help: 'Skill id to install')
-        ..addOption('model', abbr: 'm', help: 'Model name (e.g., gpt-4)')
-        ..addOption('skills-url', help: 'Override skills base URL/path')
-        ..addFlag(
-          'symlink',
-          negatable: false,
-          help: 'Symlink shared skill to model',
-        )
-        ..addFlag('list', negatable: false, help: 'List installed skills')
-        ..addFlag(
-          'available',
-          abbr: 'a',
-          negatable: false,
-          help: 'List available skills from registry',
-        )
-        ..addFlag(
-          'interactive',
-          abbr: 'i',
-          negatable: false,
-          help: 'Interactive multi-skill installation',
-        )
-        ..addOption(
-          'uninstall',
-          help: 'Uninstall skill (specify --model for single removal)',
-        )
-        ..addFlag(
-          'uninstall-interactive',
-          negatable: false,
-          help: 'Interactive removal (choose skills and models)',
-        )
-        ..addFlag('help', abbr: 'h', negatable: false),
-    )
-    ..addCommand(
       'version',
       ArgParser()
         ..addFlag('check', negatable: false, help: 'Check for updates')

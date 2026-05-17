@@ -74,44 +74,6 @@
   - Local index.json support with remote fallback
   - Use `--refresh` flag to force cache update from remote
 
-### 🤖 AI Skills Management
-- **NEW**: Interactive multi-skill, multi-model AI skills manager with `install-skill` command.
-  - **Default multi-skill interactive mode** - just run `flutter_shadcn install-skill` (no flags needed, see what's already installed)
-  - Auto-discovers 28+ AI model folders (`.claude`, `.cursor`, `.gemini`, `.gpt4`, `.codex`, `.deepseek`, `.ollama`, etc.)
-  - **Shows human-readable model names** (e.g., "Cursor", "Claude (Anthropic)", "OpenAI (Codex)", "Google Gemini")
-  - **Intelligent duplicate detection**: Checks which models already have selected skills
-    - Offers 3 options when skills exist: skip installed, overwrite all, or cancel
-    - Only installs to models without the skill (smart selection)
-  - **Context-aware installation modes**:
-    - Detects existing installations automatically
-    - When 2+ models selected: offers copy-per-model or install+symlink (saves disk space)
-    - Detects existing installations and offers them as symlink sources
-    - Only shows relevant options based on what's already installed
-  - **Multi-model selection**: Pick individual models or "all models" option
-  - **Only creates selected model folders** on demand (no template clutter)
-  - Smart default selection: primary model + symlinks to others when space-saving makes sense
-- **NEW**: skills.json discovery index (mirrors components.json pattern).
-  - List available skills: `flutter_shadcn install-skill --available`
-  - Install single skill: `flutter_shadcn install-skill --skill <id>`
-  - Install to specific model: `flutter_shadcn install-skill --skill <id> --model <name>`
-  - **Multi-location skill discovery**: Local kit registry → parent directories → project root (auto-fallback)
-  - Custom registry: `--skills-url /path/or/url`
-  - **Requires `skill.json` or `skill.yaml` manifest** for installation (throws helpful error if missing)
-  - Copies AI-focused docs: SKILL.md, INSTALLATION.md, references/{commands,examples}.md
-  - Management files (skill.json, skill.yaml, schemas.md) stay in registry (CLI-only)
-- **NEW**: Interactive skill removal with `--uninstall-interactive`.
-  - Menu-driven selection: choose which skills to remove
-  - Model selection: remove from specific models or all models
-  - Shows installation count per skill
-  - Confirmation before removal
-  - Graceful error handling for missing/already-deleted folders
-- **IMPROVED**: Symlink handling for safe removal.
-  - Auto-detects symlinks vs real directories
-  - Removes only the symlink, preserves source files
-  - Resolves symlink targets before deletion (prevents corruption)
-  - Handles broken symlinks gracefully
-  - Batch removal: safely removes from multiple models even if some don't have the skill
-
 ### 🔧 Project Management Commands
 - **NEW**: Dry-run command to preview component installs (deps, shared, assets, fonts, platform changes).
 - **NEW**: Doctor validates components.json against components.schema.json and reports cache paths.
@@ -138,15 +100,7 @@
   - Cross-platform browser opening (macOS, Linux, Windows)
 
 ### 🧪 Testing & Quality
-- **NEW**: Comprehensive test coverage for skill manager and version manager.
-  - Skill discovery tests (local kit registry, parent directories, manifest requirement, YAML support)
-  - File copying tests (AI-focused files, manifest exclusion, directory structure)
-  - Skill management tests (install, uninstall, list, symlinks)
-  - Model discovery tests (auto-detection, lazy folder creation)
-  - Version comparison tests (semver logic, pre-release handling)
-  - Cache management tests (24-hour policy, timestamp handling)
-  - Error handling tests (network failures, malformed responses, missing manifests)
-  - **Total: 38 tests** (13 skill manager + 11 version manager + 14 existing)
+- **NEW**: Comprehensive test coverage for version management, registry validation, install workflows, and command behavior.
 
 ### 🐛 Bug Fixes
 - **FIX**: Graceful error handling for component discovery failures.

@@ -21,7 +21,6 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/commands/dry_run_command
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/feedback_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/info_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/init_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/install_skill_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/locale_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/list_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/project_command.dart';
@@ -36,7 +35,6 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/commands/version_command
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands_registry.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/registry_selection.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
-import 'package:path/path.dart' as p;
 
 CommandDispatcher buildBootstrapCommandDispatcher({
   required ArgResults rootArgs,
@@ -216,27 +214,6 @@ CommandDispatcher buildBootstrapCommandDispatcher({
           multiRegistry: multiRegistry,
           logger: logger,
         ),
-    'install-skill': () async {
-      final config = readConfig();
-      final selection = resolveRegistrySelection(
-        rootArgs,
-        roots,
-        config,
-        offline,
-      );
-      final defaultSkillsUrl = config.registryUrl?.isNotEmpty == true
-          ? config.registryUrl!
-          : selection.sourceRoot.root;
-      return runInstallSkillCommand(
-        command: command,
-        targetDir: targetDir,
-        defaultSkillsUrl: defaultSkillsUrl,
-        bundledSkillsPath: roots.cliRoot == null
-            ? null
-            : p.join(roots.cliRoot!, 'registry', 'skills'),
-        logger: logger,
-      );
-    },
     'version': () => runVersionCommand(command: command, logger: logger),
     'upgrade': () => runUpgradeCommand(command: command, logger: logger),
     'feedback': () => runFeedbackCommand(

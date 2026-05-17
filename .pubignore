@@ -11,6 +11,10 @@ doc/api/
 graphify-out/
 qa_reports/
 .codex/
+registry/skills/
+lib/src/application/services/skills/
+lib/src/infrastructure/skills/
+lib/src/skills/
 PLAN.md
 PROGRESS.md
 run_tests.sh
