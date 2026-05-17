@@ -1867,6 +1867,53 @@ void main() {
         contains("const buttonThemeTarget = '__BUTTON_THEME_TARGET__';"),
       );
     });
+
+    test('init without --yes still completes with default config', () async {
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        {
+          'id': 'shadcn_entry',
+          'displayName': 'Shadcn',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/registry/',
+          'paths': {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json',
+          },
+          'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
+          'init': {
+            'version': 1,
+            'actions': [
+              {
+                'type': 'message',
+                'lines': ['Init done'],
+              }
+            ],
+          },
+        },
+      ]);
+
+      File(p.join(appRoot.path, '.shadcn', 'config.json')).deleteSync();
+
+      await cli.main([
+        '--advanced',
+        '--offline',
+        'init',
+        '--registries-path',
+        registriesPath,
+        '--registry-path',
+        registryRoot.path,
+      ]);
+
+      final config = File(p.join(appRoot.path, '.shadcn', 'config.json'));
+      expect(config.existsSync(), isTrue);
+      expect(
+        config.readAsStringSync(),
+        contains('"installPath":"lib/ui/shadcn"'),
+      );
+    });
   });
 }
 
@@ -2320,6 +2367,47 @@ Future<ProcessResult> _runCli({
       'CI': 'true',
     },
   );
+}
+
+Future<_CliInteractiveResult> _runCliInteractive({
+  required String cwd,
+  required List<String> args,
+  required List<String> stdinLines,
+}) async {
+  final process = await Process.start(
+    Platform.resolvedExecutable,
+    [_cliEntrypoint, ...args],
+    workingDirectory: cwd,
+    environment: {
+      ...Platform.environment,
+      'CI': 'true',
+    },
+  );
+  for (final line in stdinLines) {
+    process.stdin.writeln(line);
+  }
+  await process.stdin.flush();
+  await process.stdin.close();
+  final stdout = await process.stdout.transform(utf8.decoder).join();
+  final stderr = await process.stderr.transform(utf8.decoder).join();
+  final exitCode = await process.exitCode;
+  return _CliInteractiveResult(
+    exitCode: exitCode,
+    stdout: stdout,
+    stderr: stderr,
+  );
+}
+
+class _CliInteractiveResult {
+  final int exitCode;
+  final String stdout;
+  final String stderr;
+
+  _CliInteractiveResult({
+    required this.exitCode,
+    required this.stdout,
+    required this.stderr,
+  });
 }
 
 void _writePubspec(Directory targetRoot) {

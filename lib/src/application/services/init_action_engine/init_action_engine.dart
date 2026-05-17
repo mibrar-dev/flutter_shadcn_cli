@@ -9,6 +9,8 @@ import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
 import 'package:yaml/yaml.dart';
 
+import 'init_destination_policy.dart';
+
 part 'init_action_engine_exception_part.dart';
 part 'init_execution_result_part.dart';
 part 'init_execution_record_part.dart';
@@ -249,6 +251,11 @@ class InitActionEngine {
     final created = <String>[];
     for (final entry in dirs) {
       final relPath = ResolverV1.normalizeRelativePath(entry.toString());
+      try {
+        InitDestinationPolicy.assertCopyDestination(relPath);
+      } catch (e) {
+        throw InitActionEngineException(e.toString());
+      }
       final absPath = ProjectPathGuard.resolveSafeWritePath(
         projectRoot: projectRoot,
         destinationRelativePath: relPath,
@@ -329,6 +336,11 @@ class InitActionEngine {
               base: base,
               destBase: destBase,
             );
+      try {
+        InitDestinationPolicy.assertCopyDestination(destinationRel);
+      } catch (e) {
+        throw InitActionEngineException(e.toString());
+      }
       final destinationAbs = ProjectPathGuard.resolveSafeWritePath(
         projectRoot: projectRoot,
         destinationRelativePath: destinationRel,

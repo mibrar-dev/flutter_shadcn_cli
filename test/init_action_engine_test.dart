@@ -315,7 +315,7 @@ void main() {
           projectRoot: projectRoot.path,
           registry: entry,
         ),
-        throwsA(isA<ResolverV1Exception>()),
+        throwsA(isA<InitActionEngineException>()),
       );
     });
 
@@ -443,6 +443,87 @@ void main() {
       expect(result.record.filesWritten, ['assets/fonts/bootstrap.otf']);
       expect(result.record.pubspecDelta.flutterAssets,
           ['assets/fonts/bootstrap.otf']);
+    });
+
+    test('inline init rejects code writes outside lib but allows assets',
+        () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'copyFiles',
+              'base': 'registry/shared',
+              'destBase': '.',
+              'files': ['theme/color_scheme.dart'],
+            }
+          ],
+        ),
+        throwsA(isA<InitActionEngineException>()),
+      );
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'base': 'registry',
+            'destBase': '.',
+            'from': 'shared/fonts',
+            'to': 'assets/fonts',
+            'files': ['shared/fonts/lucide.ttf'],
+          },
+        ],
+      );
+
+      expect(result.filesWritten, 1);
+      expect(
+        File(p.join(projectRoot.path, 'assets/fonts/lucide.ttf')).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('inline init rejects ensureDirs outside lib or assets', () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'ensureDirs',
+              'dirs': ['shared'],
+            }
+          ],
+        ),
+        throwsA(isA<InitActionEngineException>()),
+      );
+    });
+
+    test('inline init rejects traversal escape even with valid prefix',
+        () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'copyFiles',
+              'base': 'registry',
+              'destBase': 'lib/../escape',
+              'files': ['registry/shared/theme/color_scheme.dart'],
+            }
+          ],
+        ),
+        throwsA(isA<ResolverV1Exception>()),
+      );
     });
   });
 }
