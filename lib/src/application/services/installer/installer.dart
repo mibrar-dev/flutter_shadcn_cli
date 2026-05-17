@@ -4,6 +4,7 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/component_manifest_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_editor.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
@@ -61,6 +62,7 @@ class Installer {
   Map<String, _RegistryFileOwner>? _registryFileIndex;
   final Map<String, Set<String>> _sharedDependencyCache = {};
   ShadcnConfig? _cachedConfig;
+  late final ComponentManifestResolver _manifestResolver;
 
   Installer({
     required this.registry,
@@ -77,7 +79,12 @@ class Installer {
     this.excludeFileKindsOverride,
     this.enableSharedGroups = true,
     this.enableComposites = true,
-  }) : logger = logger ?? CliLogger();
+  }) : logger = logger ?? CliLogger() {
+    _manifestResolver = ComponentManifestResolver(
+      registry: registry,
+      logger: this.logger,
+    );
+  }
 
   Future<void> init({
     bool skipPrompts = false,
@@ -194,7 +201,7 @@ class Installer {
   }) async {
     await ensureInitFiles(allowPrompts: false);
     await _ensureConfigLoaded();
-    final component = registry.getComponent(name);
+    final component = await _manifestResolver.resolve(name);
     if (component == null) {
       logger.warn('Component "$name" not found');
       return;
