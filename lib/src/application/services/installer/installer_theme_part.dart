@@ -356,8 +356,10 @@ extension InstallerThemePart on Installer {
       final targetFile = File(_resolveDestinationPath(file.target));
       final normalizedTarget = p.normalize(targetFile.path);
       if (!seenTargets.add(normalizedTarget)) {
-        throw Exception(
-          'Theme manifest contains duplicate target path: ${file.target}',
+        throw ThemeInstallException(
+          code: 'duplicate-target',
+          message:
+              'Theme manifest contains duplicate target path: ${file.target}',
         );
       }
       final bytes = await _readThemeArtifactBytes(
@@ -367,8 +369,10 @@ extension InstallerThemePart on Installer {
       final actual = sha256.convert(bytes).toString().toLowerCase();
       final expected = file.sha256.toLowerCase();
       if (actual != expected) {
-        throw Exception(
-          'SHA-256 mismatch for theme artifact ${file.source}: expected $expected but received $actual.',
+        throw ThemeInstallException(
+          code: 'hash-mismatch',
+          message:
+              'SHA-256 mismatch for theme artifact ${file.source}: expected $expected but received $actual.',
         );
       }
       await _writeThemeArtifactCache(
@@ -398,7 +402,10 @@ extension InstallerThemePart on Installer {
     if (p.isAbsolute(trimmed)) {
       final file = File(trimmed);
       if (!file.existsSync()) {
-        throw Exception('Theme artifact source not found: $trimmed');
+        throw ThemeInstallException(
+          code: 'source-not-found',
+          message: 'Theme artifact source not found: $trimmed',
+        );
       }
       return file.readAsBytes();
     }
@@ -408,14 +415,20 @@ extension InstallerThemePart on Installer {
       if (uri.scheme == 'file') {
         final file = File(uri.toFilePath());
         if (!file.existsSync()) {
-          throw Exception('Theme artifact source not found: $trimmed');
+          throw ThemeInstallException(
+            code: 'source-not-found',
+            message: 'Theme artifact source not found: $trimmed',
+          );
         }
         return file.readAsBytes();
       }
       if (uri.scheme == 'http' || uri.scheme == 'https') {
         return _fetchThemeArtifactFromUri(uri);
       }
-      throw Exception('Unsupported theme artifact source: $trimmed');
+      throw ThemeInstallException(
+        code: 'unsupported-source',
+        message: 'Unsupported theme artifact source: $trimmed',
+      );
     }
 
     final baseUri = Uri.tryParse(registryBaseUrl);
@@ -437,8 +450,10 @@ extension InstallerThemePart on Installer {
 
   Future<List<int>> _fetchThemeArtifactFromUri(Uri uri) async {
     if (registry.sourceRoot.offline) {
-      throw Exception(
-        'Offline mode: remote theme artifact not available for ${uri.toString()}.',
+      throw ThemeInstallException(
+        code: 'offline-remote-source',
+        message:
+            'Offline mode: remote theme artifact not available for ${uri.toString()}.',
       );
     }
     final client = HttpClient();
@@ -446,8 +461,10 @@ extension InstallerThemePart on Installer {
       final request = await client.getUrl(uri);
       final response = await request.close();
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception(
-          'Failed to fetch theme artifact ${uri.toString()} (${response.statusCode}).',
+        throw ThemeInstallException(
+          code: 'fetch-failed',
+          message:
+              'Failed to fetch theme artifact ${uri.toString()} (${response.statusCode}).',
         );
       }
       final builder = BytesBuilder(copy: false);
@@ -619,6 +636,19 @@ class _ResolvedThemeRegistry {
     required this.cacheRootPath,
     required this.indexEntries,
   });
+}
+
+class ThemeInstallException implements Exception {
+  final String code;
+  final String message;
+
+  const ThemeInstallException({
+    required this.code,
+    required this.message,
+  });
+
+  @override
+  String toString() => 'ThemeInstallException($code): $message';
 }
 
 class _ThemeArtifactManifest {

@@ -1513,14 +1513,60 @@ output-localization-file: app_localizations.dart
       await expectLater(
         installer.applyThemeById('modern-minimal'),
         throwsA(
-          isA<Exception>().having(
-            (error) => error.toString(),
-            'message',
-            contains('SHA-256'),
-          ),
+          isA<ThemeInstallException>()
+              .having((error) => error.code, 'code', 'hash-mismatch')
+              .having((error) => error.message, 'message', contains('SHA-256')),
         ),
       );
       expect(generatedThemeFile.existsSync(), isFalse);
+    });
+
+    test('theme artifact failures expose typed error codes', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.applyThemeFromJson({
+          'id': 'bad-source',
+          'name': 'Bad Source',
+          'files': [
+            {
+              'source': 'ftp://example.com/theme.dart',
+              'target':
+                  '{sharedPath}/theme/_impl/core/generated_bad_source.dart',
+              'sha256': '00',
+            }
+          ],
+        }),
+        throwsA(
+          isA<ThemeInstallException>()
+              .having((error) => error.code, 'code', 'unsupported-source')
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Unsupported theme artifact source'),
+              ),
+        ),
+      );
     });
 
     test('rejects dangerous theme manifest targets before writes', () async {

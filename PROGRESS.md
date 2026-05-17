@@ -294,3 +294,11 @@ Date: 2026-02-22
   - added direct service coverage for pubspec preservation, dry-run dependency projection, and platform marker idempotency
   - replaced process exits in registry selection, argument parsing, version upgrade, and studio service paths with typed exceptions or command-level exit-code returns
   - added typed exceptions for component resolution, filesystem root escapes, and missing Flutter project roots
+- Completed future cleanup pass: deterministic CLI loading feedback:
+  - added `CliLogger.progress(...)` for stable non-spinner progress output
+  - added progress feedback for add/init/theme/shared/bulk install phases
+  - covered logger output, component install progress, and inline init progress with tests
+- Completed future cleanup pass: typed theme artifact install errors:
+  - added `ThemeInstallException` with stable error codes for theme artifact failures
+  - replaced generic theme artifact exceptions for duplicate targets, SHA-256 mismatches, missing sources, unsupported schemes, offline remote sources, and failed HTTP fetches
+  - added tests for hash mismatch and unsupported source error codes
