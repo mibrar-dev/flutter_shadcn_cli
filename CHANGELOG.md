@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.2.4
+
+### CLI UX
+- Restored visible per-file install progress so long component/shared installs do not look stuck.
+- Installed shared module files concurrently to reduce large dependency install time.
+
+### Registry Compatibility
+- Updated the kit registry manifest generation so font binaries are not installed as shared Dart-library files under `lib`.
+
 ## 0.2.3
 
 ### CLI UX

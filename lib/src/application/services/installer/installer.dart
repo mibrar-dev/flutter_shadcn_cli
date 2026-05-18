@@ -144,6 +144,7 @@ class Installer {
         _sharedService = InstallerSharedService(
           registry: registry,
           logger: logger ?? CliLogger(),
+          fileCopyConcurrency: _fileCopyConcurrency,
         ),
         _installTargetPolicy =
             installTargetPolicy ?? const InstallTargetPolicy() {

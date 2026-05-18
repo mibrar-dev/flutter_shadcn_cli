@@ -40,12 +40,20 @@ extension InstallerFileInstallPart on Installer {
       '($installableCount ${installableCount == 1 ? 'file' : 'files'})',
     );
     var index = 0;
+    var installOrdinal = 0;
     Future<void> worker() async {
       while (true) {
         if (index >= files.length) {
           return;
         }
         final file = files[index++];
+        if (_shouldInstallFile(file.destination)) {
+          final fileNumber = ++installOrdinal;
+          logger.progress(
+            'Installing file $fileNumber/$installableCount: '
+            '${_progressFileLabel(_resolveComponentDestination(component, file))}',
+          );
+        }
         await _installComponentFile(component, file, files);
       }
     }
@@ -66,6 +74,11 @@ extension InstallerFileInstallPart on Installer {
       sharedId: sharedId,
     );
     _validateSharedFileDestination(file.destination);
+    if (_shouldInstallFile(file.destination)) {
+      logger.progress(
+        'Installing shared file: ${_progressFileLabel(file.destination)}',
+      );
+    }
     await _installFile(file);
   }
 
@@ -193,6 +206,35 @@ extension InstallerFileInstallPart on Installer {
     }
 
     return _resolveDestinationPath(file.destination);
+  }
+
+  String _progressFileLabel(String destination) {
+    var label = destination.replaceAll('\\', '/');
+    final config = _cachedConfig;
+    if (config != null) {
+      final installRoot =
+          _resolveProjectPath(_installPath(config)).replaceAll('\\', '/');
+      final sharedRoot =
+          _resolveProjectPath(_sharedPath(config)).replaceAll('\\', '/');
+      if (label.startsWith('$installRoot/')) {
+        label = label.substring(installRoot.length + 1);
+      } else if (label.startsWith('$sharedRoot/')) {
+        label = label.substring(sharedRoot.length + 1);
+      } else if (label.startsWith('${_installPath(config)}/')) {
+        label = label.substring(_installPath(config).length + 1);
+      } else if (label.startsWith('${_sharedPath(config)}/')) {
+        label = label.substring(_sharedPath(config).length + 1);
+      }
+    }
+    label = label
+        .replaceFirst('{installPath}/', '')
+        .replaceFirst('{sharedPath}/', '');
+
+    const maxLength = 96;
+    if (label.length <= maxLength) {
+      return label;
+    }
+    return '...${label.substring(label.length - maxLength + 3)}';
   }
 
   void _validateComponentInstallTargets(Component component) {

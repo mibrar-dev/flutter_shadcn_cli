@@ -112,16 +112,14 @@ void main() {
           '... Resolving component: button',
           '• Installing Button (button)',
           '... Installing files for Button (2 files)',
+          '... Installing file 1/2: components/button/button.dart',
+          '... Installing file 2/2: components/button/meta.json',
           '... Updating pubspec dependencies for Button',
           '... Writing component manifest for Button',
           '... Regenerating app component aliases',
           '... Syncing component registry manifest',
           '... Updating project state',
         ]),
-      );
-      expect(
-        lines.where((line) => line.contains('Installing file ')),
-        isEmpty,
       );
     });
 

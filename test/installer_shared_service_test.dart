@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_shared_service.dart';
@@ -180,6 +181,47 @@ void main() {
         'theme:registry/shared/theme/theme.dart',
         'util:registry/shared/util/util.dart',
       ]);
+    });
+
+    test('starts shared item file installs concurrently', () async {
+      final service = InstallerSharedService(
+        registry: _registry(
+          registryDir,
+          shared: [
+            _sharedFiles('theme', [
+              'registry/shared/theme/a.txt',
+              'registry/shared/theme/b.txt',
+            ]),
+          ],
+        ),
+        logger: CliLogger(),
+      );
+      final release = Completer<void>();
+      var active = 0;
+      var maxActive = 0;
+      var started = 0;
+
+      await service.installShared(
+        'theme',
+        ensureConfigLoaded: () async {},
+        installComponent: (_) async {
+          fail('component fallback should not be used for existing shared ids');
+        },
+        installFileWithDependencies: (file, availableFiles, {sharedId}) async {
+          active++;
+          started++;
+          if (active > maxActive) {
+            maxActive = active;
+          }
+          if (started == 2 && !release.isCompleted) {
+            release.complete();
+          }
+          await release.future;
+          active--;
+        },
+      ).timeout(const Duration(milliseconds: 250));
+
+      expect(maxActive, greaterThan(1));
     });
 
     test('installs mutually importing shared items without recursion failure',

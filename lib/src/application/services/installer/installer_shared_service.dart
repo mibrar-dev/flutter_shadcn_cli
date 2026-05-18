@@ -19,13 +19,18 @@ class InstallerSharedService {
 
   final Registry registry;
   final CliLogger logger;
+  final int fileCopyConcurrency;
 
   final Set<String> _installingSharedIds = {};
   final Set<String> _installedSharedCache = {};
   final Map<String, Set<String>> _sharedDependencyCache = {};
   Map<String, InstallerRegistryFileOwner>? _registryFileIndex;
 
-  InstallerSharedService({required this.registry, required this.logger});
+  InstallerSharedService({
+    required this.registry,
+    required this.logger,
+    this.fileCopyConcurrency = 4,
+  });
 
   Future<void> installShared(
     String id, {
@@ -68,13 +73,25 @@ class InstallerSharedService {
           installFileWithDependencies: installFileWithDependencies,
         );
       }
-      for (final file in sharedItem.files) {
-        await installFileWithDependencies(
-          file,
-          sharedItem.files,
-          sharedId: sharedItem.id,
-        );
+      var index = 0;
+      Future<void> worker() async {
+        while (true) {
+          if (index >= sharedItem.files.length) {
+            return;
+          }
+          final file = sharedItem.files[index++];
+          await installFileWithDependencies(
+            file,
+            sharedItem.files,
+            sharedId: sharedItem.id,
+          );
+        }
       }
+
+      final workerCount = fileCopyConcurrency < sharedItem.files.length
+          ? fileCopyConcurrency
+          : sharedItem.files.length;
+      await Future.wait(List.generate(workerCount, (_) => worker()));
 
       _installedSharedCache.add(resolvedId);
     } finally {
