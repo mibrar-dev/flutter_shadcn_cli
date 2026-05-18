@@ -6,7 +6,7 @@
 build/
 test/
 templates/
-docs/
+/docs/
 doc/api/
 graphify-out/
 qa_reports/
@@ -15,10 +15,10 @@ qa_reports/
 *.code-workspace
 AGENTS.md
 PROJECT_AUDIT_REPORT.md
-registry/skills/
-lib/src/application/services/skills/
-lib/src/infrastructure/skills/
-lib/src/skills/
+/registry/skills/
+/lib/src/application/services/skills/
+/lib/src/infrastructure/skills/
+/lib/src/skills/
 PLAN.md
 PROGRESS.md
 run_tests.sh

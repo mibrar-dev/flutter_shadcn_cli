@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.2
+
+### Packaging Fixes
+- Fixed `.pubignore` root path rules so internal Dart source folders named `docs` are included in the published package.
+- Verified the package executable build through `dart pub global activate flutter_shadcn_cli 0.2.2 --overwrite`.
+
 ## 0.2.1
 
 ### Release Readiness
