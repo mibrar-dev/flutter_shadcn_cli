@@ -2,6 +2,11 @@
 
 ## Unreleased
 
+## 0.2.5
+
+### CLI Performance
+- Skipped already-installed component IDs before registry manifest resolution, including when those components are reached as dependencies during multi-component installs.
+
 ## 0.2.4
 
 ### CLI UX

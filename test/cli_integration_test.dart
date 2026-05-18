@@ -118,6 +118,57 @@ void main() {
           isTrue);
     });
 
+    test('add skips already installed requested components before resolving',
+        () async {
+      final installedButtonDir = Directory(
+        p.join(
+          appRoot.path,
+          'lib',
+          'ui',
+          'shadcn',
+          'components',
+          'button',
+        ),
+      )..createSync(recursive: true);
+      File(p.join(installedButtonDir.path, 'meta.json'))
+          .writeAsStringSync('{"id":"button"}');
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          'add',
+          'button',
+          'dialog',
+          '--registry-path',
+          registryRoot.path,
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.success);
+      expect(
+        result.stdout,
+        contains('Skipping Button (button): already installed'),
+      );
+      expect(result.stdout, isNot(contains('Resolving component: button')));
+      expect(result.stdout, contains('Resolving component: dialog'));
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'dialog',
+            'dialog.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
     test('locale init creates l10n.yaml and local ARB folder', () async {
       await cli.main(['locale', 'init']);
 

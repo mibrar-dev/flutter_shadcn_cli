@@ -266,6 +266,15 @@ class Installer {
     bool installDependencies = true,
     Set<String>? ancestry,
   }) async {
+    await _ensureConfigLoaded();
+    final installedBeforeResolve = await _installedComponentIds();
+    if (installedBeforeResolve.contains(name)) {
+      logger.info(
+        'Skipping ${_componentDisplayName(name)} ($name): already installed',
+      );
+      return;
+    }
+
     logger.progress('Resolving component: $name');
     final component = await _manifestResolver.resolve(name);
     if (component == null) {
@@ -280,7 +289,6 @@ class Installer {
     }
 
     await ensureInitFiles(allowPrompts: false);
-    await _ensureConfigLoaded();
 
     final stack = ancestry ?? <String>{};
     if (stack.contains(component.id)) {
@@ -406,6 +414,14 @@ class Installer {
         completer.complete();
       }
     }
+  }
+
+  String _componentDisplayName(String id) {
+    return id
+        .split(RegExp(r'[_\-\s]+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) => part[0].toUpperCase() + part.substring(1))
+        .join(' ');
   }
 
   Future<void> installAllComponents({int concurrency = 6}) async {
