@@ -17,7 +17,7 @@ class VersionManagerException implements Exception {
 
 /// Manages CLI version checking and upgrades
 class VersionManager {
-  static const String currentVersion = '0.2.5';
+  static const String currentVersion = '0.2.6';
   static const String packageName = 'flutter_shadcn_cli';
   static const String pubDevApiUrl =
       'https://pub.dev/api/packages/$packageName';

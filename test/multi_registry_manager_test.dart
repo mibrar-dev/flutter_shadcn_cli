@@ -879,6 +879,98 @@ void main() {
       expect(alt.isDefault, isTrue);
     });
 
+    test('directory-managed remote registry refreshes stale base URL',
+        () async {
+      await ShadcnConfig.save(
+        appRoot.path,
+        ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          registries: {
+            'shadcn': const RegistryConfigEntry(
+              registryMode: 'remote',
+              registryUrl:
+                  'https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib',
+              baseUrl:
+                  'https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib',
+              componentsPath: 'old/components.json',
+              indexPath: 'old/index.json',
+              installPath: 'lib/ui/shadcn',
+              sharedPath: 'lib/ui/shadcn/shared',
+              enabled: true,
+            ),
+          },
+        ),
+      );
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        _inlineRegistryEntry(
+          baseUrl:
+              'https://github.com/ibrar-x/shadcn_flutter_kit/tree/a886eb1a280ae3108bc4fbdd3ce4c842b32b786e/flutter_shadcn_kit/lib',
+          paths: const {
+            'componentsJson': 'registry/manifests/components.json',
+            'indexJson': 'registry/manifests/index.json',
+          },
+          actions: const [
+            {
+              'type': 'ensureDirs',
+              'dirs': ['lib/ui/shadcn'],
+            },
+          ],
+        ),
+      ]);
+
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: true,
+        logger: CliLogger(),
+        directoryPath: registriesPath,
+      );
+
+      final updated = await manager.setDefaultRegistry('shadcn');
+      final entry = updated.registryConfig('shadcn');
+
+      expect(
+        entry?.registryUrl,
+        'https://github.com/ibrar-x/shadcn_flutter_kit/tree/a886eb1a280ae3108bc4fbdd3ce4c842b32b786e/flutter_shadcn_kit/lib',
+      );
+      expect(
+        entry?.baseUrl,
+        'https://github.com/ibrar-x/shadcn_flutter_kit/tree/a886eb1a280ae3108bc4fbdd3ce4c842b32b786e/flutter_shadcn_kit/lib',
+      );
+      expect(entry?.componentsPath, 'registry/manifests/components.json');
+      expect(entry?.indexPath, 'registry/manifests/index.json');
+      expect(entry?.installPath, 'lib/ui/shadcn');
+      expect(entry?.sharedPath, 'lib/ui/shadcn/shared');
+    });
+
+    test('directory refresh keeps explicit local registry source', () async {
+      final registriesPath = _writeRegistriesFile(tempRoot, [
+        _inlineRegistryEntry(
+          baseUrl: 'https://example.com/new/',
+          actions: const [
+            {
+              'type': 'ensureDirs',
+              'dirs': ['lib/ui/shadcn'],
+            },
+          ],
+        ),
+      ]);
+
+      final manager = MultiRegistryManager(
+        targetDir: appRoot.path,
+        offline: true,
+        logger: CliLogger(),
+        directoryPath: registriesPath,
+      );
+
+      final updated = await manager.setDefaultRegistry('shadcn');
+      final entry = updated.registryConfig('shadcn');
+
+      expect(entry?.registryMode, 'local');
+      expect(entry?.registryPath, p.join(registryBaseA.path, 'registry'));
+      expect(entry?.baseUrl, isNull);
+      expect(entry?.registryUrl, isNull);
+    });
+
     test(
         'setDefaultRegistry keeps theme manifests but omits legacy converter wiring',
         () async {
@@ -1018,6 +1110,7 @@ void main() {
         logger: CliLogger(verbose: true),
         directoryUrl:
             'http://${server.address.host}:${server.port}/registries.json',
+        registryUrlOverride: 'http://${server.address.host}:${server.port}/',
       );
       final loadedDirectory = await RegistryDirectoryClient().load(
         projectRoot: appRoot.path,

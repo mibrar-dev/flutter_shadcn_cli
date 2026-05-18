@@ -217,14 +217,30 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     var config = await _loadProjectConfig();
     var entry = config.registryConfig(trimmed);
 
-    if (entry == null) {
+    RegistryDirectoryEntry? directoryEntry;
+    try {
       final directory = await _loadDirectory();
-      final directoryEntry = directory.registries.firstWhere(
+      directoryEntry = directory.registries.firstWhere(
         (item) => item.namespace == trimmed,
         orElse: () => throw MultiRegistryException(
           'Registry namespace "$trimmed" not found.',
         ),
       );
+    } catch (error) {
+      if (entry == null) {
+        if (error is MultiRegistryException) {
+          rethrow;
+        }
+        if (error is StateError) {
+          throw MultiRegistryException(
+            'Registry namespace "$trimmed" not found.',
+          );
+        }
+        rethrow;
+      }
+    }
+
+    if (directoryEntry != null) {
       config = await _upsertConfigFromDirectory(config, directoryEntry);
       entry = config.registryConfig(trimmed);
     }
@@ -691,20 +707,58 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     final installRoot = entry.installRoot;
     final sharedRoot = '$installRoot/shared';
     final existing = config.registryConfig(entry.namespace);
+    final existingIsLocal = existing != null &&
+        ((existing.registryMode == 'local' && existing.registryPath != null) ||
+            existing.registryPath != null);
+    final refreshExisting = existing != null &&
+        !existingIsLocal &&
+        _shouldRefreshRemoteFromDirectory(existing, entry);
     final next = config.withRegistry(
       entry.namespace,
       existing?.copyWith(
-            registryMode: existing.registryMode ?? 'remote',
-            registryUrl: existing.registryUrl ?? entry.baseUrl,
-            baseUrl: existing.baseUrl ?? entry.baseUrl,
-            componentsPath: existing.componentsPath ?? entry.componentsPath,
-            componentsSchemaPath:
-                existing.componentsSchemaPath ?? entry.componentsSchemaPath,
-            indexPath: existing.indexPath ?? entry.indexPath,
-            indexSchemaPath: existing.indexSchemaPath ?? entry.indexSchemaPath,
-            themesPath: existing.themesPath ?? entry.themesPath,
-            themesSchemaPath:
-                existing.themesSchemaPath ?? entry.themesSchemaPath,
+            registryMode:
+                existingIsLocal ? existing.registryMode ?? 'local' : 'remote',
+            registryUrl: existingIsLocal
+                ? existing.registryUrl
+                : refreshExisting
+                    ? entry.baseUrl
+                    : existing.registryUrl ?? entry.baseUrl,
+            baseUrl: existingIsLocal
+                ? existing.baseUrl
+                : refreshExisting
+                    ? entry.baseUrl
+                    : existing.baseUrl ?? entry.baseUrl,
+            componentsPath: existingIsLocal
+                ? existing.componentsPath ?? entry.componentsPath
+                : refreshExisting
+                    ? entry.componentsPath
+                    : existing.componentsPath ?? entry.componentsPath,
+            componentsSchemaPath: existingIsLocal
+                ? existing.componentsSchemaPath ?? entry.componentsSchemaPath
+                : refreshExisting
+                    ? entry.componentsSchemaPath
+                    : existing.componentsSchemaPath ??
+                        entry.componentsSchemaPath,
+            indexPath: existingIsLocal
+                ? existing.indexPath ?? entry.indexPath
+                : refreshExisting
+                    ? entry.indexPath
+                    : existing.indexPath ?? entry.indexPath,
+            indexSchemaPath: existingIsLocal
+                ? existing.indexSchemaPath ?? entry.indexSchemaPath
+                : refreshExisting
+                    ? entry.indexSchemaPath
+                    : existing.indexSchemaPath ?? entry.indexSchemaPath,
+            themesPath: existingIsLocal
+                ? existing.themesPath ?? entry.themesPath
+                : refreshExisting
+                    ? entry.themesPath
+                    : existing.themesPath ?? entry.themesPath,
+            themesSchemaPath: existingIsLocal
+                ? existing.themesSchemaPath ?? entry.themesSchemaPath
+                : refreshExisting
+                    ? entry.themesSchemaPath
+                    : existing.themesSchemaPath ?? entry.themesSchemaPath,
             installPath: existing.installPath ?? installRoot,
             sharedPath: existing.sharedPath ?? sharedRoot,
             enabled: true,
@@ -731,24 +785,46 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     RegistryConfigEntry configEntry,
     RegistryDirectoryEntry directoryEntry,
   ) {
+    final configIsLocal = (configEntry.registryMode == 'local' &&
+            configEntry.registryPath != null) ||
+        configEntry.registryPath != null;
+    final refreshRemote = !configIsLocal &&
+        _shouldRefreshRemoteFromDirectory(configEntry, directoryEntry);
     return configEntry.copyWith(
-      baseUrl: configEntry.baseUrl ?? directoryEntry.baseUrl,
-      registryUrl: configEntry.registryUrl ?? directoryEntry.baseUrl,
-      componentsPath:
-          configEntry.componentsPath ?? directoryEntry.componentsPath,
-      componentsSchemaPath: configEntry.registryPath == null
-          ? configEntry.componentsSchemaPath ??
-              directoryEntry.componentsSchemaPath
-          : configEntry.componentsSchemaPath,
-      indexPath: configEntry.indexPath ?? directoryEntry.indexPath,
-      indexSchemaPath:
-          configEntry.indexSchemaPath ?? directoryEntry.indexSchemaPath,
-      themesPath: configEntry.themesPath ?? directoryEntry.themesPath,
-      themesSchemaPath:
-          configEntry.themesSchemaPath ?? directoryEntry.themesSchemaPath,
-      folderStructurePath:
-          configEntry.folderStructurePath ?? directoryEntry.folderStructurePath,
-      metaPath: configEntry.metaPath ?? directoryEntry.metaPath,
+      baseUrl: refreshRemote
+          ? directoryEntry.baseUrl
+          : configEntry.baseUrl ?? directoryEntry.baseUrl,
+      registryUrl: refreshRemote
+          ? directoryEntry.baseUrl
+          : configEntry.registryUrl ?? directoryEntry.baseUrl,
+      componentsPath: refreshRemote
+          ? directoryEntry.componentsPath
+          : configEntry.componentsPath ?? directoryEntry.componentsPath,
+      componentsSchemaPath: refreshRemote
+          ? directoryEntry.componentsSchemaPath
+          : configEntry.registryPath == null
+              ? configEntry.componentsSchemaPath ??
+                  directoryEntry.componentsSchemaPath
+              : configEntry.componentsSchemaPath,
+      indexPath: refreshRemote
+          ? directoryEntry.indexPath
+          : configEntry.indexPath ?? directoryEntry.indexPath,
+      indexSchemaPath: refreshRemote
+          ? directoryEntry.indexSchemaPath
+          : configEntry.indexSchemaPath ?? directoryEntry.indexSchemaPath,
+      themesPath: refreshRemote
+          ? directoryEntry.themesPath
+          : configEntry.themesPath ?? directoryEntry.themesPath,
+      themesSchemaPath: refreshRemote
+          ? directoryEntry.themesSchemaPath
+          : configEntry.themesSchemaPath ?? directoryEntry.themesSchemaPath,
+      folderStructurePath: refreshRemote
+          ? directoryEntry.folderStructurePath
+          : configEntry.folderStructurePath ??
+              directoryEntry.folderStructurePath,
+      metaPath: refreshRemote
+          ? directoryEntry.metaPath
+          : configEntry.metaPath ?? directoryEntry.metaPath,
       capabilitySharedGroups: configEntry.capabilitySharedGroups ??
           directoryEntry.capabilities.sharedGroups,
       capabilityComposites: configEntry.capabilityComposites ??
@@ -758,6 +834,29 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       trustMode: configEntry.trustMode ?? directoryEntry.trust.mode,
       trustSha256: configEntry.trustSha256 ?? directoryEntry.trust.sha256,
     );
+  }
+
+  bool _shouldRefreshRemoteFromDirectory(
+    RegistryConfigEntry configEntry,
+    RegistryDirectoryEntry directoryEntry,
+  ) {
+    if (directoryEntry.namespace != 'shadcn') {
+      return false;
+    }
+    final configured = [
+      configEntry.baseUrl,
+      configEntry.registryUrl,
+    ].whereType<String>().map((value) => value.trim()).where((value) {
+      return value.isNotEmpty;
+    });
+    return configured.any(_isStaleOfficialRegistryUrl);
+  }
+
+  bool _isStaleOfficialRegistryUrl(String value) {
+    return value.contains('github.com/ibrar-x/shadcn_flutter_kit/tree/main') ||
+        value.contains(
+            'raw.githubusercontent.com/ibrar-x/shadcn_flutter_kit/main') ||
+        value.contains('cdn.jsdelivr.net/gh/ibrar-x/shadcn_flutter_kit@latest');
   }
 
   Future<RegistryDirectory> _loadDirectory() async {

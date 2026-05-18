@@ -2,6 +2,12 @@
 
 ## Unreleased
 
+## 0.2.6
+
+### Registry Fixes
+- Refreshed directory-managed remote registry URLs from the registry directory so existing projects stop reusing stale official registry `main` URLs after the registry source is updated.
+- Kept explicit local registry paths untouched while refreshing remote registry manifest, index, and theme paths.
+
 ## 0.2.5
 
 ### CLI Performance
