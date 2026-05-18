@@ -355,8 +355,14 @@ extension MultiRegistryInitPart on MultiRegistryManager {
         logger: logger,
         cacheRootPath: cacheRoot,
       );
-      final indexData = await indexLoader.load();
-      final entries = indexLoader.entriesFrom(indexData);
+      final Map<String, dynamic> indexData;
+      final List<ThemeIndexEntry> entries;
+      try {
+        indexData = await indexLoader.load();
+        entries = indexLoader.entriesFrom(indexData);
+      } finally {
+        indexLoader.close();
+      }
       if (entries.isEmpty) {
         logger.info('No theme presets available for @$namespace.');
         return;

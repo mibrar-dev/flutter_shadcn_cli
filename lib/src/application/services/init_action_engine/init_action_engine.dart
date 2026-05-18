@@ -333,6 +333,9 @@ class InitActionEngine {
       baseUrl: baseUrl,
       groupSelector: groupSelector,
     );
+    if (files.isEmpty) {
+      return const <String>[];
+    }
 
     logger?.progress(
       'Copying init files '
@@ -375,9 +378,6 @@ class InitActionEngine {
       final sourceRel = InitPathMapper.mapSourcePath(
         filePath: filePath,
         base: base,
-      );
-      logger?.progress(
-        'Writing init file ${i + 1}/${files.length}: $destinationRel',
       );
       final bytes = await _readRemoteBytes(
         baseUrl: baseUrl,

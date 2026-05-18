@@ -34,6 +34,10 @@ class ThemeIndexLoader {
     SchemaValidator? schemaValidator,
   }) : schemaValidator = schemaValidator ?? SchemaValidator();
 
+  void close() {
+    schemaValidator.close();
+  }
+
   Future<Map<String, dynamic>> load() async {
     final cacheFile = _getCacheFile();
     final localPath = _resolveLocalPath();

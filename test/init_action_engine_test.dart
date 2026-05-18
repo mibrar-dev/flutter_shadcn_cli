@@ -133,7 +133,8 @@ void main() {
       expect(dependencies['fonts'], isNull);
     });
 
-    test('reports inline init progress for copy and pubspec actions', () async {
+    test('reports compact inline init progress for copy and pubspec actions',
+        () async {
       final entry = await _loadFixtureEntry(
         baseUrl: 'http://${server.address.host}:${server.port}/',
       );
@@ -153,12 +154,48 @@ void main() {
           '... Ensuring init directories (2 paths)',
           '... Running init action: copyFiles',
           '... Copying init files (1 file)',
-          '... Writing init file 1/1: lib/ui/shadcn/shared/theme/color_scheme.dart',
           '... Running init action: copyDir',
           '... Copying init files (1 file)',
           '... Running init action: mergePubspec',
           '... Merging init pubspec updates',
         ]),
+      );
+      expect(
+        lines.where((line) => line.contains('Writing init file')),
+        isEmpty,
+      );
+    });
+
+    test('does not report copy progress for skipped optional groups', () async {
+      final engine = InitActionEngine();
+      final lines = <String>[];
+
+      await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        logger: CliLogger(useColor: false, writeLine: lines.add),
+        groupSelector: (_, __) async => const <Map<String, dynamic>>[],
+        actions: [
+          {
+            'type': 'copyFiles',
+            'base': 'registry/shared',
+            'destBase': 'assets',
+            'from': 'fonts',
+            'to': 'fonts',
+            'groups': [
+              {
+                'label': 'Fonts',
+                'files': ['bootstrap.otf'],
+              }
+            ],
+          }
+        ],
+      );
+
+      expect(lines, ['... Running init action: copyFiles']);
+      expect(
+        lines.where((line) => line.contains('Copying init files (0 files)')),
+        isEmpty,
       );
     });
 

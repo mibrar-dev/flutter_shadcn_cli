@@ -119,6 +119,10 @@ void main() {
           '... Updating project state',
         ]),
       );
+      expect(
+        lines.where((line) => line.contains('Installing file ')),
+        isEmpty,
+      );
     });
 
     test('rejects component file destinations outside install scope', () async {

@@ -86,6 +86,10 @@ class ThemePresetLoader {
   })  : schemaValidator = schemaValidator ?? SchemaValidator(),
         processRunner = processRunner ?? const ProcessRunner();
 
+  void close() {
+    schemaValidator.close();
+  }
+
   Future<RegistryThemePresetData> loadPreset(ThemeIndexEntry entry) async {
     final data = await _loadEntryJson(entry);
     await _validatePresetSchema(data);

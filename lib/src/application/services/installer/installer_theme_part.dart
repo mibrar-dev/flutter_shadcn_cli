@@ -226,8 +226,14 @@ extension InstallerThemePart on Installer {
       logger: logger,
       cacheRootPath: _themeCacheRootPath(registryId),
     );
-    final indexData = await indexLoader.load();
-    final entries = indexLoader.entriesFrom(indexData);
+    final Map<String, dynamic> indexData;
+    final List<ThemeIndexEntry> entries;
+    try {
+      indexData = await indexLoader.load();
+      entries = indexLoader.entriesFrom(indexData);
+    } finally {
+      indexLoader.close();
+    }
     return _ResolvedThemeRegistry(
       registryId: registryId,
       registryBaseUrl: registryBaseUrl,
@@ -262,7 +268,12 @@ extension InstallerThemePart on Installer {
       return _parseThemeArtifactManifest(entry.toJson());
     }
     final presetLoader = _buildThemePresetLoader(resolved, refresh: false);
-    final manifestFile = await presetLoader.cachePresetJson(entry);
+    final File manifestFile;
+    try {
+      manifestFile = await presetLoader.cachePresetJson(entry);
+    } finally {
+      presetLoader.close();
+    }
     final content = await manifestFile.readAsString();
     final decoded = jsonDecode(content);
     if (decoded is! Map<String, dynamic>) {
@@ -332,9 +343,7 @@ extension InstallerThemePart on Installer {
       registryId: registryId,
       registryBaseUrl: registryBaseUrl,
     );
-    for (var i = 0; i < prepared.length; i += 1) {
-      final artifact = prepared[i];
-      logger.progress('Writing theme artifact ${i + 1}/${prepared.length}');
+    for (final artifact in prepared) {
       await _atomicWriteBytes(artifact.targetFile, artifact.bytes);
     }
     if (themeId != null && themeId.isNotEmpty) {
@@ -352,7 +361,6 @@ extension InstallerThemePart on Installer {
     final prepared = <_PreparedThemeArtifact>[];
     final seenTargets = <String>{};
     for (final file in manifest.files) {
-      logger.progress('Reading theme artifact: ${file.source}');
       final targetFile = File(_resolveDestinationPath(file.target));
       final normalizedTarget = p.normalize(targetFile.path);
       if (!seenTargets.add(normalizedTarget)) {

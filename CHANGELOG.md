@@ -2,6 +2,15 @@
 
 ## Unreleased
 
+## 0.2.3
+
+### CLI UX
+- Reduced install/init/theme progress output to operation-level loading lines instead of one line per copied file.
+- Closed theme index and preset loader resources after use so init/theme commands exit promptly after finishing.
+
+### Registry Init
+- Updated the official registry init metadata to install the app wrapper and base shadcn localization components by default.
+
 ## 0.2.2
 
 ### Packaging Fixes
