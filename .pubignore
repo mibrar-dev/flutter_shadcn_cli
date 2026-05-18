@@ -11,6 +11,10 @@ doc/api/
 graphify-out/
 qa_reports/
 .codex/
+.DS_Store
+*.code-workspace
+AGENTS.md
+PROJECT_AUDIT_REPORT.md
 registry/skills/
 lib/src/application/services/skills/
 lib/src/infrastructure/skills/

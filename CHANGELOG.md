@@ -2,6 +2,17 @@
 
 ## Unreleased
 
+## 0.2.1
+
+### Release Readiness
+- Bumped the CLI package version for the minimal fixture release.
+- Verified installer and init copy flows expose visible progress/loading feedback through `CliLogger.progress`.
+- Added release QA artifacts for the default app init and registry bootstrap changes.
+
+### Registry Bootstrap
+- Aligned the default interactive init path with the lean app bootstrap policy.
+- Kept scaffold, divider, localization extension helpers, and font/icon assets out of default init unless explicitly selected or installed.
+
 ### Internal Refactors
 - Extracted installer pubspec mutation, dry-run planning, and platform instruction writes into dedicated services.
 - Added direct service tests for pubspec preservation, dry-run dependency projection, and platform marker idempotency.

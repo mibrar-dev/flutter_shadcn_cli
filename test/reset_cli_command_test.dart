@@ -59,7 +59,8 @@ void main() {
             snapshot: _snapshot(),
             deletedDirectoryRoots: const ['.shadcn', 'lib/ui/shadcn'],
           ),
-          undoProject: () async => ProjectResetUndoResult(snapshot: _snapshot()),
+          undoProject: () async =>
+              ProjectResetUndoResult(snapshot: _snapshot()),
           refreshProject: () async => const ProjectRefreshOutput(
             regeneratedFiles: 0,
           ),
@@ -82,10 +83,14 @@ void main() {
             snapshot: _snapshot(),
             deletedDirectoryRoots: const [],
           ),
-          undoProject: () async => ProjectResetUndoResult(snapshot: _snapshot()),
+          undoProject: () async =>
+              ProjectResetUndoResult(snapshot: _snapshot()),
           refreshProject: () async => const ProjectRefreshOutput(
             regeneratedFiles: 2,
-            repairedPaths: ['.shadcn/config.json', 'lib/ui/shadcn/shared/theme.dart'],
+            repairedPaths: [
+              '.shadcn/config.json',
+              'lib/ui/shadcn/shared/theme.dart'
+            ],
           ),
         );
         expect(exitCode, 0);
