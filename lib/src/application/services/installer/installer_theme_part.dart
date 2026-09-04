@@ -466,8 +466,11 @@ extension InstallerThemePart on Installer {
     }
     final client = HttpClient();
     try {
-      final request = await client.getUrl(uri);
-      final response = await request.close();
+      final request = await client
+          .getUrl(uri)
+          .timeout(const Duration(seconds: 20));
+      final response =
+          await request.close().timeout(const Duration(seconds: 20));
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw ThemeInstallException(
           code: 'fetch-failed',

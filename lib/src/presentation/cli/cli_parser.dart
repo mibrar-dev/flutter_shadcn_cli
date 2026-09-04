@@ -9,6 +9,11 @@ ArgParser buildCliParser() {
     )
     ..addFlag('verbose', abbr: 'v', negatable: false)
     ..addFlag('help', abbr: 'h', negatable: false)
+    ..addFlag(
+      'version',
+      negatable: false,
+      help: 'Show the CLI version',
+    )
     ..addFlag('wip', negatable: false, hide: true)
     ..addFlag('experimental', negatable: false, hide: true)
     ..addFlag(

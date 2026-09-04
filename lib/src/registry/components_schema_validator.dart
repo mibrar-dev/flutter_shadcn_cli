@@ -101,9 +101,21 @@ class ComponentsSchemaValidator {
     final relative = _normalizeSchemaPath(trimmed);
     final localV1Schema = _localV1SchemaFallback(relative, registryRoot);
     if (localV1Schema != null) {
+      // Prefer the advertised path; fall back to the v1
+      // `manifests/` layout only when the primary read fails (e.g. real
+      // remote registries that 404 `components.schema.json` at the root).
+      // Trying v1 first would break servers that serve the advertised
+      // path and 404 everything else.
+      final fallbackPath = localV1Schema;
       return SchemaSource(
-        label: registryRoot.describe(localV1Schema),
-        read: () => registryRoot.readString(localV1Schema),
+        label: registryRoot.describe(relative),
+        read: () async {
+          try {
+            return await registryRoot.readString(relative);
+          } catch (_) {
+            return registryRoot.readString(fallbackPath);
+          }
+        },
       );
     }
     return SchemaSource(
@@ -129,10 +141,15 @@ class ComponentsSchemaValidator {
     String relative,
     RegistryLocation registryRoot,
   ) {
-    if (registryRoot.isRemote || relative != 'components.schema.json') {
+    if (relative != 'components.schema.json') {
       return null;
     }
     const v1SchemaPath = 'manifests/components.schema.json';
+    if (registryRoot.isRemote) {
+      // Remote registries may use the v1 `manifests/` layout; the caller
+      // tries the advertised path first and falls back to this.
+      return v1SchemaPath;
+    }
     if (File(p.join(registryRoot.root, relative)).existsSync()) {
       return null;
     }

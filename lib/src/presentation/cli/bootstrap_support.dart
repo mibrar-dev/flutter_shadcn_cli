@@ -98,6 +98,11 @@ Future<RegistryBootstrapSelection?> preloadRegistryIfNeeded({
     'validate',
     'audit',
     'deps',
+    // Best effort only: `info` uses the preloaded registry's component
+    // manifest files list to advertise an import path that is actually
+    // installed. Bootstrap tolerates preload failures for `info` and
+    // falls back to index.json data.
+    'info',
   };
   final shouldLoad = needsRegistry.contains(commandName) &&
       !(commandName == 'init' && routeInitToMultiRegistry) &&

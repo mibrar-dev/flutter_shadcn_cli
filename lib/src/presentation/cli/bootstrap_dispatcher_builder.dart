@@ -213,6 +213,7 @@ CommandDispatcher buildBootstrapCommandDispatcher({
           infoCommand: command,
           multiRegistry: multiRegistry,
           logger: logger,
+          installer: installer,
         ),
     'version': () => runVersionCommand(command: command, logger: logger),
     'upgrade': () => runUpgradeCommand(command: command, logger: logger),

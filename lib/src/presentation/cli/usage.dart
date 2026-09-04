@@ -32,6 +32,7 @@ void printCliUsage({bool advanced = false}) {
         'Show and enable developer and experimental features',
       ),
     const MapEntry('--verbose', 'Verbose logging'),
+    const MapEntry('--version', 'Show the CLI version'),
     const MapEntry('--offline', 'Disable network calls (use cache only)'),
   ]);
 

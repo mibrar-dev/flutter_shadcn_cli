@@ -1,6 +1,18 @@
 # Changelog
 
-## Unreleased
+## 0.2.7
+
+### CLI Reliability
+- `dry-run` now accepts `@namespace/component` refs just like `add` and `info`.
+- `info` with multiple component ids fails loudly (exit 2 + JSON envelope) instead of silently returning only the first.
+- `info --json` `importPath` now includes the `components/` segment and resolves to files that actually exist (e.g. `tab_list` points at its real core impl).
+- Added `--version` flag (the `version` subcommand still works).
+- Schema/index warnings go to stderr so `--json` stdout stays parseable.
+- Unknown-namespace `search`/`info` return a clean `registry_not_found` envelope (exit 10) instead of crashing.
+- `validate --json --offline` emits a proper JSON error envelope.
+- Remote manifest/schema/theme fetches fall back to the v1 `manifests/` + `registry/` layouts with timeouts (fixes `doctor` schema 404s and `init` theme-skip warnings).
+- `validate` uses bounded concurrency, per-file timeouts, and stderr progress instead of hanging on remote registries.
+- `add` no longer removes `flutter_localizations`/`intl` required by installed files.
 
 ## 0.2.6
 

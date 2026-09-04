@@ -628,7 +628,8 @@ class InitActionEngine {
       return file.readAsBytes();
     }
     final uri = ResolverV1.resolveUrl(baseUrl, relativePath);
-    final response = await _client.get(uri);
+    final response =
+        await _client.get(uri).timeout(const Duration(seconds: 20));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw InitActionEngineException(
         'Failed to fetch ${uri.toString()} (${response.statusCode})',

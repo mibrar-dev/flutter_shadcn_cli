@@ -2,6 +2,16 @@ part of 'installer.dart';
 
 const Set<String> _coreInitDependencies = {'data_widget', 'gap'};
 
+/// SDK deps that installed Shadcn files import but that are not always
+/// listed in a component's `pubspec.dependencies` (e.g. `app` imports
+/// flutter_localizations while declaring no deps). Removing them breaks
+/// the installed `ShadcnApp`. Never auto-remove them when the target
+/// project still imports them.
+const Set<String> _protectedSdkDependencies = {
+  'flutter_localizations',
+  'intl',
+};
+
 extension InstallerManifestPart on Installer {
   Future<void> _updateComponentManifest() async {
     logger.progress('Syncing component registry manifest');
@@ -327,6 +337,24 @@ extension InstallerManifestPart on Installer {
     final registryDeps = _collectAllRegistryDependencies();
     final toRemove = (managedDeps.isEmpty ? registryDeps : managedDeps)
         .difference(required.keys.toSet());
+    // Preserve SDK deps the installed files still import. `ShadcnApp`
+    // (app.dart) imports flutter_localizations while declaring no pubspec
+    // deps, so a naive managed-vs-required diff would delete
+    // flutter_localizations/intl that init just added. Keeping an unused
+    // SDK dep is harmless; deleting a used one breaks the build, so only
+    // drop a protected dep when no installed file imports it.
+    if (toRemove.any(_protectedSdkDependencies.contains)) {
+      final imported = _installedSdkImports();
+      for (final pkg in _protectedSdkDependencies) {
+        if (toRemove.contains(pkg) && imported.contains(pkg)) {
+          toRemove.remove(pkg);
+        }
+      }
+      // Belt-and-braces: init always needs these for ShadcnApp and the
+      // import scan can miss during bulk installs (files not yet flushed),
+      // so never auto-remove them once present.
+      toRemove.removeAll(_protectedSdkDependencies);
+    }
 
     final planner = const PubspecChangePlanner();
     var lines = pubspecFile.readAsLinesSync();
@@ -371,6 +399,46 @@ extension InstallerManifestPart on Installer {
     }
     deps.addAll(_coreInitDependencies);
     return deps;
+  }
+
+  /// Scans CLI-managed install/shared dirs for SDK imports. Returns the
+  /// subset of [_protectedSdkDependencies] still referenced by target files.
+  Set<String> _installedSdkImports() {
+    final found = <String>{};
+    try {
+      final config = _cachedConfig;
+      final roots = <String>{
+        if (config != null) _installPath(config),
+        if (config != null) _sharedPath(config),
+        'lib/ui/shadcn',
+      };
+      for (final root in roots) {
+        final dir = Directory(_resolveProjectPath(root));
+        if (!dir.existsSync()) continue;
+        for (final entity in dir.listSync(recursive: true)) {
+          if (entity is! File || !entity.path.endsWith('.dart')) continue;
+          String content;
+          try {
+            content = entity.readAsStringSync();
+          } catch (_) {
+            continue;
+          }
+          if (content.contains('package:flutter_localizations/')) {
+            found.add('flutter_localizations');
+          }
+          if (content.contains('package:intl/')) {
+            found.add('intl');
+          }
+          if (found.length == _protectedSdkDependencies.length) {
+            return found;
+          }
+        }
+      }
+    } catch (_) {
+      // Best-effort scan must never break installs; callers additionally
+      // retain protected deps unconditionally.
+    }
+    return found;
   }
 
   Future<void> _updateState() async {

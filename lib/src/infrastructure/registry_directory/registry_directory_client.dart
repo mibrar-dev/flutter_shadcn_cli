@@ -185,7 +185,7 @@ class RegistryDirectoryClient {
       return response.body;
     } catch (e) {
       if (await bodyCacheFile.exists()) {
-        logger?.warn(
+        logger?.warnToStderr(
           'Using stale cache after fetch failure for ${url.toString()}: $e',
         );
         return bodyCacheFile.readAsString();

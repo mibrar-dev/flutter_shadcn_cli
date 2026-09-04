@@ -31,13 +31,18 @@ void main() {
 
     test('detail is emitted only in verbose mode', () {
       final nonVerbose = <String>[];
-      CliLogger(useColor: false, writeLine: nonVerbose.add).detail('hidden');
+      CliLogger(
+        useColor: false,
+        writeLine: nonVerbose.add,
+        writeStderrLine: nonVerbose.add,
+      ).detail('hidden');
 
       final verbose = <String>[];
       CliLogger(
         verbose: true,
         useColor: false,
-        writeLine: verbose.add,
+        writeLine: (_) {},
+        writeStderrLine: verbose.add,
       ).detail('shown');
 
       expect(nonVerbose, isEmpty);
@@ -63,7 +68,12 @@ void main() {
 
     test('useColor false strips ANSI styling', () {
       final lines = <String>[];
-      final logger = CliLogger(useColor: false, writeLine: lines.add);
+      final errLines = <String>[];
+      final logger = CliLogger(
+        useColor: false,
+        writeLine: lines.add,
+        writeStderrLine: errLines.add,
+      );
 
       logger.header('Header');
       logger.progress('Progress');
@@ -73,6 +83,9 @@ void main() {
       logger.section('Section');
 
       expect(lines.join('\n'), isNot(contains('\u001b[')));
+      expect(errLines.join('\n'), isNot(contains('\u001b[')));
+      // Warnings/errors must go to STDERR so --json STDOUT stays parseable.
+      expect(errLines, ['! Warning', '✗ Error']);
     });
   });
 }

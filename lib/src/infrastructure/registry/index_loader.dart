@@ -132,7 +132,9 @@ class IndexLoader {
       data = jsonDecode(content) as Map<String, dynamic>;
     } else {
       final url = _resolveIndexUrl();
-      final response = await http.get(Uri.parse(url));
+      final response = await http
+          .get(Uri.parse(url))
+          .timeout(const Duration(seconds: 20));
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception(
@@ -218,7 +220,8 @@ class IndexLoader {
       logger: logger,
     );
     if (!result.isValid) {
-      logger?.warn(
+      // Must go to STDERR: STDOUT is reserved for parseable JSON in --json mode.
+      logger?.warnToStderr(
         'index.json schema validation failed (${result.errors.length} issues).',
       );
     }

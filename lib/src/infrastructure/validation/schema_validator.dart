@@ -36,7 +36,8 @@ class SchemaValidator {
       final errors = result.errors.map((e) => e.toString()).toList();
       return SchemaValidationResult(isValid: result.isValid, errors: errors);
     } catch (e) {
-      logger?.warn('Schema validation failed for "$schemaPath": $e');
+      // STDERR only: keep STDOUT parseable for --json runs.
+      logger?.warnToStderr('Schema validation failed for "$schemaPath": $e');
       return SchemaValidationResult(
         isValid: false,
         errors: ['Failed to validate schema: $e'],

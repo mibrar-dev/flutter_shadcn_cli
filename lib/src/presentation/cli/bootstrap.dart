@@ -19,6 +19,8 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/bootstrap_support.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/registry_bootstrap_exception.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/usage.dart';
+import 'package:flutter_shadcn_cli/src/json_output.dart';
+import 'package:flutter_shadcn_cli/src/version_manager.dart';
 import 'package:flutter_shadcn_cli/src/application/services/reset/reset_snapshot_store.dart';
 
 Future<void> runCliBootstrap(List<String> arguments) async {
@@ -46,6 +48,12 @@ Future<void> runCliBootstrap(List<String> arguments) async {
   if (argResults['help'] == true) {
     printCliUsage(advanced: advanced);
     exit(0);
+  }
+  if (argResults['version'] == true) {
+    VersionManager(
+      logger: CliLogger(verbose: argResults['verbose'] == true),
+    ).showVersion();
+    exit(ExitCodes.success);
   }
   if (_isProjectHelpArgs(normalizedArgs)) {
     _printProjectUsage();
@@ -200,13 +208,44 @@ Future<void> runCliBootstrap(List<String> arguments) async {
         preloadedSelection = preloaded.selection;
       }
     } on RegistryBootstrapException catch (e) {
+      final failedCommand = argResults.command?.name;
+      final wantsJson = argResults.command?['json'] == true;
+      if (wantsJson &&
+          (failedCommand == 'validate' ||
+              failedCommand == 'audit' ||
+              failedCommand == 'deps')) {
+        // Mirror doctor --json: proper JSON error envelope on STDOUT,
+        // diagnostics stay parseable instead of stderr-only text.
+        final code = e.exitCode();
+        printJson(jsonEnvelope(
+          command: failedCommand!,
+          data: const {},
+          errors: [
+            jsonError(
+              code: _exitCodeLabelFor(code),
+              message: 'Error loading registry: ${e.message}',
+              details: {'registryRoot': e.registryRoot},
+            ),
+          ],
+          meta: {'exitCode': code},
+        ));
+        exit(code);
+      }
       if (e.exitCode() == ExitCodes.usage) {
         stderr.writeln('Error: ${e.message}');
       } else {
         stderr.writeln('Error loading registry: ${e.message}');
         stderr.writeln('Registry root: ${e.registryRoot}');
       }
-      exit(e.exitCode());
+      if (failedCommand == 'info') {
+        // Best effort only: `info` can still answer from index.json, so
+        // continue without manifest-backed import paths instead of failing.
+        stderr.writeln(
+          'Warning: continuing without registry manifest data.',
+        );
+      } else {
+        exit(e.exitCode());
+      }
     }
 
     final installer = registry == null
@@ -346,4 +385,25 @@ void _printProjectUsage() {
   print(
       '  reset [--undo]     Remove CLI-managed project files or restore them');
   print('  refresh            Regenerate missing CLI scaffolding');
+}
+
+String _exitCodeLabelFor(int code) {
+  switch (code) {
+    case ExitCodes.registryNotFound:
+      return ExitCodeLabels.registryNotFound;
+    case ExitCodes.schemaInvalid:
+      return ExitCodeLabels.schemaInvalid;
+    case ExitCodes.offlineUnavailable:
+      return ExitCodeLabels.offlineUnavailable;
+    case ExitCodes.networkError:
+      return ExitCodeLabels.networkError;
+    case ExitCodes.configInvalid:
+      return ExitCodeLabels.configInvalid;
+    case ExitCodes.validationFailed:
+      return ExitCodeLabels.validationFailed;
+    case ExitCodes.usage:
+      return ExitCodeLabels.usage;
+    default:
+      return ExitCodeLabels.unknown;
+  }
 }
