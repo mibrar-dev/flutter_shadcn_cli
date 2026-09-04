@@ -118,12 +118,12 @@ Most users should run the CLI executables instead of importing the package.
 
 ## Documentation
 
-- [User guide](https://github.com/ibrar-x/flutter_shadcn_cli/tree/main/docs/index.md)
-- [Testing guide](https://github.com/ibrar-x/flutter_shadcn_cli/tree/main/docs/testing-guide.md)
-- [Command reference](https://github.com/ibrar-x/flutter_shadcn_cli/tree/main/docs/reference/commands/index.md)
-- [Exit codes](https://github.com/ibrar-x/flutter_shadcn_cli/tree/main/docs/reference/exit-codes.md)
-- [Registry directory reference](https://github.com/ibrar-x/flutter_shadcn_cli/tree/main/docs/reference/registries-json.md)
-- [Inline init actions](https://github.com/ibrar-x/flutter_shadcn_cli/tree/main/docs/reference/inline-init-actions.md)
+- [User guide](https://github.com/mibrar-dev/flutter_shadcn_cli/tree/main/docs/index.md)
+- [Testing guide](https://github.com/mibrar-dev/flutter_shadcn_cli/tree/main/docs/testing-guide.md)
+- [Command reference](https://github.com/mibrar-dev/flutter_shadcn_cli/tree/main/docs/reference/commands/index.md)
+- [Exit codes](https://github.com/mibrar-dev/flutter_shadcn_cli/tree/main/docs/reference/exit-codes.md)
+- [Registry directory reference](https://github.com/mibrar-dev/flutter_shadcn_cli/tree/main/docs/reference/registries-json.md)
+- [Inline init actions](https://github.com/mibrar-dev/flutter_shadcn_cli/tree/main/docs/reference/inline-init-actions.md)
 
 ## Publishing Checks
 

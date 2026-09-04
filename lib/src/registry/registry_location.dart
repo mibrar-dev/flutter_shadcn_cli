@@ -36,9 +36,8 @@ class RegistryLocation {
       for (final candidate in _remotePathCandidates(relativePath)) {
         final uri = _resolveRemote(candidate);
         try {
-          final response = await _client
-              .get(uri)
-              .timeout(const Duration(seconds: 15));
+          final response =
+              await _client.get(uri).timeout(const Duration(seconds: 15));
           if (response.statusCode >= 200 && response.statusCode < 300) {
             return response.bodyBytes;
           }
@@ -63,7 +62,7 @@ class RegistryLocation {
     for (final path in candidates) {
       final file = File(p.join(root, path));
       if (await file.exists()) {
-        return file.readAsBytes();
+        return await file.readAsBytes();
       }
     }
 

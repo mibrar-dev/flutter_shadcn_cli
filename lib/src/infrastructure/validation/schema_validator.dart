@@ -119,7 +119,7 @@ class SchemaValidator {
       if (!file.existsSync()) {
         throw Exception('Schema file not found: $localPath');
       }
-      return file.readAsString();
+      return await file.readAsString();
     }
 
     final schemaUri = ResolverV1.resolveUrl(

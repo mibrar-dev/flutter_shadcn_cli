@@ -132,9 +132,8 @@ class IndexLoader {
       data = jsonDecode(content) as Map<String, dynamic>;
     } else {
       final url = _resolveIndexUrl();
-      final response = await http
-          .get(Uri.parse(url))
-          .timeout(const Duration(seconds: 20));
+      final response =
+          await http.get(Uri.parse(url)).timeout(const Duration(seconds: 20));
 
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception(

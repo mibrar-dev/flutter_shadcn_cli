@@ -36,8 +36,7 @@ class IndexComponent {
       tags: List<String>.from(json['tags'] as List? ?? []),
       install: json['install'] as String? ?? '',
       import_: normalizeImportStatement(json['import'] as String? ?? ''),
-      importPath:
-          normalizeImportPath(json['importPath'] as String? ?? ''),
+      importPath: normalizeImportPath(json['importPath'] as String? ?? ''),
       api: json['api'] as Map<String, dynamic>? ?? {},
       examples: json['examples'] as Map<String, dynamic>? ?? {},
       dependencies: json['dependencies'] as Map<String, dynamic>? ?? {},

@@ -248,7 +248,7 @@ Future<String> readComponentsJson(
     if (!await cacheFile.exists()) {
       throw Exception('Offline mode: cached components.json not found.');
     }
-    return cacheFile.readAsString();
+    return await cacheFile.readAsString();
   }
   return selection.registryRoot.readString(selection.componentsPath);
 }
@@ -262,4 +262,4 @@ String sanitizeCacheKey(String value) {
 }
 
 const String defaultRemoteRegistryBase =
-    'https://cdn.jsdelivr.net/gh/ibrar-x/shadcn_flutter_kit@latest/flutter_shadcn_kit/lib';
+    'https://cdn.jsdelivr.net/gh/mibrar-dev/shadcn_flutter_kit@latest/flutter_shadcn_kit/lib';

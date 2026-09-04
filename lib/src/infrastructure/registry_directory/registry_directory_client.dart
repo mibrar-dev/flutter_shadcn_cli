@@ -97,7 +97,7 @@ class RegistryDirectoryClient {
         'Local registries.json not found: ${candidate.path}',
       );
     }
-    return candidate.readAsString();
+    return await candidate.readAsString();
   }
 
   String _resolveDirectoryPath(String projectRoot, String input) {
@@ -152,7 +152,7 @@ class RegistryDirectoryClient {
           'Offline mode: cache not found for ${url.toString()}',
         );
       }
-      return bodyCacheFile.readAsString();
+      return await bodyCacheFile.readAsString();
     }
 
     final etag = await _readEtag(metaCacheFile);
@@ -169,7 +169,7 @@ class RegistryDirectoryClient {
             'Received 304 but cache body missing for ${url.toString()}',
           );
         }
-        return bodyCacheFile.readAsString();
+        return await bodyCacheFile.readAsString();
       }
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw RegistryDirectoryException(
@@ -188,7 +188,7 @@ class RegistryDirectoryClient {
         logger?.warnToStderr(
           'Using stale cache after fetch failure for ${url.toString()}: $e',
         );
-        return bodyCacheFile.readAsString();
+        return await bodyCacheFile.readAsString();
       }
       rethrow;
     }

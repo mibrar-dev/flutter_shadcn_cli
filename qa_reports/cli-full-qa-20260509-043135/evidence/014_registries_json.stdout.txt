@@ -11,7 +11,7 @@
         "enabled": true,
         "source": "config+directory",
         "mode": "remote",
-        "baseUrl": "https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry",
+        "baseUrl": "https://github.com/mibrar-dev/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry",
         "registryPath": null,
         "installRoot": "lib/ui/shadcn",
         "capabilitySharedGroups": true,

@@ -853,10 +853,12 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
   }
 
   bool _isStaleOfficialRegistryUrl(String value) {
-    return value.contains('github.com/ibrar-x/shadcn_flutter_kit/tree/main') ||
+    return value
+            .contains('github.com/mibrar-dev/shadcn_flutter_kit/tree/main') ||
         value.contains(
-            'raw.githubusercontent.com/ibrar-x/shadcn_flutter_kit/main') ||
-        value.contains('cdn.jsdelivr.net/gh/ibrar-x/shadcn_flutter_kit@latest');
+            'raw.githubusercontent.com/mibrar-dev/shadcn_flutter_kit/main') ||
+        value.contains(
+            'cdn.jsdelivr.net/gh/mibrar-dev/shadcn_flutter_kit@latest');
   }
 
   Future<RegistryDirectory> _loadDirectory() async {

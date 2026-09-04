@@ -415,7 +415,7 @@ extension InstallerThemePart on Installer {
           message: 'Theme artifact source not found: $trimmed',
         );
       }
-      return file.readAsBytes();
+      return await file.readAsBytes();
     }
 
     final uri = Uri.tryParse(trimmed);
@@ -428,7 +428,7 @@ extension InstallerThemePart on Installer {
             message: 'Theme artifact source not found: $trimmed',
           );
         }
-        return file.readAsBytes();
+        return await file.readAsBytes();
       }
       if (uri.scheme == 'http' || uri.scheme == 'https') {
         return _fetchThemeArtifactFromUri(uri);
@@ -466,9 +466,8 @@ extension InstallerThemePart on Installer {
     }
     final client = HttpClient();
     try {
-      final request = await client
-          .getUrl(uri)
-          .timeout(const Duration(seconds: 20));
+      final request =
+          await client.getUrl(uri).timeout(const Duration(seconds: 20));
       final response =
           await request.close().timeout(const Duration(seconds: 20));
       if (response.statusCode < 200 || response.statusCode >= 300) {

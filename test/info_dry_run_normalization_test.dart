@@ -135,8 +135,7 @@ void main() {
       expect(payload['meta']['exitCode'], ExitCodes.usage);
     });
 
-    test('info A B (text) exits usage without answering the first',
-        () async {
+    test('info A B (text) exits usage without answering the first', () async {
       final rootArgs = buildCliParser().parse(['info', 'a', 'b']);
       final code = await runInfoCommand(
         infoCommand: rootArgs.command!,

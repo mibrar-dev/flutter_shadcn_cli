@@ -625,7 +625,7 @@ class InitActionEngine {
       if (!await file.exists()) {
         throw InitActionEngineException('File not found: ${file.path}');
       }
-      return file.readAsBytes();
+      return await file.readAsBytes();
     }
     final uri = ResolverV1.resolveUrl(baseUrl, relativePath);
     final response =

@@ -159,8 +159,7 @@ class ThemeIndexLoader {
         registryBaseUrl,
         ResolverV1.normalizeRelativePath(themesPath),
       );
-      final response =
-          await http.get(uri).timeout(const Duration(seconds: 20));
+      final response = await http.get(uri).timeout(const Duration(seconds: 20));
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception(
           'Failed to fetch theme index ${uri.toString()} (${response.statusCode})',

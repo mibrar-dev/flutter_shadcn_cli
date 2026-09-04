@@ -570,9 +570,8 @@ String? _selectManifestImportRelativePath({
   if (sameName.isNotEmpty) {
     return sameName.first;
   }
-  final candidates = relatives
-      .where((path) => !path.endsWith('preview.dart'))
-      .toList();
+  final candidates =
+      relatives.where((path) => !path.endsWith('preview.dart')).toList();
   if (candidates.isEmpty) {
     return null;
   }
@@ -628,7 +627,8 @@ String _replaceImportStatementPath(String statement, String importPath) {
 }
 
 /// Returns an emoji for each category
-String _getCategoryEmoji(String category) {  switch (category.toLowerCase()) {
+String _getCategoryEmoji(String category) {
+  switch (category.toLowerCase()) {
     case 'layout':
       return '📐';
     case 'overlay':

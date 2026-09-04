@@ -122,9 +122,7 @@ Future<int> runValidateCommand({
       for (var i = 0; i < ordered.length; i += concurrency) {
         final chunk = ordered.sublist(
           i,
-          (i + concurrency > ordered.length)
-              ? ordered.length
-              : i + concurrency,
+          (i + concurrency > ordered.length) ? ordered.length : i + concurrency,
         );
         final results = await Future.wait(
           chunk.map((source) => _sourceExists(sourceRoot, source)),

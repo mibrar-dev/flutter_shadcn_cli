@@ -21,7 +21,7 @@
       "localRegistryRoot": null,
       "config.registryMode": "remote",
       "config.registryPath": null,
-      "config.registryUrl": "https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry"
+      "config.registryUrl": "https://github.com/mibrar-dev/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry"
     },
     "paths": {
       "installPath": "lib/ui/shadcn",

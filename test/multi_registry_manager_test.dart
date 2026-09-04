@@ -889,9 +889,9 @@ void main() {
             'shadcn': const RegistryConfigEntry(
               registryMode: 'remote',
               registryUrl:
-                  'https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib',
+                  'https://github.com/mibrar-dev/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib',
               baseUrl:
-                  'https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib',
+                  'https://github.com/mibrar-dev/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib',
               componentsPath: 'old/components.json',
               indexPath: 'old/index.json',
               installPath: 'lib/ui/shadcn',
@@ -904,7 +904,7 @@ void main() {
       final registriesPath = _writeRegistriesFile(tempRoot, [
         _inlineRegistryEntry(
           baseUrl:
-              'https://github.com/ibrar-x/shadcn_flutter_kit/tree/a886eb1a280ae3108bc4fbdd3ce4c842b32b786e/flutter_shadcn_kit/lib',
+              'https://github.com/mibrar-dev/shadcn_flutter_kit/tree/a886eb1a280ae3108bc4fbdd3ce4c842b32b786e/flutter_shadcn_kit/lib',
           paths: const {
             'componentsJson': 'registry/manifests/components.json',
             'indexJson': 'registry/manifests/index.json',
@@ -930,11 +930,11 @@ void main() {
 
       expect(
         entry?.registryUrl,
-        'https://github.com/ibrar-x/shadcn_flutter_kit/tree/a886eb1a280ae3108bc4fbdd3ce4c842b32b786e/flutter_shadcn_kit/lib',
+        'https://github.com/mibrar-dev/shadcn_flutter_kit/tree/a886eb1a280ae3108bc4fbdd3ce4c842b32b786e/flutter_shadcn_kit/lib',
       );
       expect(
         entry?.baseUrl,
-        'https://github.com/ibrar-x/shadcn_flutter_kit/tree/a886eb1a280ae3108bc4fbdd3ce4c842b32b786e/flutter_shadcn_kit/lib',
+        'https://github.com/mibrar-dev/shadcn_flutter_kit/tree/a886eb1a280ae3108bc4fbdd3ce4c842b32b786e/flutter_shadcn_kit/lib',
       );
       expect(entry?.componentsPath, 'registry/manifests/components.json');
       expect(entry?.indexPath, 'registry/manifests/index.json');

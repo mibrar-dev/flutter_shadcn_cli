@@ -32,11 +32,9 @@ class CliLogger {
 
   void success(String message) => _write(_style('✓ $message', _green));
 
-  void warn(String message) =>
-      _writeStderr(_style('! $message', _yellow));
+  void warn(String message) => _writeStderr(_style('! $message', _yellow));
 
-  void error(String message) =>
-      _writeStderr(_style('✗ $message', _red));
+  void error(String message) => _writeStderr(_style('✗ $message', _red));
 
   void info(String message) => _write(message);
 

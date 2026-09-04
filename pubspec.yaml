@@ -3,8 +3,8 @@ description: >-
   CLI to install, sync, and update shadcn/ui components in Flutter apps.
   Supports local and remote registries with dependency-aware installs.
 version: 0.2.7
-repository: https://github.com/ibrar-x/flutter_shadcn_cli
-homepage: https://ibrar-x.github.io/shadcn_flutter_kit/
+repository: https://github.com/mibrar-dev/flutter_shadcn_cli
+homepage: https://github.com/mibrar-dev/flutter_shadcn_cli
 
 environment:
   sdk: '>=3.3.0 <4.0.0'
