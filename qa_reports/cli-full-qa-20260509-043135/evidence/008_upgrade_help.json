@@ -1,0 +1,23 @@
+{
+  "id": "008_upgrade_help",
+  "name": "upgrade help",
+  "category": "help",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "upgrade",
+    "--help"
+  ],
+  "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.2,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Usage: flutter_shadcn upgrade [--force]\n\nUpgrades flutter_shadcn_cli to the latest version from pub.dev.\n\nOptions:\n  --force, -f        Force upgrade even if already on latest version\n  --help, -h         Show this message\n",
+  "stderrExcerpt": ""
+}

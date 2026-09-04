@@ -1,0 +1,27 @@
+{
+  "id": "042_audit_json_full_install",
+  "name": "audit json full install",
+  "category": "health",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "audit",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 50,
+  "timedOut": false,
+  "durationSeconds": 1.286,
+  "status": "FAIL",
+  "notes": "",
+  "stdoutExcerpt": "{\n  \"status\": \"error\",\n  \"command\": \"audit\",\n  \"data\": {\n    \"installed\": [\n      \"accordion\",\n      \"alert\",\n      \"alert_dialog\",\n      \"alpha\",\n      \"app\",\n      \"async\",\n      \"autocomplete\",\n      \"avatar\",\n      \"badge\",\n      \"basic\",\n      \"border_loading\",\n      \"breadcrumb\",\n      \"button\",\n      \"calendar\",\n      \"card\",\n      \"card_image\",\n      \"carousel\",\n      \"chat\",\n      \"checkbox\",\n      \"chip\",\n      \"chip_input\",\n      \"circular_progress_indicator\",\n      \"clickable\",\n      \"code_snippet\",\n      \"collapsible\",\n      \"color\",\n      \"color_input\",\n      \"color_picker\",\n    \n...<truncated>...\nnts/display/text_animate/_impl/state/_text_animate_preview_state.dart\",\n          \"time_picker -> /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/form/time_picker/_impl/state/_time_picker_preview_state.dart\",\n          \"toast -> /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/overlay/toast/_impl/state/_toast_preview_state.dart\"\n        ]\n      }\n    }\n  ],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:30.307221Z\",\n    \"exitCode\": 50\n  }\n}\n",
+  "stderrExcerpt": ""
+}

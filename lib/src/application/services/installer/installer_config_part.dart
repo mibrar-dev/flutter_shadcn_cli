@@ -105,12 +105,116 @@ extension InstallerConfigPart on Installer {
     _cachedConfig = await ShadcnConfig.load(targetDir);
   }
 
+  Future<void> _ensureAnalysisOptionsExclude(ShadcnConfig config) async {
+    final installPath = config.installPath ?? _defaultInstallPath;
+    final normalizedInstallPath = installPath.replaceAll('\\', '/');
+    final excludedPath = normalizedInstallPath.endsWith('/**')
+        ? normalizedInstallPath
+        : '$normalizedInstallPath/**';
+    final file = File(p.join(targetDir, 'analysis_options.yaml'));
+    if (!await file.exists()) {
+      await file.writeAsString(
+        [
+          'include: package:flutter_lints/flutter.yaml',
+          '',
+          'analyzer:',
+          '  exclude:',
+          '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+          '    - $excludedPath',
+          '',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    final content = await file.readAsString();
+    if (content.contains(excludedPath)) {
+      return;
+    }
+
+    final lines = content.split('\n');
+    final analyzerIndex = lines.indexWhere(
+      (line) => RegExp(r'^analyzer:\s*$').hasMatch(line),
+    );
+    if (analyzerIndex == -1) {
+      final prefix = content.endsWith('\n') ? content : '$content\n';
+      await file.writeAsString(
+        [
+          prefix,
+          'analyzer:',
+          '  exclude:',
+          '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+          '    - $excludedPath',
+          '',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    var analyzerEnd = lines.length;
+    for (var i = analyzerIndex + 1; i < lines.length; i++) {
+      final line = lines[i];
+      if (line.trim().isEmpty || line.startsWith(' ') || line.startsWith('#')) {
+        continue;
+      }
+      analyzerEnd = i;
+      break;
+    }
+
+    final excludeIndex = () {
+      for (var i = analyzerIndex + 1; i < analyzerEnd; i++) {
+        if (RegExp(r'^\s{2}exclude:\s*$').hasMatch(lines[i])) {
+          return i;
+        }
+      }
+      return -1;
+    }();
+
+    if (excludeIndex == -1) {
+      lines.insertAll(analyzerEnd, [
+        '  exclude:',
+        '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+        '    - $excludedPath',
+      ]);
+    } else {
+      var insertIndex = excludeIndex + 1;
+      while (insertIndex < analyzerEnd &&
+          (RegExp(r'^\s{4}-\s+').hasMatch(lines[insertIndex]) ||
+              lines[insertIndex].trim().isEmpty ||
+              RegExp(r'^\s{4}#').hasMatch(lines[insertIndex]))) {
+        insertIndex++;
+      }
+      lines.insertAll(insertIndex, [
+        '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+        '    - $excludedPath',
+      ]);
+    }
+
+    await file.writeAsString(lines.join('\n'));
+  }
+
+  String _normalizeLibPathInput(
+    String value, {
+    required String fallback,
+    Map<String, String>? aliases,
+  }) {
+    final trimmed = value.trim();
+    if (trimmed.isEmpty) {
+      return fallback;
+    }
+    final expanded = _expandAliases(trimmed, aliases);
+    final normalized = p.posix.normalize(expanded.replaceAll('\\', '/'));
+    if (normalized == 'lib' || normalized.startsWith('lib/')) {
+      return normalized;
+    }
+    throw ResolverV1Exception('Path must start with lib/: $value');
+  }
+
   String _normalizePathOverride(String? value, String fallback) {
     if (value == null || value.trim().isEmpty) {
       return fallback;
     }
-    final trimmed = _stripLibPrefix(value.trim());
-    return p.join('lib', trimmed);
+    return _normalizeLibPathInput(value, fallback: fallback);
   }
 
   String _stripLibPrefix(String value) {
@@ -172,15 +276,15 @@ extension InstallerConfigPart on Installer {
       if (input == null || input.isEmpty) {
         return current;
       }
-      final resolved = _expandAliases(input, aliases);
       if (!requireLib) {
         return input;
       }
-      final normalized = p.normalize(resolved);
-      if (normalized == 'lib' || normalized.startsWith('lib${p.separator}')) {
-        return input;
+      try {
+        return _normalizeLibPathInput(input,
+            fallback: current, aliases: aliases);
+      } on ResolverV1Exception catch (e) {
+        logger.warn(e.message);
       }
-      logger.warn('Path must start with lib/. Try again.');
     }
   }
 
@@ -236,19 +340,7 @@ extension InstallerConfigPart on Installer {
   }
 
   String _expandAliases(String path, Map<String, String>? aliases) {
-    if (aliases == null || aliases.isEmpty) {
-      return path;
-    }
-    if (path.startsWith('@')) {
-      final index = path.indexOf('/');
-      final name = index == -1 ? path.substring(1) : path.substring(1, index);
-      final aliasPath = aliases[name];
-      if (aliasPath != null) {
-        final suffix = index == -1 ? '' : path.substring(index + 1);
-        return suffix.isEmpty ? aliasPath : p.join(aliasPath, suffix);
-      }
-    }
-    return path;
+    return _configResolver.expandAliases(path, aliases);
   }
 
   bool _promptYesNo(String label, {required bool defaultValue}) {
@@ -280,7 +372,7 @@ extension InstallerConfigPart on Installer {
       logger.info('  themePreset: $themePreset');
     }
     logger.info(
-        '  shared core: theme, util, color_extensions, form_control, form_value_supplier');
+        '  shared core: theme, app_theme, util, color_extensions, form_control, form_value_supplier, localizations, localizations_extensions');
     logger.info('  dependencies: data_widget, gap');
   }
 

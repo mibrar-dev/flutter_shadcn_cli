@@ -1,0 +1,7 @@
+Usage: flutter_shadcn default [namespace] [--local | --remote]
+
+Sets the default registry namespace and active source mode.
+
+Options:
+  --local            Persist local registry development paths
+  --remote           Switch back to the published remote registry

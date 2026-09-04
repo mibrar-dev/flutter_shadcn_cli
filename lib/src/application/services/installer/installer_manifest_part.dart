@@ -2,125 +2,288 @@ part of 'installer.dart';
 
 const Set<String> _coreInitDependencies = {'data_widget', 'gap'};
 
+/// SDK deps that installed Shadcn files import but that are not always
+/// listed in a component's `pubspec.dependencies` (e.g. `app` imports
+/// flutter_localizations while declaring no deps). Removing them breaks
+/// the installed `ShadcnApp`. Never auto-remove them when the target
+/// project still imports them.
+const Set<String> _protectedSdkDependencies = {
+  'flutter_localizations',
+  'intl',
+};
+
 extension InstallerManifestPart on Installer {
   Future<void> _updateComponentManifest() async {
+    logger.progress('Syncing component registry manifest');
     await _ensureConfigLoaded();
     final installPath = _installPath(_cachedConfig);
-    final manifestFile = File(
-      _resolveProjectPath(p.join(installPath, 'components.json')),
-    );
     final installed = await _installedComponentIds();
-    if (installed.isEmpty) {
-      if (await manifestFile.exists()) {
-        await manifestFile.delete();
-      }
-      await _clearComponentManifests();
-      return;
-    }
-    final requiredDeps = _collectRequiredDependencies(installed);
-    final installedList = installed.toList()..sort();
-    final componentMeta = <String, dynamic>{};
-    for (final id in installedList) {
-      final component = registry.getComponent(id);
-      if (component == null) {
-        continue;
-      }
-      componentMeta[id] = {
-        'version': component.version,
-        'tags': component.tags
-      };
-    }
-    final payload = {
-      'schemaVersion': 1,
-      'installPath': installPath,
-      'sharedPath': _sharedPath(_cachedConfig),
-      'installed': installedList,
-      'managedDependencies': requiredDeps.keys.toList()..sort(),
-      'componentMeta': componentMeta,
-      'updatedAt': DateTime.now().toUtc().toIso8601String(),
-    };
-    if (!await manifestFile.parent.exists()) {
-      await manifestFile.parent.create(recursive: true);
-    }
-    await manifestFile
-        .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
+    final requiredDeps = await _collectRequiredDependencies(installed);
+    final componentMeta = await _collectComponentMeta(installed);
+    await _manifestService.updateAggregateManifest(
+      installPath: installPath,
+      sharedPath: _sharedPath(_cachedConfig),
+      installedComponentIds: installed,
+      managedDependencies: requiredDeps,
+      componentMeta: componentMeta,
+    );
   }
 
   Directory _componentManifestDirectory() {
-    return Directory(_resolveProjectPath(p.join('.shadcn', 'components')));
+    return _manifestService.componentManifestDirectory();
   }
 
   File _componentManifestFile(String componentId) {
-    return File(
-      _resolveProjectPath(p.join('.shadcn', 'components', '$componentId.json')),
+    return _manifestService.componentManifestFile(componentId);
+  }
+
+  Future<void> _writeComponentManifest(
+    Component component, {
+    List<Map<String, dynamic>> localeResourcesInstalled = const [],
+  }) async {
+    await _manifestService.writeComponentManifest(
+      component,
+      localeResourcesInstalled: localeResourcesInstalled,
     );
   }
 
-  Future<void> _writeComponentManifest(Component component) async {
-    final dir = _componentManifestDirectory();
-    if (!await dir.exists()) {
-      await dir.create(recursive: true);
-    }
-    final file = _componentManifestFile(component.id);
-    String? installedAt;
-    if (await file.exists()) {
-      try {
-        final content = await file.readAsString();
-        final data = jsonDecode(content);
-        if (data is Map<String, dynamic>) {
-          final value = data['installedAt']?.toString();
-          if (value != null && value.isNotEmpty) {
-            installedAt = value;
-          }
-        }
-      } catch (_) {
-        installedAt = null;
+  Future<void> _writeLockfileRecord(
+    Component component, {
+    List<Map<String, dynamic>> localeResourcesInstalled = const [],
+  }) async {
+    await _withLockfileWriteLock(() async {
+      await _ensureConfigLoaded();
+      final namespace = _effectiveNamespace();
+      final manifestHash = _registryManifestHash();
+      final localeKeys = localeResourcesInstalled.isNotEmpty
+          ? _localeLockKeys(localeResourcesInstalled)
+          : _existingLocaleLockKeys(component.id);
+      final repository = ShadcnLockRepository(targetDir);
+      final existing = await repository.loadOrSynthesize();
+      final lock = existing
+          .upsertRegistry(
+            ShadcnLockRegistry(
+              namespace: namespace,
+              registryRoot: registry.registryRoot.root,
+              sourceRoot: registry.sourceRoot.root,
+              sourceManifestHash: manifestHash,
+            ),
+          )
+          .upsertComponent(
+            _pendingLockfileRecord(
+              component,
+              namespace,
+              manifestHash,
+              localeKeys: localeKeys,
+            ),
+          );
+      await repository.save(lock);
+    });
+  }
+
+  Future<void> _preflightNamespaceCollisions(Component component) async {
+    await _ensureConfigLoaded();
+    final namespace = _effectiveNamespace();
+    final repository = ShadcnLockRepository(targetDir);
+    final lock = await repository.loadOrSynthesize();
+    const NamespaceCollisionPolicy().checkPendingInstall(
+      lock: lock,
+      pending: _pendingLockfileRecord(
+        component,
+        namespace,
+        _registryManifestHash(),
+      ),
+      defaultNamespace: namespace,
+    );
+  }
+
+  Future<void> _removeLockfileRecord(String componentId) async {
+    await _withLockfileWriteLock(() async {
+      await _ensureConfigLoaded();
+      final repository = ShadcnLockRepository(targetDir);
+      final existing = await repository.loadOrSynthesize();
+      await repository.save(
+        existing.removeComponent(
+          namespace: _effectiveNamespace(),
+          componentId: componentId,
+        ),
+      );
+    });
+  }
+
+  Future<void> _withLockfileWriteLock(Future<void> Function() action) {
+    final next = _lockfileWriteQueue.then((_) => action());
+    _lockfileWriteQueue = next.catchError((_) {});
+    return next;
+  }
+
+  Future<ShadcnLockComponent?> _lockfileComponentRecord(
+    String componentId,
+  ) async {
+    await _ensureConfigLoaded();
+    final repository = ShadcnLockRepository(targetDir);
+    final lock = await repository.loadOrSynthesize();
+    return lock.componentFor(
+      namespace: _effectiveNamespace(),
+      componentId: componentId,
+    );
+  }
+
+  Future<bool> _lockfilePathOwnedByOther({
+    required String relativePath,
+    required String componentId,
+  }) async {
+    final repository = ShadcnLockRepository(targetDir);
+    final lock = await repository.loadOrSynthesize();
+    for (final component in lock.components) {
+      if (component.namespace == _effectiveNamespace() &&
+          component.componentId == componentId) {
+        continue;
+      }
+      if (component.installedFiles.contains(relativePath)) {
+        return true;
       }
     }
-    final payload = {
-      'schemaVersion': 1,
-      'id': component.id,
-      'name': component.name,
-      'version': component.version,
-      'tags': component.tags,
-      'installedAt': installedAt ?? DateTime.now().toUtc().toIso8601String(),
-      'shared': component.shared.toList()..sort(),
-      'dependsOn': component.dependsOn.toList()..sort(),
-      'files': component.files.map((f) => f.source).toList()..sort(),
-      'registryRoot': registry.registryRoot.root,
-    };
-    await file
-        .writeAsString(const JsonEncoder.withIndent('  ').convert(payload));
+    return false;
+  }
+
+  String _effectiveNamespace() {
+    final config = _cachedConfig ?? const ShadcnConfig();
+    return stateNamespace ??
+        registryNamespace ??
+        config.effectiveDefaultNamespace;
+  }
+
+  String _registryManifestHash() {
+    return sha256.convert(utf8.encode(jsonEncode(registry.data))).toString();
+  }
+
+  ShadcnLockComponent _pendingLockfileRecord(
+    Component component,
+    String namespace,
+    String manifestHash, {
+    List<String> localeKeys = const [],
+  }) {
+    return ShadcnLockComponent(
+      namespace: namespace,
+      componentId: component.id,
+      qualifiedId: '@$namespace/${component.id}',
+      version: component.version,
+      registryRoot: registry.registryRoot.root,
+      sourceManifestHash: manifestHash,
+      installedFiles: _installedLockFiles(component),
+      dependencies: _componentDependencies(component),
+      postInstall: component.postInstall,
+      localeKeys: localeKeys,
+      assetPaths: component.assets,
+      manifestKeys: component.manifestKeys,
+      postInstallNamespaces: component.postInstallNamespaces,
+      localeNamespaces: component.localeNamespaces,
+      sharedFiles: const [],
+    );
+  }
+
+  List<String> _installedLockFiles(Component component) {
+    final root = p.normalize(p.absolute(targetDir));
+    final files = <String>[];
+    for (final file in component.files) {
+      if (!_shouldInstallFile(file.destination)) {
+        continue;
+      }
+      final destination = p.normalize(
+        _resolveComponentDestination(component, file),
+      );
+      if (destination != root && !p.isWithin(root, destination)) {
+        continue;
+      }
+      files.add(p.relative(destination, from: root));
+    }
+    files.sort();
+    return files;
+  }
+
+  Map<String, dynamic> _componentDependencies(Component component) {
+    final raw = component.pubspec['dependencies'];
+    if (raw is! Map) {
+      return const {};
+    }
+    return Map<String, dynamic>.from(raw);
+  }
+
+  List<String> _localeLockKeys(List<Map<String, dynamic>> resources) {
+    final keys = <String>{};
+    for (final resource in resources) {
+      final destination = resource['destination']?.toString();
+      final addedKeys = resource['addedKeys'];
+      if (destination == null || destination.isEmpty || addedKeys is! List) {
+        continue;
+      }
+      for (final key in addedKeys) {
+        keys.add('$destination:${key.toString()}');
+      }
+    }
+    return keys.toList()..sort();
+  }
+
+  List<String> _existingLocaleLockKeys(String componentId) {
+    final manifestFile = _componentManifestFile(componentId);
+    if (!manifestFile.existsSync()) {
+      return const [];
+    }
+    try {
+      final decoded = jsonDecode(manifestFile.readAsStringSync());
+      if (decoded is! Map) {
+        return const [];
+      }
+      final locale = decoded['locale'];
+      final resources = locale is Map ? locale['resourcesInstalled'] : null;
+      if (resources is! List) {
+        return const [];
+      }
+      return _localeLockKeys(
+        resources
+            .whereType<Map>()
+            .map(
+              (entry) => entry.map(
+                (key, value) => MapEntry(key.toString(), value),
+              ),
+            )
+            .toList(),
+      );
+    } catch (_) {
+      return const [];
+    }
   }
 
   Future<void> _removeComponentManifest(String componentId) async {
-    final file = _componentManifestFile(componentId);
-    if (await file.exists()) {
-      await file.delete();
-    }
-  }
-
-  Future<void> _clearComponentManifests() async {
-    final dir = _componentManifestDirectory();
-    if (await dir.exists()) {
-      await dir.delete(recursive: true);
-    }
+    await _manifestService.removeComponentManifest(componentId);
   }
 
   Future<void> _refreshComponentManifests() async {
     final installed = await _installedComponentIds();
     for (final id in installed) {
-      final component = registry.getComponent(id);
+      final component = await _manifestResolver.resolve(id);
       if (component != null) {
         await _writeComponentManifest(component);
       }
     }
   }
 
-  Map<String, dynamic> _collectRequiredDependencies(Set<String> installed) {
+  Future<void> _refreshLockfileRecords() async {
+    final installed = await _installedComponentIds();
+    for (final id in installed) {
+      final component = await _manifestResolver.resolve(id);
+      if (component != null) {
+        await _writeLockfileRecord(component);
+      }
+    }
+  }
+
+  Future<Map<String, dynamic>> _collectRequiredDependencies(
+      Set<String> installed) async {
     final required = <String, dynamic>{};
     for (final id in installed) {
-      final component = registry.getComponent(id);
+      final component = await _manifestResolver.resolve(id);
       if (component == null || component.pubspec.isEmpty) {
         continue;
       }
@@ -135,6 +298,24 @@ extension InstallerManifestPart on Installer {
     return required;
   }
 
+  Future<Map<String, dynamic>> _collectComponentMeta(
+    Set<String> installed,
+  ) async {
+    final meta = <String, dynamic>{};
+    final installedList = installed.toList()..sort();
+    for (final id in installedList) {
+      final component = await _manifestResolver.resolve(id);
+      if (component == null) {
+        continue;
+      }
+      meta[id] = {
+        'version': component.version,
+        'tags': component.tags,
+      };
+    }
+    return meta;
+  }
+
   Future<void> _syncDependenciesWithInstalled({
     Set<String>? installedOverride,
     Set<String>? managedOverride,
@@ -144,53 +325,58 @@ extension InstallerManifestPart on Installer {
       return;
     }
     final installed = installedOverride ?? await _installedComponentIds();
-    final required = _collectRequiredDependencies(installed);
+    final required = await _collectRequiredDependencies(installed);
+    final lock = await ShadcnLockRepository(targetDir).loadOrSynthesize();
+    for (final component in lock.components) {
+      component.dependencies.forEach((key, value) {
+        required.putIfAbsent(key, () => value);
+      });
+    }
 
     final managedDeps = managedOverride ?? await _loadManagedDependencies();
     final registryDeps = _collectAllRegistryDependencies();
     final toRemove = (managedDeps.isEmpty ? registryDeps : managedDeps)
         .difference(required.keys.toSet());
-
-    if (toRemove.isNotEmpty) {
-      logger.info('Removing dependencies: ${toRemove.join(', ')}');
-      final result = await Process.run(
-        'dart',
-        ['pub', 'remove', ...toRemove],
-        workingDirectory: targetDir,
-      );
-      if (result.exitCode != 0) {
-        logger
-            .detail('Some dependencies could not be removed: ${result.stderr}');
+    // Preserve SDK deps the installed files still import. `ShadcnApp`
+    // (app.dart) imports flutter_localizations while declaring no pubspec
+    // deps, so a naive managed-vs-required diff would delete
+    // flutter_localizations/intl that init just added. Keeping an unused
+    // SDK dep is harmless; deleting a used one breaks the build, so only
+    // drop a protected dep when no installed file imports it.
+    if (toRemove.any(_protectedSdkDependencies.contains)) {
+      final imported = _installedSdkImports();
+      for (final pkg in _protectedSdkDependencies) {
+        if (toRemove.contains(pkg) && imported.contains(pkg)) {
+          toRemove.remove(pkg);
+        }
       }
+      // Belt-and-braces: init always needs these for ShadcnApp and the
+      // import scan can miss during bulk installs (files not yet flushed),
+      // so never auto-remove them once present.
+      toRemove.removeAll(_protectedSdkDependencies);
     }
 
-    final lines = pubspecFile.readAsLinesSync();
-    final toAdd = <String>[];
-    for (final entry in required.entries) {
-      final dep = entry.key;
-      final version = entry.value;
-      final alreadyExists = lines.any((l) => l.trim().startsWith('$dep:'));
-      if (alreadyExists) {
-        continue;
-      }
-      if (version is String && version.isNotEmpty) {
-        final cleanVersion =
-            version.startsWith('^') ? version.substring(1) : version;
-        toAdd.add('$dep:$cleanVersion');
-      } else {
-        toAdd.add(dep);
-      }
-    }
+    final planner = const PubspecChangePlanner();
+    var lines = pubspecFile.readAsLinesSync();
+    final removePlan = planner.planRemoveDependencies(lines, toRemove);
+    lines = removePlan.lines;
 
-    if (toAdd.isNotEmpty) {
-      logger.info('Adding dependencies: ${toAdd.join(', ')}');
-      final result = await Process.run(
-        'dart',
-        ['pub', 'add', ...toAdd],
-        workingDirectory: targetDir,
+    final addPlan = planner.planAddDependencies(lines, required);
+    if (addPlan.conflicts.isNotEmpty) {
+      throw PubspecUpdateException(
+        code: 'dependency-conflict',
+        message: _formatDependencyConflicts(addPlan.conflicts),
       );
-      if (result.exitCode != 0) {
-        logger.warn('Some dependencies could not be added: ${result.stderr}');
+    }
+    lines = addPlan.lines;
+
+    if (removePlan.removed.isNotEmpty || addPlan.added.isNotEmpty) {
+      await pubspecFile.writeAsString(lines.join('\n'));
+      if (removePlan.removed.isNotEmpty) {
+        logger.info('Removed dependencies: ${removePlan.removed.join(', ')}');
+      }
+      if (addPlan.added.isNotEmpty) {
+        logger.info('Added dependencies: ${addPlan.added.keys.join(', ')}');
       }
     }
   }
@@ -215,19 +401,61 @@ extension InstallerManifestPart on Installer {
     return deps;
   }
 
+  /// Scans CLI-managed install/shared dirs for SDK imports. Returns the
+  /// subset of [_protectedSdkDependencies] still referenced by target files.
+  Set<String> _installedSdkImports() {
+    final found = <String>{};
+    try {
+      final config = _cachedConfig;
+      final roots = <String>{
+        if (config != null) _installPath(config),
+        if (config != null) _sharedPath(config),
+        'lib/ui/shadcn',
+      };
+      for (final root in roots) {
+        final dir = Directory(_resolveProjectPath(root));
+        if (!dir.existsSync()) continue;
+        for (final entity in dir.listSync(recursive: true)) {
+          if (entity is! File || !entity.path.endsWith('.dart')) continue;
+          String content;
+          try {
+            content = entity.readAsStringSync();
+          } catch (_) {
+            continue;
+          }
+          if (content.contains('package:flutter_localizations/')) {
+            found.add('flutter_localizations');
+          }
+          if (content.contains('package:intl/')) {
+            found.add('intl');
+          }
+          if (found.length == _protectedSdkDependencies.length) {
+            return found;
+          }
+        }
+      }
+    } catch (_) {
+      // Best-effort scan must never break installs; callers additionally
+      // retain protected deps unconditionally.
+    }
+    return found;
+  }
+
   Future<void> _updateState() async {
+    logger.progress('Updating project state');
     await _ensureConfigLoaded();
     final config = _cachedConfig ?? const ShadcnConfig();
     final namespace = stateNamespace ?? config.effectiveDefaultNamespace;
     final installed = await _installedComponentIds();
-    final required = _collectRequiredDependencies(installed);
+    final required = await _collectRequiredDependencies(installed);
     final managed = <String>{...required.keys, ..._coreInitDependencies};
     final existingState = await ShadcnState.load(
       targetDir,
       defaultNamespace: namespace,
     );
     final mergedRegistries = Map<String, RegistryStateEntry>.from(
-        existingState.registries ?? const {});
+      existingState.registries ?? const {},
+    );
     mergedRegistries[namespace] = RegistryStateEntry(
       installPath: _installPath(config),
       sharedPath: _sharedPath(config),
@@ -282,6 +510,7 @@ extension InstallerManifestPart on Installer {
 
     await _updateComponentManifest();
     await _refreshComponentManifests();
+    await _refreshLockfileRecords();
     await generateAliases();
     await _updateState();
     logger.success('Sync complete');

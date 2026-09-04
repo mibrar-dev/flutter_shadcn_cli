@@ -29,7 +29,3 @@ flutter_shadcn --advanced docs --generate
 ## Notes
 
 This command requires --advanced.
-
-## See Also
-
-- [`flutter_shadcn install-skill`](install-skill.md)

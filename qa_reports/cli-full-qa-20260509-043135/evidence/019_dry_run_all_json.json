@@ -1,0 +1,28 @@
+{
+  "id": "019_dry_run_all_json",
+  "name": "dry run all json",
+  "category": "planning",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "dry-run",
+    "--all",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 30,
+  "timedOut": false,
+  "durationSeconds": 1.489,
+  "status": "FAIL",
+  "notes": "",
+  "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"dry-run\",\n  \"data\": {\n    \"requested\": [\n      \"icon_fonts\",\n      \"typography_fonts\",\n      \"button\",\n      \"clickable\",\n      \"card\",\n      \"card_image\",\n      \"alert\",\n      \"alpha\",\n      \"chat\",\n      \"async\",\n      \"autocomplete\",\n      \"collapsible\",\n      \"focus_outline\",\n      \"group\",\n      \"hidden\",\n      \"accordion\",\n      \"badge\",\n      \"avatar\",\n      \"basic\",\n      \"chip\",\n      \"color\",\n      \"history\",\n      \"color_picker\",\n      \"color_input\",\n      \"hsl\",\n      \"hsv\",\n      \"image\",\n      \"eye_dropper\",\n      \"chip_input\",\n      \"select\",\n  \n...<truncated>...\ntils/markdown_parser_streaming.dart\",\n          \"registry/components/display/markdown/markdown.dart\"\n        ],\n        \"registryRoot\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\"\n      }\n    }\n  },\n  \"errors\": [],\n  \"warnings\": [\n    {\n      \"code\": \"component_missing\",\n      \"message\": \"One or more components were not found.\",\n      \"details\": {\n        \"missing\": [\n          \"icon_fonts\",\n          \"typography_fonts\"\n        ]\n      }\n    }\n  ],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:12.055087Z\",\n    \"exitCode\": 30\n  }\n}\n",
+  "stderrExcerpt": ""
+}

@@ -1,6 +1,11 @@
 .dart_tool/
 .pub-cache/
 build/
+registry/skills/
+docs/superpowers/
+.codex/
+prompts/
+*.prompt
 AGENTS.md
 Continuum App.code-workspace
 PROJECT_AUDIT_REPORT.md

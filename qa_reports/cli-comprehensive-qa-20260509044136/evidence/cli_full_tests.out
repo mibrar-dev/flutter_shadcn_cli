@@ -1,0 +1,487 @@
+00:00 +0: loading test/config_test.dart                                                                                                                                                                00:00 +0: test/config_test.dart: config roundtrip preserves settings                                                                                                                                   00:00 +1: test/config_test.dart: config roundtrip preserves settings                                                                                                                                   00:00 +2: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                      00:00 +3: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                      00:00 +4: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                      00:00 +5: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                      00:00 +6: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                      00:00 +7: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                      00:00 +8: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                      00:00 +9: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                      00:00 +10: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                     00:00 +11: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                     00:00 +12: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                     00:00 +13: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax                                                                                     ✨ Dependency audit
+✓ ✓ flutter_localizations  sdk: flutter
+00:00 +14: test/validate_command_test.dart: runValidateCommand uses the schema path captured by registry selection                                                                                     00:00 +15: test/validate_command_test.dart: runValidateCommand uses the schema path captured by registry selection                                                                                     ✨ Registry validation
+Schema: /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/validate_command_JVSFp4/registry/manifests/components.schema.json
+✓ Schema validation passed.
+✓ Component dependencies: OK
+✓ Source files: OK
+✓ File dependencies: OK
+00:00 +16: test/validate_command_test.dart: runValidateCommand uses the schema path captured by registry selection                                                                                     00:00 +17: test/validate_command_test.dart: runValidateCommand uses the schema path captured by registry selection                                                                                     00:00 +17: loading test/registry_selection_test.dart                                                                                                                                                   00:00 +17: test/registry_selection_test.dart: registry selection accepts v1 registry roots with manifests components json                                                                              00:00 +18: test/registry_selection_test.dart: registry selection accepts v1 registry roots with manifests components json                                                                              00:00 +18: test/registry_selection_test.dart: registry selection explicit registry path overrides persisted remote mode                                                                                00:00 +19: test/component_address_command_test.dart: component address command boundaries info rejects malformed qualified component refs before lookup                                                Error: Invalid component address "@shadcn/button/extra". Use @namespace/component
+00:00 +20: test/skill_manager_test.dart: SkillManager Skill Discovery finds bundled skills under registry skills folder                                                                                Error: Invalid component address "shadcn:". Use @namespace/component
+Error: Invalid component address "@shadcn". Use @namespace/component
+00:00 +21: test/skill_manager_test.dart: SkillManager Skill Discovery finds bundled skills under registry skills folder                                                                                00:00 +22: test/skill_manager_test.dart: SkillManager Skill Discovery finds bundled skills under registry skills folder                                                                                
+🎯 Installing Skill: flutter-shadcn-cli
+✓ ✓ Copied 2 skill files
+✓ ✓ Skill "flutter-shadcn-cli" installed for model: .codex
+00:00 +23: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects component dependency cycles with exact path                                                                       
+🎯 Installing Skill: flutter-shadcn-ui
+flutter_shadcn_cli version 0.2.0
+00:00 +24: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects component dependency cycles with exact path                                                                       00:00 +25: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects component dependency cycles with exact path                                                                       00:00 +26: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects component dependency cycles with exact path                                                                       00:00 +27: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects component dependency cycles with exact path                                                                       00:00 +28: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects component dependency cycles with exact path                                                                       00:00 +29: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +30: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +31: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   This will delete global flutter_shadcn state under ~/.flutter_shadcn. Continue? [y/N]: 00:00 +32: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +33: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   This will delete global flutter_shadcn state under ~/.flutter_shadcn. Continue? [y/N]: 00:00 +34: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +35: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +36: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +37: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +38: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +39: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +40: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +41: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +42: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +43: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +44: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +45: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +46: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +47: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +48: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   00:00 +49: test/skill_manager_test.dart: SkillManager Skill Discovery downloads remote skill files from a skills URL                                                                                   ✓ ✓ Downloaded 2 skill files
+✓ ✓ Skill "flutter-shadcn-ui" installed for model: .codex
+00:00 +50: test/schema_validation_test.dart: components.json validates against schema                                                                                                                  
+🎯 Installing Skill: flutter-shadcn-ui
+✓ ✓ Copied 4 skill files
+✓ ✓ Skill "flutter-shadcn-ui" installed for model: .claude
+00:00 +51: test/schema_validation_test.dart: components.json validates against schema                                                                                                                  
+🎯 Installing Skill: my-skill
+✓ ✓ Copied 1 skill files
+✓ ✓ Skill "my-skill" installed for model: .cursor
+00:00 +52: test/schema_validation_test.dart: components.json validates against schema                                                                                                                  
+🎯 Installing Skill: nonexistent-skill
+00:00 +53: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +54: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +55: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +56: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +57: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +58: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +59: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +60: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +61: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +62: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +63: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +64: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +65: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +66: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +67: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +68: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +69: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +70: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +71: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +72: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +73: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +74: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +75: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +76: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +77: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +78: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +79: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +80: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +81: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +82: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +83: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +84: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +85: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +86: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +87: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +88: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +89: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +90: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +91: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +92: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +93: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   • Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +94: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +95: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +96: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   00:00 +97: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   • Installing Button (button)
+00:00 +98: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   ✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:00 +99: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                   • Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +100: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +101: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +102: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +103: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +104: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +105: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +106: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +107: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:00 +108: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Added dependencies: skeletonizer
+00:00 +109: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:00 +110: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Added dependencies: skeletonizer
+00:00 +111: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:00 +112: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Added dependencies: skeletonizer
+00:00 +113: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +114: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +115: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+✓ Added dependencies: skeletonizer
+✓ Added assets: assets/fonts/shared.ttf
+00:00 +116: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:00 +117: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Added dependencies: skeletonizer
+• Removing Button (button)
+00:00 +118: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +119: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +120: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +121: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +122: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +123: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +124: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  Removed dependencies: skeletonizer
+00:00 +125: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +126: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +127: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +128: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +129: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +130: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +131: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +132: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +133: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +134: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +135: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +136: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +137: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:00 +138: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +139: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:00 +140: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +141: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +142: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +143: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +144: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +145: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ ✓ Skill "nonexistent-skill" installed for model: .gpt4
+00:00 +146: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  
+🎯 Installing Skill: no-manifest-skill
+• Installing Button (button)
+✗ No skill.json or skill.yaml found in /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/skill_manager_test_ZwMqF8/shadcn_flutter_kit/flutter_shadcn_kit/skills/no-manifest-skill
+✗ Failed to install skill: Exception: Skill manifest (skill.json or skill.yaml) is required
+00:00 +147: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  
+🎯 Installing Skill: yaml-skill
+✓ Added dependencies: skeletonizer
+✗ No files configured in manifest to copy
+✗ Failed to install skill: Exception: Manifest must specify files to copy in the "files" key
+00:00 +148: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  
+🎯 Installing Skill: test-skill
+00:00 +149: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ ✓ Copied 4 skill files
+✓ ✓ Skill "test-skill" installed for model: .claude
+00:00 +150: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  
+🎯 Installing Skill: structure-skill
+00:00 +151: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+✓ ✓ Copied 2 skill files
+✓ ✓ Skill "structure-skill" installed for model: .gemini
+00:00 +152: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Added dependencies: skeletonizer
+
+🎯 Installing Skill: skill-1
+00:00 +153: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ ✓ Copied 1 skill files
+✓ ✓ Skill "skill-1" installed for model: .claude
+
+🎯 Installing Skill: skill-1
+✓ ✓ Copied 1 skill files
+✓ ✓ Skill "skill-1" installed for model: .cursor
+00:00 +154: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Removing Button (button)
+
+🎯 Installing Skill: removable-skill
+✓ ✓ Copied 1 skill files
+✓ ✓ Skill "removable-skill" installed for model: .claude
+✓ ✓ Uninstalled "removable-skill" for model: .claude
+00:00 +155: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  Removed dependencies: skeletonizer
+00:00 +156: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +157: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +158: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +159: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +160: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +161: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +162: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  
+🎯 Installing Skill: shared-skill
+• Installing Dialog (dialog)
+• Installing Button (button)
+✓ ✓ Copied 1 skill files
+✓ ✓ Skill "shared-skill" installed for model: .claude
+
+🔗 Symlinking Skill: shared-skill
+00:00 +163: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ ✓ Symlinked "shared-skill" from .claude -> .cursor
+00:00 +164: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Added dependencies: skeletonizer
+00:00 +165: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +166: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +167: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +168: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +169: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +170: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Dialog (dialog)
+00:00 +171: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:00 +172: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +173: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:00 +174: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ! Cannot remove button; required by dialog
+00:01 +175: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Dialog (dialog)
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:01 +176: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✨ Initializing flutter_shadcn
+
+Installing core shared modules
+00:01 +176: test/installer_test.dart: Installer init with overrides normalizes paths and aliases                                                                                                       
+
+! pubspec.yaml not found; skipping dependency updates.
+✓ Initialization complete
+00:01 +177: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +178: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +179: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✨ Initializing flutter_shadcn
+Detected existing .shadcn config/state. Re-initializing with saved settings.
+00:01 +180: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +181: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +182: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  
+Installing core shared modules
+00:01 +182: test/installer_test.dart: Installer init auto-reuses existing config/state without prompts                                                                                                 
+
+00:01 +183: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +184: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+00:01 +185: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✨ Initializing flutter_shadcn
+
+Installing core shared modules
+00:01 +185: test/installer_test.dart: Installer applies theme artifact manifest and updates config theme id                                                                                            
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+00:01 +185: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components                                                                         
+{
+  "status": "ok",
+  "command": "dry-run",
+  "data": {
+    "requested": [
+      "button"
+    ],
+    "missing": [],
+    "components": [
+      "button"
+    ],
+    "dependencyGraph": {
+      "button": []
+    },
+    "shared": [],
+    "pubspecDependencies": {},
+    "assets": [],
+    "fonts": [],
+    "postInstall": [],
+    "fileDependencies": [],
+    "platformChanges": {},
+    "componentFiles": {
+      "button": [
+        {
+          "source": "registry/components/button/button.dart",
+          "destination": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/production_qa_OInFVC/app/lib/ui/shadcn/components/button/button.dart"
+        }
+      ]
+    },
+    "manifestPreview": {
+      "button": {
+        "id": "button",
+        "name": "button",
+        "version": null,
+        "tags": [],
+        "shared": [],
+        "dependsOn": [],
+        "files": [
+          "registry/components/button/button.dart"
+        ],
+        "registryRoot": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/production_qa_OInFVC/registry"
+      }
+    }
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:43:03.497806Z",
+    "exitCode": 0
+  }
+}
+00:01 +186: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Applied theme: Modern Minimal
+00:01 +187: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +188: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✨ Initializing flutter_shadcn
+00:01 +189: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  
+Installing core shared modules
+00:01 +189: test/installer_test.dart: Installer aborts theme install before writes when artifact hash mismatches                                                                                       
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+00:01 +190: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +191: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +192: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +193: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +194: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +195: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +196: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +197: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +198: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +199: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +200: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +201: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +202: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +203: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +204: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +205: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +206: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +207: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +208: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +209: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +210: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +211: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +212: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +213: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:01 +214: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:01 +215: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +216: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +217: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:01 +218: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +219: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:01 +220: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:01 +221: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +222: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +223: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:01 +224: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +225: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+✓ Initialized shadcn (1 files, 0 dirs).
+00:01 +226: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +227: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ! components.json validation skipped for init (shadcn).
+✓ Initialized shadcn (0 files, 1 dirs).
+Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: 00:01 +228: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +229: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +230: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+Created l10n.yaml and lib/l10n/.
+00:01 +231: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +232: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  Error: l10n.yaml already exists.
+00:01 +233: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +234: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:01 +235: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +236: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +237: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✨ flutter_shadcn doctor
+
+Environment
+  Script                 /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/dart_test.kernel.CX3BJo/test.dart_35.dill
+  CWD                    /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_5KVEa3/app
+  PUB_CACHE              /Users/ibrar/.pub-cache
+00:01 +237: test/cli_integration_test.dart: CLI integration doctor runs without crashing                                                                                                               
+
+Registry
+
+  Mode                   local
+  Root                   /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_5KVEa3/registry
+  components.json        /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_5KVEa3/registry/components.json
+  Cache                  (local registry, no cache)
+  Schema                 /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_5KVEa3/registry/components.schema.json
+
+
+Configuration
+
+  SHADCN_REGISTRY_ROOT   (unset)
+  SHADCN_REGISTRY_URL    (unset)
+  cliRoot                /Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service
+  localRegistryRoot      /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_5KVEa3/registry
+  config.registryMode    (unset)
+  config.registryPath    (unset)
+  config.registryUrl     (unset)
+
+Config paths
+  installPath            lib/ui/shadcn
+  sharedPath             lib/ui/shadcn/shared
+  installPath valid: yes
+
+  sharedPath valid: yes
+  installPath exists: no
+  sharedPath exists: no
+
+Theme files
+  color_scheme.dart      missing
+
+Schema validation
+✓   components.json matches the schema.
+
+Lockfile
+  shadcn.lock            not present
+  lockfileVersion        1
+  locked components      0
+✓   locked files are present.
+
+
+
+Platform targets
+  (set .shadcn/config.json "platformTargets" to override paths)
+
+
+  android:
+    permissions: android/app/src/main/AndroidManifest.xml
+    gradle: android/app/build.gradle
+    notes: .shadcn/platform/android.md
+  ios:
+    infoPlist: ios/Runner/Info.plist
+    podfile: ios/Podfile
+    notes: .shadcn/platform/ios.md
+  macos:
+    entitlements: macos/Runner/DebugProfile.entitlements
+    notes: .shadcn/platform/macos.md
+  desktop:
+    config: .shadcn/platform/desktop.md
+00:01 +238: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:01 +239: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +240: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +241: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +242: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +243: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +244: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +245: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Initialized shadcn (1 files, 0 dirs).
+00:01 +246: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +247: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +248: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +249: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +250: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:01 +251: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✓ Rolled back inline actions (1 files, 1 dirs).
+00:01 +252: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:02 +252: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:02 +253: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✨ Component audit
+Installed components: 1
+✓ Registry coverage: OK
+✓ Files: OK
+00:02 +254: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:02 +255: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:03 +255: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:03 +256: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:03 +257: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  ✨ Initializing flutter_shadcn
+
+Installing core shared modules
+00:03 +257: test/production_qa_regression_test.dart: production QA regressions init installs shared app and localization modules by default                                                            
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+00:03 +258: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:04 +258: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:04 +259: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:04 +260: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:05 +260: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:06 +260: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:06 +261: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:07 +261: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:07 +262: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:08 +262: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:09 +262: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:09 +263: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:10 +263: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:10 +264: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:10 +265: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:11 +265: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:11 +266: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:11 +267: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:12 +267: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:12 +268: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  • Installing Button (button)
+00:12 +269: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:12 +269: test/cli_integration_test.dart: CLI integration default command sets default namespace and registries list works                                                                           
+Default registry set to: alt
+{
+  "status": "ok",
+  "command": "registries",
+  "data": {
+    "defaultNamespace": "alt",
+    "items": [
+      {
+        "namespace": "alt",
+        "displayName": "alt",
+        "isDefault": true,
+        "enabled": true,
+        "source": "config",
+        "mode": "local",
+        "baseUrl": null,
+        "registryPath": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_ieIGGs/alt_registry",
+        "installRoot": "lib/ui/alt",
+        "capabilitySharedGroups": null,
+        "capabilityComposites": null,
+        "capabilityTheme": null
+      },
+      {
+        "namespace": "shadcn",
+        "displayName": "shadcn",
+        "isDefault": false,
+        "enabled": true,
+        "source": "config",
+        "mode": "local",
+        "baseUrl": null,
+        "registryPath": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_ieIGGs/registry",
+        "installRoot": "lib/ui/shadcn",
+        "capabilitySharedGroups": null,
+        "capabilityComposites": null,
+        "capabilityTheme": null
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:43:14.609045Z"
+  }
+}
+• Installing Button (button)
+00:12 +270: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+00:12 +271: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+00:12 +272: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+00:12 +273: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+00:12 +274: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:13 +274: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:13 +275: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:14 +275: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:15 +275: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:16 +275: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:17 +275: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:18 +275: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help                                                                                                  00:18 +276: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:19 +276: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:19 +277: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:20 +277: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:20 +278: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:21 +278: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:21 +279: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:22 +279: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:23 +279: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:24 +279: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:25 +279: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:26 +279: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:27 +279: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:28 +279: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:29 +279: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only                                   00:29 +280: test/command_matrix_test.dart: Command matrix registry selector token works across command set                                                                                             ✓ Installed assets via inline registry actions.
+✓ Rolled back inline actions (1 files, 1 dirs).
+✓ Removed inline-managed asset actions.
+00:29 +281: test/command_matrix_test.dart: Command matrix registry selector token works across command set                                                                                             00:30 +281: test/command_matrix_test.dart: Command matrix registry selector token works across command set                                                                                             00:30 +282: test/command_matrix_test.dart: Command matrix registry selector token works across command set                                                                                             00:30 +283: test/command_matrix_test.dart: Command matrix registry selector token works across command set                                                                                             00:31 +283: test/command_matrix_test.dart: Command matrix registry selector token works across command set                                                                                             00:31 +284: test/cli_integration_test.dart: CLI integration add exits schema invalid when components schema fails                                                                                      00:31 +285: test/cli_integration_test.dart: CLI integration add exits schema invalid when components schema fails                                                                                      00:31 +285: test/cli_integration_test.dart: CLI integration add bypasses invalid components schema with skip integrity                                                                                 00:32 +285: test/cli_integration_test.dart: CLI integration add bypasses invalid components schema with skip integrity                                                                                 00:32 +286: test/cli_integration_test.dart: CLI integration add bypasses invalid components schema with skip integrity                                                                                 00:32 +286: test/cli_integration_test.dart: CLI integration init exits schema invalid when components schema fails                                                                                     00:33 +286: test/cli_integration_test.dart: CLI integration init exits schema invalid when components schema fails                                                                                     00:33 +287: test/cli_integration_test.dart: CLI integration init exits schema invalid when components schema fails                                                                                     00:33 +287: test/cli_integration_test.dart: CLI integration preloaded commands map schema failures to schema invalid                                                                                   00:34 +287: test/cli_integration_test.dart: CLI integration preloaded commands map schema failures to schema invalid                                                                                   00:34 +288: test/cli_integration_test.dart: CLI integration preloaded commands map schema failures to schema invalid                                                                                   00:34 +288: test/cli_integration_test.dart: CLI integration validate reports schema failures                                                                                                           00:35 +288: test/cli_integration_test.dart: CLI integration validate reports schema failures                                                                                                           00:35 +289: test/cli_integration_test.dart: CLI integration validate reports schema failures                                                                                                           00:35 +289: test/cli_integration_test.dart: CLI integration sync preserves component manifests                                                                                                         • Installing Button (button)
+✓ Sync complete
+00:35 +290: test/cli_integration_test.dart: CLI integration sync preserves component manifests                                                                                                         00:35 +290: test/cli_integration_test.dart: CLI integration offline list uses cached index                                                                                                             00:35 +290: test/cli_integration_test.dart: CLI integration offline list uses cached index                                                                                                             
+{
+  "status": "ok",
+  "command": "list",
+  "data": {
+    "registry": {
+      "id": "https___example.com_registry",
+      "baseUrl": "https://example.com/registry"
+    },
+    "count": 0,
+    "components": []
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:43:37.974499Z",
+    "exitCode": 0
+  }
+}
+00:35 +291: test/cli_integration_test.dart: CLI integration offline list uses cached index                                                                                                             00:35 +291: test/cli_integration_test.dart: CLI integration default command accepts --registries-path for local registries.json                                                                        00:35 +291: test/cli_integration_test.dart: CLI integration default command accepts --registries-path for local registries.json                                                                        
+Default registry set to: localdev
+00:35 +292: test/cli_integration_test.dart: CLI integration default command accepts --registries-path for local registries.json                                                                        00:35 +292: test/cli_integration_test.dart: CLI integration list/search accept @namespace registry token                                                                                               00:35 +292: test/cli_integration_test.dart: CLI integration list/search accept @namespace registry token                                                                                               
+{
+  "status": "ok",
+  "command": "list",
+  "data": {
+    "registry": {
+      "id": "_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_shadcn_cli_it_84Etl4_registry",
+      "baseUrl": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_84Etl4/registry"
+    },
+    "count": 2,
+    "components": [
+      {
+        "id": "button",
+        "name": "Button",
+        "category": "control",
+        "description": "Button component",
+        "tags": [
+          "core"
+        ],
+        "install": "flutter_shadcn add button",
+        "import": "package:app/ui/shadcn/components/button/button.dart",
+        "importPath": "ui/shadcn/components/button/button.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "dialog"
+        ]
+      },
+      {
+        "id": "dialog",
+        "name": "Dialog",
+        "category": "overlay",
+        "description": "Dialog component",
+        "tags": [
+          "overlay"
+        ],
+        "install": "flutter_shadcn add dialog",
+        "import": "package:app/ui/shadcn/components/dialog/dialog.dart",
+        "importPath": "ui/shadcn/components/dialog/dialog.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "button"
+        ]
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:43:38.103129Z",
+    "exitCode": 0
+  }
+}
+{
+  "status": "ok",
+  "command": "search",
+  "data": {
+    "query": "button",
+    "registry": {
+      "id": "_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_shadcn_cli_it_84Etl4_registry",
+      "baseUrl": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_84Etl4/registry"
+    },
+    "count": 2,
+    "results": [
+      {
+        "id": "button",
+        "name": "Button",
+        "category": "control",
+        "description": "Button component",
+        "tags": [
+          "core"
+        ],
+        "install": "flutter_shadcn add button",
+        "import": "package:app/ui/shadcn/components/button/button.dart",
+        "importPath": "ui/shadcn/components/button/button.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "dialog"
+        ],
+        "score": 280
+      },
+      {
+        "id": "dialog",
+        "name": "Dialog",
+        "category": "overlay",
+        "description": "Dialog component",
+        "tags": [
+          "overlay"
+        ],
+        "install": "flutter_shadcn add dialog",
+        "import": "package:app/ui/shadcn/components/dialog/dialog.dart",
+        "importPath": "ui/shadcn/components/dialog/dialog.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "button"
+        ],
+        "score": 0
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:43:38.213567Z",
+    "exitCode": 0
+  }
+}
+00:35 +293: test/cli_integration_test.dart: CLI integration list/search accept @namespace registry token                                                                                               00:35 +293: test/cli_integration_test.dart: CLI integration theme widget commands fail explicitly without runtime execution                                                                            00:36 +293: test/cli_integration_test.dart: CLI integration theme widget commands fail explicitly without runtime execution                                                                            00:36 +294: test/cli_integration_test.dart: CLI integration theme widget commands fail explicitly without runtime execution                                                                            00:36 +294: All tests passed!                                                                                                                                                                          

@@ -6,42 +6,21 @@ import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
-import 'package:flutter_shadcn_cli/src/core/utils/path_utils.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/bootstrap_dispatcher_builder.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/cli_parser.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/command_dispatcher.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/add_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/assets_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/audit_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/deps_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/dry_run_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/docs_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/feedback_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/info_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/init_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/install_skill_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/list_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/project_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/remove_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/reset_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/search_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/sync_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands_registry.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/arg_helpers.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands/theme_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/upgrade_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/validate_command.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/commands/version_command.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/commands_doctor.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/registry_selection.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/bootstrap_support.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/registry_bootstrap_exception.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/usage.dart';
-import 'package:flutter_shadcn_cli/src/application/services/reset/global_reset_service.dart';
-import 'package:flutter_shadcn_cli/src/application/services/reset/project_refresh_service.dart';
-import 'package:flutter_shadcn_cli/src/application/services/reset/project_reset_service.dart';
+import 'package:flutter_shadcn_cli/src/json_output.dart';
+import 'package:flutter_shadcn_cli/src/version_manager.dart';
 import 'package:flutter_shadcn_cli/src/application/services/reset/reset_snapshot_store.dart';
 
 Future<void> runCliBootstrap(List<String> arguments) async {
@@ -49,8 +28,9 @@ Future<void> runCliBootstrap(List<String> arguments) async {
   final homeDirectory = _userHomeDirectory();
   if (homeDirectory != null && homeDirectory.isNotEmpty) {
     try {
-      await ResetSnapshotStore(homeDirectory: homeDirectory)
-          .pruneExpiredSnapshots();
+      await ResetSnapshotStore(
+        homeDirectory: homeDirectory,
+      ).pruneExpiredSnapshots();
     } catch (_) {}
   }
   final parser = buildCliParser();
@@ -67,6 +47,16 @@ Future<void> runCliBootstrap(List<String> arguments) async {
   final advanced = argResults['advanced'] == true;
   if (argResults['help'] == true) {
     printCliUsage(advanced: advanced);
+    exit(0);
+  }
+  if (argResults['version'] == true) {
+    VersionManager(
+      logger: CliLogger(verbose: argResults['verbose'] == true),
+    ).showVersion();
+    exit(ExitCodes.success);
+  }
+  if (_isProjectHelpArgs(normalizedArgs)) {
+    _printProjectUsage();
     exit(0);
   }
 
@@ -90,10 +80,14 @@ Future<void> runCliBootstrap(List<String> arguments) async {
   final registriesPath =
       optionalStringOption(argResults, 'registries-path')?.trim() ??
           config.registriesPath?.trim();
-  final registryPathOverride =
-      optionalStringOption(argResults, 'registry-path')?.trim();
-  final registryUrlOverride =
-      optionalStringOption(argResults, 'registry-url')?.trim();
+  final registryPathOverride = optionalStringOption(
+    argResults,
+    'registry-path',
+  )?.trim();
+  final registryUrlOverride = optionalStringOption(
+    argResults,
+    'registry-url',
+  )?.trim();
   if ((registryPathOverride?.isNotEmpty ?? false) &&
       (registryUrlOverride?.isNotEmpty ?? false)) {
     stderr.writeln(
@@ -168,8 +162,34 @@ Future<void> runCliBootstrap(List<String> arguments) async {
       return;
     }
 
-    final commandNamespaceOverride =
-        resolveCommandNamespaceOverride(argResults);
+    if (_isCommandHelpRequest(argResults)) {
+      final command = argResults.command!;
+      final dispatcher = buildBootstrapCommandDispatcher(
+        rootArgs: argResults,
+        command: command,
+        roots: roots,
+        targetDir: targetDir,
+        homeDirectory: homeDirectory,
+        offline: offline,
+        logger: logger,
+        multiRegistry: multiRegistry,
+        installer: null,
+        preloadedSelection: null,
+        readConfig: () => config,
+        writeConfig: (updatedConfig) {
+          config = updatedConfig;
+        },
+      );
+      final dispatchExit = await dispatcher.dispatch(command.name!);
+      if (dispatchExit != ExitCodes.success) {
+        exitCode = dispatchExit;
+      }
+      return;
+    }
+
+    final commandNamespaceOverride = resolveCommandNamespaceOverride(
+      argResults,
+    );
     Registry? registry;
     RegistrySelection? preloadedSelection;
     try {
@@ -188,13 +208,44 @@ Future<void> runCliBootstrap(List<String> arguments) async {
         preloadedSelection = preloaded.selection;
       }
     } on RegistryBootstrapException catch (e) {
+      final failedCommand = argResults.command?.name;
+      final wantsJson = argResults.command?['json'] == true;
+      if (wantsJson &&
+          (failedCommand == 'validate' ||
+              failedCommand == 'audit' ||
+              failedCommand == 'deps')) {
+        // Mirror doctor --json: proper JSON error envelope on STDOUT,
+        // diagnostics stay parseable instead of stderr-only text.
+        final code = e.exitCode();
+        printJson(jsonEnvelope(
+          command: failedCommand!,
+          data: const {},
+          errors: [
+            jsonError(
+              code: _exitCodeLabelFor(code),
+              message: 'Error loading registry: ${e.message}',
+              details: {'registryRoot': e.registryRoot},
+            ),
+          ],
+          meta: {'exitCode': code},
+        ));
+        exit(code);
+      }
       if (e.exitCode() == ExitCodes.usage) {
         stderr.writeln('Error: ${e.message}');
       } else {
         stderr.writeln('Error loading registry: ${e.message}');
         stderr.writeln('Registry root: ${e.registryRoot}');
       }
-      exit(e.exitCode());
+      if (failedCommand == 'info') {
+        // Best effort only: `info` can still answer from index.json, so
+        // continue without manifest-backed import paths instead of failing.
+        stderr.writeln(
+          'Warning: continuing without registry manifest data.',
+        );
+      } else {
+        exit(e.exitCode());
+      }
     }
 
     final installer = registry == null
@@ -213,208 +264,22 @@ Future<void> runCliBootstrap(List<String> arguments) async {
           );
 
     final command = argResults.command!;
-    final dispatcher = CommandDispatcher({
-      'registries': () => runRegistriesCommand(
-            command: command,
-            config: config,
-            multiRegistry: multiRegistry,
-          ),
-      'default': () async {
-        final result = await runDefaultCommand(
-          command: command,
-          config: config,
-          multiRegistry: multiRegistry,
-        );
-        config = result.config;
-        return result.exitCode;
+    final dispatcher = buildBootstrapCommandDispatcher(
+      rootArgs: argResults,
+      command: command,
+      roots: roots,
+      targetDir: targetDir,
+      homeDirectory: homeDirectory,
+      offline: offline,
+      logger: logger,
+      multiRegistry: multiRegistry,
+      installer: installer,
+      preloadedSelection: preloadedSelection,
+      readConfig: () => config,
+      writeConfig: (updatedConfig) {
+        config = updatedConfig;
       },
-      'init': () => runInitCommand(
-            initCommand: command,
-            multiRegistry: multiRegistry,
-            defaultNamespace: config.effectiveDefaultNamespace,
-          ),
-      'theme': () => runThemeCommand(
-            themeCommand: command,
-            rootArgs: argResults,
-            installer: installer,
-            registrySupportsTheme: preloadedSelection?.capabilityTheme,
-          ),
-      'add': () => runAddCommand(
-            addCommand: command,
-            multiRegistry: multiRegistry,
-          ),
-      'dry-run': () => runDryRunCommand(
-            dryRunCommand: command,
-            installer: installer,
-          ),
-      'remove': () => runRemoveCommand(
-            removeCommand: command,
-            installer: installer,
-            multiRegistry: multiRegistry,
-            rootArgs: argResults,
-            config: config,
-            preloadedNamespace: preloadedSelection?.namespace,
-            logger: logger,
-          ),
-      'reset': () => runResetCommand(
-            command: command,
-            service: GlobalResetService(
-              homeDirectory: homeDirectory ?? Directory.systemTemp.path,
-            ),
-          ),
-      'project': () async {
-        final projectRoot = findProjectRootFrom(targetDir);
-        final snapshotStore = ResetSnapshotStore(
-          homeDirectory: homeDirectory ?? Directory.systemTemp.path,
-        );
-        final projectResetService = ProjectResetService(
-          projectRoot: projectRoot,
-          snapshotStore: snapshotStore,
-        );
-        final namespace = selectedNamespaceForCommand(argResults, config);
-        final registryEntry = await multiRegistry.findRegistryEntry(namespace);
-        if (registryEntry == null) {
-          stderr.writeln(
-            'Error: Registry namespace "$namespace" was not found for project refresh.',
-          );
-          return ExitCodes.registryNotFound;
-        }
-        final projectRefreshService = ProjectRefreshService(
-          projectRoot: projectRoot,
-          executeActions: ({
-            required projectRoot,
-            required baseUrl,
-            required actions,
-            optionalActionDecider,
-            groupSelector,
-          }) {
-            return multiRegistry.initActionEngine.executeActions(
-              projectRoot: projectRoot,
-              baseUrl: baseUrl,
-              actions: actions,
-              logger: logger,
-              optionalActionDecider: optionalActionDecider,
-              groupSelector: groupSelector,
-            );
-          },
-        );
-        return runProjectCommand(
-          command: command,
-          resetProject: projectResetService.reset,
-          undoProject: projectResetService.undo,
-          refreshProject: () async {
-            final result = await projectRefreshService.refresh(
-              registry: registryEntry,
-              namespace: namespace,
-              optionalActionDecider: _shouldRunOptionalProjectRefreshAction,
-              groupSelector: _selectProjectRefreshGroups,
-            );
-            return ProjectRefreshOutput(
-              regeneratedFiles: result.executionResult.filesWritten,
-              repairedPaths: result.executionResult.record.filesWritten,
-            );
-          },
-        );
-      },
-      'validate': () => runValidateCommandCli(
-            command: command,
-            registry: registry,
-            offline: offline,
-            logger: logger,
-          ),
-      'audit': () => runAuditCommandCli(
-            command: command,
-            registry: registry,
-            targetDir: targetDir,
-            config: config,
-            logger: logger,
-          ),
-      'deps': () => runDepsCommandCli(
-            command: command,
-            registry: registry,
-            targetDir: targetDir,
-            config: config,
-            logger: logger,
-          ),
-      'assets': () => runAssetsCommand(
-            command: command,
-            installer: installer,
-            multiRegistry: multiRegistry,
-            rootArgs: argResults,
-            config: config,
-            logger: logger,
-          ),
-      'platform': () async {
-        final platformResult = await runPlatformCommand(
-          command: command,
-          config: config,
-          targetDir: targetDir,
-        );
-        config = platformResult.config;
-        return platformResult.exitCode;
-      },
-      'sync': () => runSyncCommand(
-            command: command,
-            installer: installer,
-          ),
-      'list': () => runListCommand(
-            listCommand: command,
-            multiRegistry: multiRegistry,
-            logger: logger,
-          ),
-      'search': () => runSearchCommand(
-            searchCommand: command,
-            multiRegistry: multiRegistry,
-            logger: logger,
-          ),
-      'info': () => runInfoCommand(
-            infoCommand: command,
-            multiRegistry: multiRegistry,
-            logger: logger,
-          ),
-      'install-skill': () async {
-        final selection =
-            resolveRegistrySelection(argResults, roots, config, offline);
-        final defaultSkillsUrl = config.registryUrl?.isNotEmpty == true
-            ? config.registryUrl!
-            : selection.sourceRoot.root;
-        return runInstallSkillCommand(
-          command: command,
-          targetDir: targetDir,
-          defaultSkillsUrl: defaultSkillsUrl,
-          bundledSkillsPath: roots.cliRoot == null
-              ? null
-              : p.join(roots.cliRoot!, 'registry', 'skills'),
-          logger: logger,
-        );
-      },
-      'version': () => runVersionCommand(
-            command: command,
-            logger: logger,
-          ),
-      'upgrade': () => runUpgradeCommand(
-            command: command,
-            logger: logger,
-          ),
-      'feedback': () => runFeedbackCommand(
-            command: command,
-            rootArgs: argResults,
-            logger: logger,
-            resolveRegistry: (namespaceOverride) {
-              final selection = resolveRegistrySelection(
-                argResults,
-                roots,
-                config,
-                offline,
-                namespaceOverride: namespaceOverride,
-              );
-              return FeedbackRegistryContext(
-                namespace: selection.namespace,
-                baseUrl: selection.registryRoot.root,
-              );
-            },
-          ),
-    });
+    );
     final dispatchExit = await dispatcher.dispatch(command.name!);
     if (dispatchExit != ExitCodes.success) {
       exitCode = dispatchExit;
@@ -463,7 +328,7 @@ String? _advancedGateError(ArgResults argResults, bool advanced) {
     return null;
   }
   final commandName = argResults.command?.name;
-  if (commandName == 'docs' || commandName == 'install-skill') {
+  if (commandName == 'docs') {
     return 'The $commandName command requires --advanced.';
   }
   for (final name in const [
@@ -479,68 +344,6 @@ String? _advancedGateError(ArgResults argResults, bool advanced) {
   return null;
 }
 
-Future<bool> _shouldRunOptionalProjectRefreshAction(
-  Map<String, dynamic> action,
-) async {
-  final label = action['promptLabel']?.toString().trim();
-  if (label == null || label.isEmpty) {
-    return false;
-  }
-  final description = action['promptDescription']?.toString().trim();
-  stdout.writeln(label);
-  if (description != null && description.isNotEmpty) {
-    stdout.writeln(description);
-  }
-  stdout.write('Install? [Y/n]: ');
-  final input = stdin.readLineSync()?.trim().toLowerCase();
-  if (input == null || input.isEmpty) {
-    return true;
-  }
-  return input == 'y' || input == 'yes';
-}
-
-Future<List<Map<String, dynamic>>> _selectProjectRefreshGroups(
-  Map<String, dynamic> action,
-  List<Map<String, dynamic>> groups,
-) async {
-  if (groups.isEmpty) {
-    return const [];
-  }
-  final label = action['promptLabel']?.toString().trim();
-  final description = action['promptDescription']?.toString().trim();
-  if (label != null && label.isNotEmpty) {
-    stdout.writeln(label);
-  }
-  if (description != null && description.isNotEmpty) {
-    stdout.writeln(description);
-  }
-  stdout
-      .writeln('Select groups (comma-separated numbers, Enter for defaults):');
-  for (var i = 0; i < groups.length; i++) {
-    final group = groups[i];
-    final suffix = group['default'] == false ? '' : ' [default]';
-    stdout.writeln('  ${i + 1}) ${group['label']}$suffix');
-    final groupDescription = group['description']?.toString().trim();
-    if (groupDescription != null && groupDescription.isNotEmpty) {
-      stdout.writeln('     $groupDescription');
-    }
-  }
-  stdout.write('Groups: ');
-  final input = stdin.readLineSync()?.trim() ?? '';
-  if (input.isEmpty) {
-    return groups.where((group) => group['default'] != false).toList();
-  }
-  final selected = <Map<String, dynamic>>[];
-  for (final token in input.split(',')) {
-    final index = int.tryParse(token.trim());
-    if (index == null || index < 1 || index > groups.length) {
-      continue;
-    }
-    selected.add(groups[index - 1]);
-  }
-  return selected;
-}
-
 bool _isThemeHelpRequest(ArgResults argResults) {
   final command = argResults.command;
   if (command?.name != 'theme') {
@@ -551,4 +354,56 @@ bool _isThemeHelpRequest(ArgResults argResults) {
   }
   return command?.command?.name == 'widget' &&
       command?.command?['help'] == true;
+}
+
+bool _isCommandHelpRequest(ArgResults argResults) {
+  final command = argResults.command;
+  if (command == null) {
+    return false;
+  }
+  if (command['help'] == true) {
+    return true;
+  }
+  if (command.rest.contains('--help') || command.rest.contains('-h')) {
+    return true;
+  }
+  final nested = command.command;
+  return nested != null && nested['help'] == true;
+}
+
+bool _isProjectHelpArgs(List<String> arguments) {
+  if (arguments.length != 2 || arguments.first != 'project') {
+    return false;
+  }
+  return arguments[1] == '--help' || arguments[1] == '-h';
+}
+
+void _printProjectUsage() {
+  print('Usage: flutter_shadcn project <command>');
+  print('');
+  print('Commands:');
+  print(
+      '  reset [--undo]     Remove CLI-managed project files or restore them');
+  print('  refresh            Regenerate missing CLI scaffolding');
+}
+
+String _exitCodeLabelFor(int code) {
+  switch (code) {
+    case ExitCodes.registryNotFound:
+      return ExitCodeLabels.registryNotFound;
+    case ExitCodes.schemaInvalid:
+      return ExitCodeLabels.schemaInvalid;
+    case ExitCodes.offlineUnavailable:
+      return ExitCodeLabels.offlineUnavailable;
+    case ExitCodes.networkError:
+      return ExitCodeLabels.networkError;
+    case ExitCodes.configInvalid:
+      return ExitCodeLabels.configInvalid;
+    case ExitCodes.validationFailed:
+      return ExitCodeLabels.validationFailed;
+    case ExitCodes.usage:
+      return ExitCodeLabels.usage;
+    default:
+      return ExitCodeLabels.unknown;
+  }
 }

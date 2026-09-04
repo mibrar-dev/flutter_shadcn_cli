@@ -46,6 +46,7 @@ extension InstallerThemePart on Installer {
   }
 
   Future<void> applyThemeById(String identifier, {bool refresh = false}) async {
+    logger.progress('Resolving theme preset: $identifier');
     final resolved = await _resolveThemeRegistry(refresh: refresh);
     if (resolved == null) {
       logger.info('This registry does not provide theme presets.');
@@ -58,6 +59,7 @@ extension InstallerThemePart on Installer {
       );
       return;
     }
+    logger.progress('Loading theme manifest for ${entry.name}');
     final manifest = await _loadThemeArtifactManifestById(
       resolved: resolved,
       entry: entry,
@@ -224,8 +226,14 @@ extension InstallerThemePart on Installer {
       logger: logger,
       cacheRootPath: _themeCacheRootPath(registryId),
     );
-    final indexData = await indexLoader.load();
-    final entries = indexLoader.entriesFrom(indexData);
+    final Map<String, dynamic> indexData;
+    final List<ThemeIndexEntry> entries;
+    try {
+      indexData = await indexLoader.load();
+      entries = indexLoader.entriesFrom(indexData);
+    } finally {
+      indexLoader.close();
+    }
     return _ResolvedThemeRegistry(
       registryId: registryId,
       registryBaseUrl: registryBaseUrl,
@@ -260,7 +268,12 @@ extension InstallerThemePart on Installer {
       return _parseThemeArtifactManifest(entry.toJson());
     }
     final presetLoader = _buildThemePresetLoader(resolved, refresh: false);
-    final manifestFile = await presetLoader.cachePresetJson(entry);
+    final File manifestFile;
+    try {
+      manifestFile = await presetLoader.cachePresetJson(entry);
+    } finally {
+      presetLoader.close();
+    }
     final content = await manifestFile.readAsString();
     final decoded = jsonDecode(content);
     if (decoded is! Map<String, dynamic>) {
@@ -321,6 +334,10 @@ extension InstallerThemePart on Installer {
     String? themeId,
   }) async {
     await _ensureConfigLoaded();
+    logger.progress(
+      'Applying theme artifacts '
+      '(${manifest.files.length} ${manifest.files.length == 1 ? 'file' : 'files'})',
+    );
     final prepared = await _prepareThemeArtifacts(
       manifest: manifest,
       registryId: registryId,
@@ -347,8 +364,10 @@ extension InstallerThemePart on Installer {
       final targetFile = File(_resolveDestinationPath(file.target));
       final normalizedTarget = p.normalize(targetFile.path);
       if (!seenTargets.add(normalizedTarget)) {
-        throw Exception(
-          'Theme manifest contains duplicate target path: ${file.target}',
+        throw ThemeInstallException(
+          code: 'duplicate-target',
+          message:
+              'Theme manifest contains duplicate target path: ${file.target}',
         );
       }
       final bytes = await _readThemeArtifactBytes(
@@ -358,8 +377,10 @@ extension InstallerThemePart on Installer {
       final actual = sha256.convert(bytes).toString().toLowerCase();
       final expected = file.sha256.toLowerCase();
       if (actual != expected) {
-        throw Exception(
-          'SHA-256 mismatch for theme artifact ${file.source}: expected $expected but received $actual.',
+        throw ThemeInstallException(
+          code: 'hash-mismatch',
+          message:
+              'SHA-256 mismatch for theme artifact ${file.source}: expected $expected but received $actual.',
         );
       }
       await _writeThemeArtifactCache(
@@ -389,9 +410,12 @@ extension InstallerThemePart on Installer {
     if (p.isAbsolute(trimmed)) {
       final file = File(trimmed);
       if (!file.existsSync()) {
-        throw Exception('Theme artifact source not found: $trimmed');
+        throw ThemeInstallException(
+          code: 'source-not-found',
+          message: 'Theme artifact source not found: $trimmed',
+        );
       }
-      return file.readAsBytes();
+      return await file.readAsBytes();
     }
 
     final uri = Uri.tryParse(trimmed);
@@ -399,14 +423,20 @@ extension InstallerThemePart on Installer {
       if (uri.scheme == 'file') {
         final file = File(uri.toFilePath());
         if (!file.existsSync()) {
-          throw Exception('Theme artifact source not found: $trimmed');
+          throw ThemeInstallException(
+            code: 'source-not-found',
+            message: 'Theme artifact source not found: $trimmed',
+          );
         }
-        return file.readAsBytes();
+        return await file.readAsBytes();
       }
       if (uri.scheme == 'http' || uri.scheme == 'https') {
         return _fetchThemeArtifactFromUri(uri);
       }
-      throw Exception('Unsupported theme artifact source: $trimmed');
+      throw ThemeInstallException(
+        code: 'unsupported-source',
+        message: 'Unsupported theme artifact source: $trimmed',
+      );
     }
 
     final baseUri = Uri.tryParse(registryBaseUrl);
@@ -428,17 +458,23 @@ extension InstallerThemePart on Installer {
 
   Future<List<int>> _fetchThemeArtifactFromUri(Uri uri) async {
     if (registry.sourceRoot.offline) {
-      throw Exception(
-        'Offline mode: remote theme artifact not available for ${uri.toString()}.',
+      throw ThemeInstallException(
+        code: 'offline-remote-source',
+        message:
+            'Offline mode: remote theme artifact not available for ${uri.toString()}.',
       );
     }
     final client = HttpClient();
     try {
-      final request = await client.getUrl(uri);
-      final response = await request.close();
+      final request =
+          await client.getUrl(uri).timeout(const Duration(seconds: 20));
+      final response =
+          await request.close().timeout(const Duration(seconds: 20));
       if (response.statusCode < 200 || response.statusCode >= 300) {
-        throw Exception(
-          'Failed to fetch theme artifact ${uri.toString()} (${response.statusCode}).',
+        throw ThemeInstallException(
+          code: 'fetch-failed',
+          message:
+              'Failed to fetch theme artifact ${uri.toString()} (${response.statusCode}).',
         );
       }
       final builder = BytesBuilder(copy: false);
@@ -610,6 +646,19 @@ class _ResolvedThemeRegistry {
     required this.cacheRootPath,
     required this.indexEntries,
   });
+}
+
+class ThemeInstallException implements Exception {
+  final String code;
+  final String message;
+
+  const ThemeInstallException({
+    required this.code,
+    required this.message,
+  });
+
+  @override
+  String toString() => 'ThemeInstallException($code): $message';
 }
 
 class _ThemeArtifactManifest {

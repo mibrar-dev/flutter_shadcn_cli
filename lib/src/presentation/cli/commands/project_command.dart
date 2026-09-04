@@ -24,9 +24,13 @@ Future<int> runProjectCommand({
   required ProjectResetUndoRunner undoProject,
   required ProjectRefreshRunner refreshProject,
 }) async {
-  if (command['help'] == true || command.command == null) {
+  final restHelp =
+      command.rest.contains('--help') || command.rest.contains('-h');
+  if (command['help'] == true || restHelp || command.command == null) {
     _printProjectUsage();
-    return command.command == null ? ExitCodes.usage : ExitCodes.success;
+    return command.command == null && !restHelp
+        ? ExitCodes.usage
+        : ExitCodes.success;
   }
 
   final nested = command.command!;
@@ -101,7 +105,8 @@ Future<int> _runProjectRefreshCommand({
   if (command['help'] == true) {
     print('Usage: flutter_shadcn project refresh');
     print('');
-    print('Regenerate missing CLI scaffolding without overwriting existing files.');
+    print(
+        'Regenerate missing CLI scaffolding without overwriting existing files.');
     return ExitCodes.success;
   }
 
@@ -122,6 +127,7 @@ void _printProjectUsage() {
   print('Usage: flutter_shadcn project <command>');
   print('');
   print('Commands:');
-  print('  reset [--undo]     Remove CLI-managed project files or restore them');
+  print(
+      '  reset [--undo]     Remove CLI-managed project files or restore them');
   print('  refresh            Regenerate missing CLI scaffolding');
 }

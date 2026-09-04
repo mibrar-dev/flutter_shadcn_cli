@@ -4,6 +4,7 @@ import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/arg_helpers.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/registry_bootstrap_exception.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:path/path.dart' as p;
@@ -58,18 +59,27 @@ RegistrySelection resolveRegistrySelection(
   if (selectedEntry == null &&
       (optionalStringOption(args, 'registry-name')?.trim().isNotEmpty == true ||
           config.hasRegistries)) {
-    stderr.writeln('Error: Registry namespace "$selectedNamespace" not found.');
-    exit(ExitCodes.configInvalid);
+    throw RegistryBootstrapException(
+      '',
+      'Registry namespace "$selectedNamespace" not found.',
+      ExitCodes.configInvalid,
+    );
   }
 
-  final mode = optionalStringOption(args, 'registry') ??
-      selectedEntry?.registryMode ??
-      config.registryMode ??
-      'auto';
-  final pathOverride = optionalStringOption(args, 'registry-path') ??
+  final explicitPathOverride = optionalStringOption(args, 'registry-path');
+  final explicitUrlOverride = optionalStringOption(args, 'registry-url');
+  final mode = explicitPathOverride?.trim().isNotEmpty == true
+      ? 'local'
+      : explicitUrlOverride?.trim().isNotEmpty == true
+          ? 'remote'
+          : optionalStringOption(args, 'registry') ??
+              selectedEntry?.registryMode ??
+              config.registryMode ??
+              'auto';
+  final pathOverride = explicitPathOverride ??
       selectedEntry?.registryPath ??
       config.registryPath;
-  final urlOverride = optionalStringOption(args, 'registry-url') ??
+  final urlOverride = explicitUrlOverride ??
       selectedEntry?.baseUrl ??
       selectedEntry?.registryUrl ??
       config.registryUrl;
@@ -86,6 +96,14 @@ RegistrySelection resolveRegistrySelection(
   final trustSha256 = selectedEntry?.trustSha256;
 
   if (mode == 'local' || mode == 'auto') {
+    if (explicitPathOverride?.trim().isNotEmpty == true &&
+        validateRegistryRoot(explicitPathOverride!.trim()) == null) {
+      throw RegistryBootstrapException(
+        explicitPathOverride.trim(),
+        'Local registry not found. Set SHADCN_REGISTRY_ROOT or --registry-path.',
+        ExitCodes.registryNotFound,
+      );
+    }
     var localRoot = resolveLocalRoot(
       pathOverride,
       roots.localRegistryRoot,
@@ -114,9 +132,11 @@ RegistrySelection resolveRegistrySelection(
       );
     }
     if (mode == 'local') {
-      stderr.writeln('Error: Local registry not found.');
-      stderr.writeln('Set SHADCN_REGISTRY_ROOT or --registry-path.');
-      exit(ExitCodes.registryNotFound);
+      throw RegistryBootstrapException(
+        pathOverride ?? roots.localRegistryRoot ?? '',
+        'Local registry not found. Set SHADCN_REGISTRY_ROOT or --registry-path.',
+        ExitCodes.registryNotFound,
+      );
     }
   }
 
@@ -228,7 +248,7 @@ Future<String> readComponentsJson(
     if (!await cacheFile.exists()) {
       throw Exception('Offline mode: cached components.json not found.');
     }
-    return cacheFile.readAsString();
+    return await cacheFile.readAsString();
   }
   return selection.registryRoot.readString(selection.componentsPath);
 }
@@ -242,4 +262,4 @@ String sanitizeCacheKey(String value) {
 }
 
 const String defaultRemoteRegistryBase =
-    'https://raw.githubusercontent.com/ibrar-x/shadcn-flutter-registry/master';
+    'https://cdn.jsdelivr.net/gh/mibrar-dev/shadcn_flutter_kit@latest/flutter_shadcn_kit/lib';

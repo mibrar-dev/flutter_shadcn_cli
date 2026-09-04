@@ -1,0 +1,26 @@
+{
+  "status": "ok",
+  "command": "deps",
+  "data": {
+    "components": [
+      "alert",
+      "card"
+    ],
+    "dependencies": [
+      {
+        "package": "data_widget",
+        "required": [
+          "^0.0.2"
+        ],
+        "installed": "^0.0.2",
+        "status": "ok"
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T03:34:01.653289Z",
+    "exitCode": 0
+  }
+}

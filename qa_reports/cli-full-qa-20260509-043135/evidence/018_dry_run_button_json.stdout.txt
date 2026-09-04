@@ -1,0 +1,386 @@
+{
+  "status": "ok",
+  "command": "dry-run",
+  "data": {
+    "requested": [
+      "button"
+    ],
+    "missing": [],
+    "components": [
+      "button"
+    ],
+    "dependencyGraph": {
+      "button": []
+    },
+    "shared": [
+      "clickable",
+      "color_extensions",
+      "form_control",
+      "form_value_supplier",
+      "geometry_extensions",
+      "menu_group",
+      "theme"
+    ],
+    "pubspecDependencies": {
+      "data_widget": "^0.0.2",
+      "gap": "^3.0.1"
+    },
+    "assets": [],
+    "fonts": [],
+    "postInstall": [
+      "Optional: wrap a subtree with Theme(data: ThemeData(...), child: ...) to override defaults."
+    ],
+    "fileDependencies": [],
+    "platformChanges": {},
+    "componentFiles": {
+      "button": [
+        {
+          "source": "registry/components/control/button/_impl/core/button_core.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/core/button_core.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/core/button_group.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/core/button_group.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/core/button_group_data.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/core/button_group_data.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/core/button_group_widget.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/core/button_group_widget.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/core/button_icon.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/core/button_icon.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/core/button_widget.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/core/button_widget.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/core/controlled_toggle.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/core/controlled_toggle.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/core/toggle.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/core/toggle.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/core/toggle_widget.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/core/toggle_widget.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/extensions/button_style_extension.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/extensions/button_style_extension.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/state/button_state.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/state/button_state.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/state/selected_button_state.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/state/selected_button_state.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/state/toggle_controller.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/state/toggle_controller.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/state/toggle_controller_class.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/state/toggle_controller_class.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/state/toggle_state.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/state/toggle_state.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/abstract_button_style.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/abstract_button_style.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_density.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_density.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_overrides.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_overrides.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_shape.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_shape.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_size.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_size.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_state_property.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_state_property.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_state_property_delegate.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_state_property_delegate.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_style.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_style.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_style_class.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_style_class.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_style_override.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_style_override.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_style_override_data.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_style_override_data.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/button_style_property_all.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/button_style_property_all.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/component_theme_button_style.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/component_theme_button_style.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/styles/copy_with_button_style.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/styles/copy_with_button_style.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/base/button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/base/button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/config/button_theme_config.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/config/button_theme_config.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/config/button_theme_defaults.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/config/button_theme_defaults.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/config/button_theme_schema.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/config/button_theme_schema.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/config/button_theme_tokens.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/config/button_theme_tokens.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/button_theme_base.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/button_theme_base.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/card_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/card_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/destructive_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/destructive_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/fixed_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/fixed_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/ghost_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/ghost_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/link_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/link_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/menu_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/menu_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/menubar_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/menubar_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/muted_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/muted_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/outline_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/outline_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/primary_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/primary_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/secondary_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/secondary_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/themes/variants/text_button_theme.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/themes/variants/text_button_theme.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/utils/button_helpers.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/utils/button_helpers.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/button_variance.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/button_variance.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/button_variance_class.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/button_variance_class.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/button_variants.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/button_variants.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/card_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/card_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/destructive_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/destructive_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/ghost_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/ghost_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/link_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/link_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/outline_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/outline_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/primary_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/primary_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/secondary_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/secondary_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/selected_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/selected_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/selected_button_widget.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/selected_button_widget.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/tab_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/tab_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/_impl/variants/text_button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/_impl/variants/text_button.dart"
+        },
+        {
+          "source": "registry/components/control/button/button.dart",
+          "destination": "/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/control/button/button.dart"
+        }
+      ]
+    },
+    "manifestPreview": {
+      "button": {
+        "id": "button",
+        "name": "Button",
+        "version": "1.0.0",
+        "tags": [
+          "controls",
+          "forms",
+          "buttons"
+        ],
+        "shared": [
+          "clickable",
+          "color_extensions",
+          "form_control",
+          "form_value_supplier",
+          "geometry_extensions",
+          "menu_group",
+          "theme"
+        ],
+        "dependsOn": [],
+        "files": [
+          "registry/components/control/button/_impl/core/button_core.dart",
+          "registry/components/control/button/_impl/core/button_group.dart",
+          "registry/components/control/button/_impl/core/button_group_data.dart",
+          "registry/components/control/button/_impl/core/button_group_widget.dart",
+          "registry/components/control/button/_impl/core/button_icon.dart",
+          "registry/components/control/button/_impl/core/button_widget.dart",
+          "registry/components/control/button/_impl/core/controlled_toggle.dart",
+          "registry/components/control/button/_impl/core/toggle.dart",
+          "registry/components/control/button/_impl/core/toggle_widget.dart",
+          "registry/components/control/button/_impl/extensions/button_style_extension.dart",
+          "registry/components/control/button/_impl/state/button_state.dart",
+          "registry/components/control/button/_impl/state/selected_button_state.dart",
+          "registry/components/control/button/_impl/state/toggle_controller.dart",
+          "registry/components/control/button/_impl/state/toggle_controller_class.dart",
+          "registry/components/control/button/_impl/state/toggle_state.dart",
+          "registry/components/control/button/_impl/styles/abstract_button_style.dart",
+          "registry/components/control/button/_impl/styles/button_density.dart",
+          "registry/components/control/button/_impl/styles/button_overrides.dart",
+          "registry/components/control/button/_impl/styles/button_shape.dart",
+          "registry/components/control/button/_impl/styles/button_size.dart",
+          "registry/components/control/button/_impl/styles/button_state_property.dart",
+          "registry/components/control/button/_impl/styles/button_state_property_delegate.dart",
+          "registry/components/control/button/_impl/styles/button_style.dart",
+          "registry/components/control/button/_impl/styles/button_style_class.dart",
+          "registry/components/control/button/_impl/styles/button_style_override.dart",
+          "registry/components/control/button/_impl/styles/button_style_override_data.dart",
+          "registry/components/control/button/_impl/styles/button_style_property_all.dart",
+          "registry/components/control/button/_impl/styles/component_theme_button_style.dart",
+          "registry/components/control/button/_impl/styles/copy_with_button_style.dart",
+          "registry/components/control/button/_impl/themes/base/button_theme.dart",
+          "registry/components/control/button/_impl/themes/config/button_theme_config.dart",
+          "registry/components/control/button/_impl/themes/config/button_theme_defaults.dart",
+          "registry/components/control/button/_impl/themes/config/button_theme_schema.dart",
+          "registry/components/control/button/_impl/themes/config/button_theme_tokens.dart",
+          "registry/components/control/button/_impl/themes/variants/button_theme_base.dart",
+          "registry/components/control/button/_impl/themes/variants/card_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/destructive_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/fixed_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/ghost_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/link_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/menu_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/menubar_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/muted_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/outline_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/primary_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/secondary_button_theme.dart",
+          "registry/components/control/button/_impl/themes/variants/text_button_theme.dart",
+          "registry/components/control/button/_impl/utils/button_helpers.dart",
+          "registry/components/control/button/_impl/variants/button_variance.dart",
+          "registry/components/control/button/_impl/variants/button_variance_class.dart",
+          "registry/components/control/button/_impl/variants/button_variants.dart",
+          "registry/components/control/button/_impl/variants/card_button.dart",
+          "registry/components/control/button/_impl/variants/destructive_button.dart",
+          "registry/components/control/button/_impl/variants/ghost_button.dart",
+          "registry/components/control/button/_impl/variants/link_button.dart",
+          "registry/components/control/button/_impl/variants/outline_button.dart",
+          "registry/components/control/button/_impl/variants/primary_button.dart",
+          "registry/components/control/button/_impl/variants/secondary_button.dart",
+          "registry/components/control/button/_impl/variants/selected_button.dart",
+          "registry/components/control/button/_impl/variants/selected_button_widget.dart",
+          "registry/components/control/button/_impl/variants/tab_button.dart",
+          "registry/components/control/button/_impl/variants/text_button.dart",
+          "registry/components/control/button/button.dart"
+        ],
+        "registryRoot": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry"
+      }
+    }
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T03:33:10.585184Z",
+    "exitCode": 0
+  }
+}

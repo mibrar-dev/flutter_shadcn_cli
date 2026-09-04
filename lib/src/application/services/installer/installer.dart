@@ -4,6 +4,24 @@ import 'dart:io';
 import 'dart:typed_data';
 
 import 'package:crypto/crypto.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/component_manifest_resolver.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_plan.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/init_config_overrides.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/install_target_policy.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dry_run_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_entry.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_platform_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_pubspec_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_registry_file_owner.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_shared_service.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
+import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
+import 'package:flutter_shadcn_cli/src/application/services/registry_dependency_graph.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
@@ -14,6 +32,7 @@ import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_preset_load
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/state.dart';
 import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
 
 part 'installer_theme_part.dart';
 part 'installer_config_part.dart';
@@ -24,14 +43,7 @@ part 'installer_manifest_part.dart';
 part 'installer_file_install_part.dart';
 part 'installer_platform_alias_part.dart';
 part 'installer_pubspec_part.dart';
-part 'installer_dry_run_plan_part.dart';
-part 'installer_registry_file_owner_part.dart';
-part 'installer_alias_entry_part.dart';
-part 'installer_dependency_update_result_part.dart';
-part 'installer_assets_update_result_part.dart';
-part 'installer_fonts_update_result_part.dart';
-part 'installer_section_range_part.dart';
-part 'installer_init_config_overrides_part.dart';
+part 'installer_locale_part.dart';
 
 class Installer {
   static const int _fileCopyConcurrency = 4;
@@ -51,8 +63,6 @@ class Installer {
   final bool enableComposites;
   Set<String>? _installedComponentCache;
   final Set<String> _installingComponentIds = {};
-  final Set<String> _installingSharedIds = {};
-  final Set<String> _installedSharedCache = {};
   bool _initFilesEnsured = false;
   bool _deferAliases = false;
   bool _deferDependencyUpdates = false;
@@ -61,9 +71,17 @@ class Installer {
   final List<FontEntry> _pendingFonts = [];
   final Map<String, Future<void>> _componentInstallTasks = {};
   bool _deferComponentManifest = false;
-  Map<String, _RegistryFileOwner>? _registryFileIndex;
-  final Map<String, Set<String>> _sharedDependencyCache = {};
+  Future<void> _lockfileWriteQueue = Future<void>.value();
   ShadcnConfig? _cachedConfig;
+  late final ComponentManifestResolver _manifestResolver;
+  final InstallerConfigResolver _configResolver;
+  final InstallerFileSelectionPolicy _fileSelectionPolicy;
+  final InstallerManifestService _manifestService;
+  final InstallerFileWriterService _fileWriter;
+  final InstallerSharedService _sharedService;
+  final InstallerPubspecService _pubspecService;
+  final InstallerPlatformService _platformService;
+  final InstallTargetPolicy _installTargetPolicy;
 
   Installer({
     required this.registry,
@@ -80,7 +98,61 @@ class Installer {
     this.excludeFileKindsOverride,
     this.enableSharedGroups = true,
     this.enableComposites = true,
-  }) : logger = logger ?? CliLogger();
+    InstallerConfigResolver? configResolver,
+    InstallerFileSelectionPolicy? fileSelectionPolicy,
+    InstallerManifestService? manifestService,
+    InstallerFileWriterService? fileWriter,
+    InstallerPubspecService? pubspecService,
+    InstallerPlatformService? platformService,
+    InstallTargetPolicy? installTargetPolicy,
+  })  : logger = logger ?? CliLogger(),
+        _configResolver = configResolver ??
+            InstallerConfigResolver(
+              registry: registry,
+              installPathOverride: installPathOverride,
+              sharedPathOverride: sharedPathOverride,
+              registryNamespace: registryNamespace,
+            ),
+        _fileSelectionPolicy = fileSelectionPolicy ??
+            InstallerFileSelectionPolicy(
+              includeFileKindsOverride: includeFileKindsOverride,
+              excludeFileKindsOverride: excludeFileKindsOverride,
+              registryNamespace: registryNamespace,
+            ),
+        _manifestService = manifestService ??
+            InstallerManifestService(
+              targetDir: targetDir,
+              registry: registry,
+              registryNamespace: registryNamespace,
+              registryBaseUrlOverride: registryBaseUrlOverride,
+            ),
+        _fileWriter = fileWriter ??
+            InstallerFileWriterService(
+              registry: registry,
+              logger: logger ?? CliLogger(),
+            ),
+        _pubspecService = pubspecService ??
+            InstallerPubspecService(
+              targetDir: targetDir,
+              logger: logger ?? CliLogger(),
+            ),
+        _platformService = platformService ??
+            InstallerPlatformService(
+              targetDir: targetDir,
+              logger: logger ?? CliLogger(),
+            ),
+        _sharedService = InstallerSharedService(
+          registry: registry,
+          logger: logger ?? CliLogger(),
+          fileCopyConcurrency: _fileCopyConcurrency,
+        ),
+        _installTargetPolicy =
+            installTargetPolicy ?? const InstallTargetPolicy() {
+    _manifestResolver = ComponentManifestResolver(
+      registry: registry,
+      logger: this.logger,
+    );
+  }
 
   Future<void> init({
     bool skipPrompts = false,
@@ -116,6 +188,7 @@ class Installer {
     }
 
     final config = await ShadcnConfig.load(targetDir);
+    await _ensureAnalysisOptionsExclude(config);
     if (!effectiveSkipPrompts) {
       _printInitSummary(config, themePreset);
       final proceed = _confirmInitProceed();
@@ -126,6 +199,7 @@ class Installer {
     }
 
     final coreShared = _coreSharedIdsForInit();
+    await RegistryDependencyGraph(registry).validateSharedInstall(coreShared);
     final sharedToInstall = (await _resolveSharedDependencyClosure(
       coreShared.toSet(),
     ))
@@ -135,23 +209,20 @@ class Installer {
     logger.section('Installing core shared modules');
     var totalFiles = 0;
     for (final sharedId in sharedList) {
-      final shared = registry.shared.firstWhere(
-        (s) => s.id == sharedId,
-        orElse: () => throw Exception('Shared module $sharedId not found'),
-      );
+      final shared = registry.getSharedItem(sharedId);
+      if (shared == null) {
+        throw Exception('Shared module $sharedId not found');
+      }
       logger.detail('  • $sharedId (${shared.files.length} files)');
       totalFiles += shared.files.length;
     }
     logger.detail('  Total: $totalFiles files');
-    print('');
+    logger.info('');
 
     for (final sharedId in sharedList) {
       await installShared(sharedId);
     }
-    await _updateDependencies({
-      'data_widget': '^0.0.2',
-      'gap': '^3.0.1',
-    });
+    await _updateDependencies({'data_widget': '^0.0.2', 'gap': '^3.0.1'});
     if (themePreset != null && themePreset.isNotEmpty) {
       await applyThemeById(themePreset);
     } else if (!effectiveSkipPrompts) {
@@ -195,18 +266,33 @@ class Installer {
     bool installDependencies = true,
     Set<String>? ancestry,
   }) async {
-    await ensureInitFiles(allowPrompts: false);
     await _ensureConfigLoaded();
-    final component = registry.getComponent(name);
+    final installedBeforeResolve = await _installedComponentIds();
+    if (installedBeforeResolve.contains(name)) {
+      logger.info(
+        'Skipping ${_componentDisplayName(name)} ($name): already installed',
+      );
+      return;
+    }
+
+    logger.progress('Resolving component: $name');
+    final component = await _manifestResolver.resolve(name);
     if (component == null) {
       logger.warn('Component "$name" not found');
       return;
     }
 
+    if (installDependencies && ancestry == null) {
+      await RegistryDependencyGraph(
+        registry,
+      ).validateComponentInstall([component.id]);
+    }
+
+    await ensureInitFiles(allowPrompts: false);
+
     final stack = ancestry ?? <String>{};
     if (stack.contains(component.id)) {
-      logger.detail('Skipping ${component.id} (dependency cycle)');
-      return;
+      throw RegistryDependencyCycleException([...stack, component.id]);
     }
     stack.add(component.id);
 
@@ -231,47 +317,78 @@ class Installer {
       final installed = await _installedComponentIds();
       if (installed.contains(component.id)) {
         logger.detail('Skipping ${component.id} (already installed)');
+        _validateComponentInstallTargets(component);
+        await _preflightNamespaceCollisions(component);
+        await _writeLockfileRecord(component);
         return;
       }
 
+      _validateComponentInstallTargets(component);
+      await _preflightNamespaceCollisions(component);
       logger.action('Installing ${component.name} (${component.id})');
       _installingComponentIds.add(component.id);
       if (installDependencies) {
+        logger.progress(
+          'Resolving dependencies for ${component.name} '
+          '(${component.dependsOn.length} dependencies)',
+        );
         for (final dep in component.dependsOn) {
           await addComponent(dep, ancestry: stack);
         }
       }
 
       if (enableSharedGroups) {
+        logger.progress(
+          'Installing shared modules for ${component.name} '
+          '(${component.shared.length} modules)',
+        );
         for (final sharedId in component.shared) {
           await installShared(sharedId);
         }
       }
 
+      if (component.pubspec.isNotEmpty) {
+        final deps = component.pubspec['dependencies'] as Map<String, dynamic>;
+        await _preflightDependencies(deps);
+      }
+
       await _installComponentFiles(component);
       await _applyPlatformInstructions(component);
+      final installedLocaleResources = await _installLocaleResources(component);
 
       if (component.pubspec.isNotEmpty) {
         final deps = component.pubspec['dependencies'] as Map<String, dynamic>;
+        logger.progress('Updating pubspec dependencies for ${component.name}');
         await _queueDependencyUpdates(deps);
       }
       if (component.assets.isNotEmpty) {
+        logger.progress('Registering assets for ${component.name}');
         await _queueAssetUpdates(component.assets);
       }
       if (component.fonts.isNotEmpty) {
+        logger.progress('Registering fonts for ${component.name}');
         await _queueFontUpdates(component.fonts);
       }
       if (component.postInstall.isNotEmpty) {
         _reportPostInstall(component);
       }
       try {
-        await _writeComponentManifest(component);
+        logger.progress('Writing component manifest for ${component.name}');
+        await _writeComponentManifest(
+          component,
+          localeResourcesInstalled: installedLocaleResources,
+        );
       } catch (e) {
         if (e is ResolverV1Exception) {
           rethrow;
         }
         logger.warn('Failed to write component manifest: $e');
       }
+      await _writeLockfileRecord(
+        component,
+        localeResourcesInstalled: installedLocaleResources,
+      );
+      _installedComponentCache?.add(component.id);
       if (!_deferAliases) {
         await generateAliases();
       }
@@ -284,7 +401,6 @@ class Installer {
       if (!_deferDependencyUpdates) {
         await _syncDependenciesWithInstalled();
       }
-      _installedComponentCache?.add(component.id);
     } catch (e, st) {
       if (!completer.isCompleted) {
         completer.completeError(e, st);
@@ -300,12 +416,22 @@ class Installer {
     }
   }
 
+  String _componentDisplayName(String id) {
+    return id
+        .split(RegExp(r'[_\-\s]+'))
+        .where((part) => part.isNotEmpty)
+        .map((part) => part[0].toUpperCase() + part.substring(1))
+        .join(' ');
+  }
+
   Future<void> installAllComponents({int concurrency = 6}) async {
     await ensureInitFiles(allowPrompts: false);
     final ids = registry.components.map((c) => c.id).toList();
     if (ids.isEmpty) {
       return;
     }
+    logger.progress('Installing all components (${ids.length} total)');
+    await RegistryDependencyGraph(registry).validateComponentInstall(ids);
 
     var index = 0;
     Future<void> worker() async {
@@ -319,18 +445,13 @@ class Installer {
     }
 
     final workerCount = concurrency.clamp(1, ids.length);
-    await Future.wait(
-      List.generate(workerCount, (_) => worker()),
-    );
+    await Future.wait(List.generate(workerCount, (_) => worker()));
   }
 }
 
 final _classRegex = RegExp(
-    r'^\s*(abstract\s+)?class\s+([A-Z]\w*)(\s*<[^>{}]+>)?',
-    multiLine: true);
+  r'^\s*(abstract\s+)?class\s+([A-Z]\w*)(\s*<[^>{}]+>)?',
+  multiLine: true,
+);
 
 final _partRegex = RegExp(r'''part\s+['"]([^'"]+)['"];''');
-
-final _importDirectiveRegex =
-    RegExp(r'''^\s*(import|export|part)\s+['"]([^'"]+)['"]''');
-final _partOfDirectiveRegex = RegExp(r'^\s*part\s+of\b');

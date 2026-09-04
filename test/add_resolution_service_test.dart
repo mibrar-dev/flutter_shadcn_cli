@@ -16,6 +16,18 @@ void main() {
       expect(ref.canonical, '@shadcn/button');
     });
 
+    test('@namespace/component@version preserves requested version', () {
+      final ref = AddResolutionService.parseQualifiedComponentRef(
+        '@shadcn/button@1.2.3',
+      );
+
+      expect(ref, isNotNull);
+      expect(ref!.namespace, 'shadcn');
+      expect(ref.componentId, 'button');
+      expect(ref.version, '1.2.3');
+      expect(ref.canonical, '@shadcn/button@1.2.3');
+    });
+
     test('namespace:component parses to the same canonical component ref', () {
       final atRef =
           AddResolutionService.parseQualifiedComponentRef('@shadcn/button');
@@ -72,6 +84,7 @@ void main() {
       expect(requests, hasLength(1));
       expect(requests.single.namespace, 'shadcn');
       expect(requests.single.componentId, 'button:primary');
+      expect(requests.single.version, isNull);
       expect(probed, isEmpty);
     });
 
@@ -93,11 +106,13 @@ void main() {
             },
           ),
           throwsA(
-            predicate(
-              (Object error) =>
-                  error.toString().contains('Invalid component address'),
-              'invalid component address error',
-            ),
+            isA<ComponentResolutionException>()
+                .having((error) => error.token, 'token', token)
+                .having(
+                  (error) => error.message,
+                  'message',
+                  contains('Invalid component address'),
+                ),
           ),
         );
         expect(probed, isEmpty, reason: token);
@@ -114,16 +129,18 @@ void main() {
               (namespace == 'shadcn' || namespace == 'alt'),
         ),
         throwsA(
-          predicate(
-            (Object error) {
-              final message = error.toString();
-              return message.contains('Use @namespace/component') &&
-                  !message.contains('@<namespace>') &&
-                  !message.contains('namespace:component') &&
-                  !message.contains('namespace-qualified');
-            },
-            'canonical ambiguity error',
-          ),
+          isA<ComponentResolutionException>()
+              .having((error) => error.token, 'token', 'button')
+              .having(
+                (error) => error.message,
+                'message',
+                allOf(
+                  contains('Use @namespace/component'),
+                  isNot(contains('@<namespace>')),
+                  isNot(contains('namespace:component')),
+                  isNot(contains('namespace-qualified')),
+                ),
+              ),
         ),
       );
     });

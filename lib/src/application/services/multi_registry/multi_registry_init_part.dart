@@ -6,7 +6,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     if (trimmed.isEmpty) {
       return false;
     }
-    final config = await ShadcnConfig.load(targetDir);
+    final config = await _loadProjectConfig();
     final byConfig = config.registryConfig(trimmed);
     if (byConfig != null) {
       return true;
@@ -19,8 +19,8 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     String namespace, {
     bool assumeYes = false,
   }) async {
-    final projectRoot = findProjectRootFrom(targetDir);
-    var config = await ShadcnConfig.load(projectRoot);
+    final projectRoot = _projectRoot;
+    var config = await _loadProjectConfig();
     RegistryDirectoryEntry? directoryEntry;
     try {
       final directory = await _loadDirectory();
@@ -63,7 +63,12 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       capabilities: directoryEntry?.capabilities,
       assumeYes: assumeYes,
     );
-    await ShadcnConfig.save(projectRoot, config);
+    await _saveProjectConfig(config);
+    await _ensureAnalysisOptionsExclude(
+      projectRoot: projectRoot,
+      installPath:
+          config.registryConfig(namespace)?.installPath ?? source.installRoot,
+    );
 
     if (directoryEntry == null) {
       logger.info('No bootstrap actions defined for this registry.');
@@ -176,6 +181,96 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     return components;
   }
 
+  Future<void> _ensureAnalysisOptionsExclude({
+    required String projectRoot,
+    required String installPath,
+  }) async {
+    final normalizedInstallPath = installPath.replaceAll('\\', '/');
+    final excludedPath = normalizedInstallPath.endsWith('/**')
+        ? normalizedInstallPath
+        : '$normalizedInstallPath/**';
+    final file = File(p.join(projectRoot, 'analysis_options.yaml'));
+    if (!await file.exists()) {
+      await file.writeAsString(
+        [
+          'include: package:flutter_lints/flutter.yaml',
+          '',
+          'analyzer:',
+          '  exclude:',
+          '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+          '    - $excludedPath',
+          '',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    final content = await file.readAsString();
+    if (content.contains(excludedPath)) {
+      return;
+    }
+
+    final lines = content.split('\n');
+    final analyzerIndex = lines.indexWhere(
+      (line) => RegExp(r'^analyzer:\s*$').hasMatch(line),
+    );
+    if (analyzerIndex == -1) {
+      final prefix = content.endsWith('\n') ? content : '$content\n';
+      await file.writeAsString(
+        [
+          prefix,
+          'analyzer:',
+          '  exclude:',
+          '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+          '    - $excludedPath',
+          '',
+        ].join('\n'),
+      );
+      return;
+    }
+
+    var analyzerEnd = lines.length;
+    for (var i = analyzerIndex + 1; i < lines.length; i++) {
+      final line = lines[i];
+      if (line.trim().isEmpty || line.startsWith(' ') || line.startsWith('#')) {
+        continue;
+      }
+      analyzerEnd = i;
+      break;
+    }
+
+    final excludeIndex = () {
+      for (var i = analyzerIndex + 1; i < analyzerEnd; i++) {
+        if (RegExp(r'^\s{2}exclude:\s*$').hasMatch(lines[i])) {
+          return i;
+        }
+      }
+      return -1;
+    }();
+
+    if (excludeIndex == -1) {
+      lines.insertAll(analyzerEnd, [
+        '  exclude:',
+        '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+        '    - $excludedPath',
+      ]);
+    } else {
+      var insertIndex = excludeIndex + 1;
+      while (insertIndex < analyzerEnd &&
+          (RegExp(r'^\s{4}-\s+').hasMatch(lines[insertIndex]) ||
+              lines[insertIndex].trim().isEmpty ||
+              RegExp(r'^\s{4}#').hasMatch(lines[insertIndex]))) {
+        insertIndex++;
+      }
+      lines.insertAll(insertIndex, [
+        '    # Vendored shadcn install output. Analyze the canonical registry package instead.',
+        '    - $excludedPath',
+      ]);
+    }
+
+    await file.writeAsString(lines.join('\n'));
+  }
+
   Future<ShadcnConfig> _maybePromptSharedPath({
     required ShadcnConfig config,
     required String namespace,
@@ -284,8 +379,14 @@ extension MultiRegistryInitPart on MultiRegistryManager {
         logger: logger,
         cacheRootPath: cacheRoot,
       );
-      final indexData = await indexLoader.load();
-      final entries = indexLoader.entriesFrom(indexData);
+      final Map<String, dynamic> indexData;
+      final List<ThemeIndexEntry> entries;
+      try {
+        indexData = await indexLoader.load();
+        entries = indexLoader.entriesFrom(indexData);
+      } finally {
+        indexLoader.close();
+      }
       if (entries.isEmpty) {
         logger.info('No theme presets available for @$namespace.');
         return;
@@ -332,7 +433,7 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     required bool assumeYes,
   }) async {
     if (assumeYes) {
-      return true;
+      return false;
     }
     final label = action['promptLabel']?.toString().trim();
     if (label == null || label.isEmpty) {
@@ -343,10 +444,10 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     if (description != null && description.isNotEmpty) {
       stdout.writeln(description);
     }
-    stdout.write('Install? [Y/n]: ');
+    stdout.write('Install? [y/N]: ');
     final input = stdin.readLineSync()?.trim().toLowerCase();
     if (input == null || input.isEmpty) {
-      return true;
+      return false;
     }
     return input == 'y' || input == 'yes';
   }
@@ -360,6 +461,9 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       return const [];
     }
     if (assumeYes) {
+      if (action['optional'] == true) {
+        return groups.where((group) => group['required'] == true).toList();
+      }
       return groups.where((group) => group['default'] != false).toList();
     }
     final label = action['promptLabel']?.toString().trim();
@@ -370,8 +474,6 @@ extension MultiRegistryInitPart on MultiRegistryManager {
     if (description != null && description.isNotEmpty) {
       stdout.writeln(description);
     }
-    stdout.writeln(
-        'Select groups (comma-separated numbers, Enter for defaults):');
     for (var i = 0; i < groups.length; i++) {
       final group = groups[i];
       final suffix = group['default'] == false ? '' : ' [default]';
@@ -381,20 +483,34 @@ extension MultiRegistryInitPart on MultiRegistryManager {
         stdout.writeln('     $groupDescription');
       }
     }
-    stdout.write('Groups: ');
-    final input = stdin.readLineSync()?.trim() ?? '';
-    if (input.isEmpty) {
-      return groups.where((group) => group['default'] != false).toList();
-    }
-    final selected = <Map<String, dynamic>>[];
-    for (final token in input.split(',')) {
-      final index = int.tryParse(token.trim());
-      if (index == null || index < 1 || index > groups.length) {
-        continue;
+    while (true) {
+      stdout.write(
+        'Select numbers separated by comma, "a" for all, or Enter to skip: ',
+      );
+      final input = stdin.readLineSync()?.trim() ?? '';
+      if (input.isEmpty) {
+        return const [];
       }
-      selected.add(groups[index - 1]);
+      if (input.toLowerCase() == 'a') {
+        return groups.toList();
+      }
+      final selected = <Map<String, dynamic>>[];
+      var valid = true;
+      for (final token in input.split(',')) {
+        final index = int.tryParse(token.trim());
+        if (index == null || index < 1 || index > groups.length) {
+          valid = false;
+          break;
+        }
+        selected.add(groups[index - 1]);
+      }
+      if (valid) {
+        return selected;
+      }
+      logger.warn(
+        'Invalid selection. Enter numbers (1-${groups.length}) separated by comma, "a" for all, or press Enter to skip.',
+      );
     }
-    return selected;
   }
 
   ThemeIndexEntry _defaultThemeEntry(
@@ -438,23 +554,25 @@ extension MultiRegistryInitPart on MultiRegistryManager {
       final preset = entries[i];
       logger.info('  ${i + 1}) ${preset.name} (${preset.id})');
     }
-    stdout.write('Theme number: ');
-    final input = stdin.readLineSync()?.trim();
-    if (input == null || input.isEmpty) {
-      return null;
-    }
-    final index = int.tryParse(input);
-    if (index != null && index >= 1 && index <= entries.length) {
-      return entries[index - 1];
-    }
-    for (final entry in entries) {
-      if (entry.id == input) {
-        return entry;
+    while (true) {
+      stdout.write('Theme number or id (Enter to skip): ');
+      final input = stdin.readLineSync()?.trim() ?? '';
+      if (input.isEmpty) {
+        return null;
       }
+      final index = int.tryParse(input);
+      if (index != null && index >= 1 && index <= entries.length) {
+        return entries[index - 1];
+      }
+      for (final entry in entries) {
+        if (entry.id == input) {
+          return entry;
+        }
+      }
+      logger.warn(
+        'Invalid theme selection "$input". Choose 1-${entries.length} or press Enter to skip.',
+      );
     }
-    final defaultEntry = _defaultThemeEntry(indexData, entries);
-    logger.warn('Invalid theme selection. Using default: ${defaultEntry.id}.');
-    return defaultEntry;
   }
 
   String _themeRegistryId(String namespace, String baseUrl) {

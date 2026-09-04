@@ -19,8 +19,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
   Future<DiscoveryRegistryTarget> resolveDiscoveryTarget({
     String? namespace,
   }) async {
-    final projectRoot = findProjectRootFrom(targetDir);
-    final config = await ShadcnConfig.load(projectRoot);
+    final projectRoot = _projectRoot;
+    final config = await _loadProjectConfig();
     final resolvedNamespace = namespace?.trim().isNotEmpty == true
         ? namespace!.trim()
         : config.effectiveDefaultNamespace;
@@ -150,8 +150,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
   }
 
   Future<List<RegistrySummary>> listRegistries() async {
-    final projectRoot = findProjectRootFrom(targetDir);
-    final config = await ShadcnConfig.load(projectRoot);
+    final config = await _loadProjectConfig();
     final summaries = <String, RegistrySummary>{};
 
     final defaultNamespace = config.effectiveDefaultNamespace;
@@ -215,18 +214,33 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       throw MultiRegistryException('Registry namespace cannot be empty.');
     }
 
-    final projectRoot = findProjectRootFrom(targetDir);
-    var config = await ShadcnConfig.load(projectRoot);
+    var config = await _loadProjectConfig();
     var entry = config.registryConfig(trimmed);
 
-    if (entry == null) {
+    RegistryDirectoryEntry? directoryEntry;
+    try {
       final directory = await _loadDirectory();
-      final directoryEntry = directory.registries.firstWhere(
+      directoryEntry = directory.registries.firstWhere(
         (item) => item.namespace == trimmed,
         orElse: () => throw MultiRegistryException(
           'Registry namespace "$trimmed" not found.',
         ),
       );
+    } catch (error) {
+      if (entry == null) {
+        if (error is MultiRegistryException) {
+          rethrow;
+        }
+        if (error is StateError) {
+          throw MultiRegistryException(
+            'Registry namespace "$trimmed" not found.',
+          );
+        }
+        rethrow;
+      }
+    }
+
+    if (directoryEntry != null) {
       config = await _upsertConfigFromDirectory(config, directoryEntry);
       entry = config.registryConfig(trimmed);
     }
@@ -243,7 +257,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       installPath: entry.installPath ?? config.installPath,
       sharedPath: entry.sharedPath ?? config.sharedPath,
     );
-    await ShadcnConfig.save(projectRoot, config);
+    await _saveProjectConfig(config);
     return config;
   }
 
@@ -265,8 +279,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       throw MultiRegistryException('Registry path cannot be empty.');
     }
 
-    final projectRoot = findProjectRootFrom(targetDir);
-    var config = await ShadcnConfig.load(projectRoot);
+    final projectRoot = _projectRoot;
+    var config = await _loadProjectConfig();
     final directory = await directoryClient.load(
       projectRoot: projectRoot,
       directoryPath: trimmedRegistriesPath,
@@ -299,7 +313,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
           installPath: localEntry.installPath ?? config.installPath,
           sharedPath: localEntry.sharedPath ?? config.sharedPath,
         );
-    await ShadcnConfig.save(projectRoot, config);
+    await _saveProjectConfig(config);
     return config;
   }
 
@@ -309,8 +323,8 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       throw MultiRegistryException('Registry namespace cannot be empty.');
     }
 
-    final projectRoot = findProjectRootFrom(targetDir);
-    var config = await ShadcnConfig.load(projectRoot);
+    final projectRoot = _projectRoot;
+    var config = await _loadProjectConfig();
     final directory = await directoryClient.load(
       projectRoot: projectRoot,
       directoryUrl: defaultRegistriesDirectoryUrl,
@@ -345,7 +359,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
           installPath: remoteEntry.installPath ?? config.installPath,
           sharedPath: remoteEntry.sharedPath ?? config.sharedPath,
         );
-    await ShadcnConfig.save(projectRoot, config);
+    await _saveProjectConfig(config);
     return config;
   }
 
@@ -421,6 +435,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
       } on StateError {
         directoryEntry = null;
       } catch (e) {
+        directoryEntry = null;
         directoryError = e;
       }
     }
@@ -531,6 +546,12 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     final path = registryPathOverride?.trim();
     final url = registryUrlOverride?.trim();
     if (path != null && path.isNotEmpty) {
+      final normalizedPath = _resolveLocalOverridePath(path);
+      if (!Directory(normalizedPath).existsSync()) {
+        throw MultiRegistryException(
+          'Local registry not found: $normalizedPath',
+        );
+      }
       final componentsPath = _pathForLocalOverride(
         localRegistryPath: path,
         path: configEntry?.componentsPath ?? directoryEntry?.componentsPath,
@@ -669,7 +690,7 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     if (p.isAbsolute(trimmed)) {
       return p.normalize(trimmed);
     }
-    return p.normalize(p.join(findProjectRootFrom(targetDir), trimmed));
+    return p.normalize(p.join(_projectRoot, trimmed));
   }
 
   String? _pathForLocalOverride({
@@ -725,20 +746,58 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     final installRoot = entry.installRoot;
     final sharedRoot = '$installRoot/shared';
     final existing = config.registryConfig(entry.namespace);
+    final existingIsLocal = existing != null &&
+        ((existing.registryMode == 'local' && existing.registryPath != null) ||
+            existing.registryPath != null);
+    final refreshExisting = existing != null &&
+        !existingIsLocal &&
+        _shouldRefreshRemoteFromDirectory(existing, entry);
     final next = config.withRegistry(
       entry.namespace,
       existing?.copyWith(
-            registryMode: existing.registryMode ?? 'remote',
-            registryUrl: existing.registryUrl ?? entry.baseUrl,
-            baseUrl: existing.baseUrl ?? entry.baseUrl,
-            componentsPath: existing.componentsPath ?? entry.componentsPath,
-            componentsSchemaPath:
-                existing.componentsSchemaPath ?? entry.componentsSchemaPath,
-            indexPath: existing.indexPath ?? entry.indexPath,
-            indexSchemaPath: existing.indexSchemaPath ?? entry.indexSchemaPath,
-            themesPath: existing.themesPath ?? entry.themesPath,
-            themesSchemaPath:
-                existing.themesSchemaPath ?? entry.themesSchemaPath,
+            registryMode:
+                existingIsLocal ? existing.registryMode ?? 'local' : 'remote',
+            registryUrl: existingIsLocal
+                ? existing.registryUrl
+                : refreshExisting
+                    ? entry.baseUrl
+                    : existing.registryUrl ?? entry.baseUrl,
+            baseUrl: existingIsLocal
+                ? existing.baseUrl
+                : refreshExisting
+                    ? entry.baseUrl
+                    : existing.baseUrl ?? entry.baseUrl,
+            componentsPath: existingIsLocal
+                ? existing.componentsPath ?? entry.componentsPath
+                : refreshExisting
+                    ? entry.componentsPath
+                    : existing.componentsPath ?? entry.componentsPath,
+            componentsSchemaPath: existingIsLocal
+                ? existing.componentsSchemaPath ?? entry.componentsSchemaPath
+                : refreshExisting
+                    ? entry.componentsSchemaPath
+                    : existing.componentsSchemaPath ??
+                        entry.componentsSchemaPath,
+            indexPath: existingIsLocal
+                ? existing.indexPath ?? entry.indexPath
+                : refreshExisting
+                    ? entry.indexPath
+                    : existing.indexPath ?? entry.indexPath,
+            indexSchemaPath: existingIsLocal
+                ? existing.indexSchemaPath ?? entry.indexSchemaPath
+                : refreshExisting
+                    ? entry.indexSchemaPath
+                    : existing.indexSchemaPath ?? entry.indexSchemaPath,
+            themesPath: existingIsLocal
+                ? existing.themesPath ?? entry.themesPath
+                : refreshExisting
+                    ? entry.themesPath
+                    : existing.themesPath ?? entry.themesPath,
+            themesSchemaPath: existingIsLocal
+                ? existing.themesSchemaPath ?? entry.themesSchemaPath
+                : refreshExisting
+                    ? entry.themesSchemaPath
+                    : existing.themesSchemaPath ?? entry.themesSchemaPath,
             installPath: existing.installPath ?? installRoot,
             sharedPath: existing.sharedPath ?? sharedRoot,
             enabled: true,
@@ -765,24 +824,46 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     RegistryConfigEntry configEntry,
     RegistryDirectoryEntry directoryEntry,
   ) {
+    final configIsLocal = (configEntry.registryMode == 'local' &&
+            configEntry.registryPath != null) ||
+        configEntry.registryPath != null;
+    final refreshRemote = !configIsLocal &&
+        _shouldRefreshRemoteFromDirectory(configEntry, directoryEntry);
     return configEntry.copyWith(
-      baseUrl: configEntry.baseUrl ?? directoryEntry.baseUrl,
-      registryUrl: configEntry.registryUrl ?? directoryEntry.baseUrl,
-      componentsPath:
-          configEntry.componentsPath ?? directoryEntry.componentsPath,
-      componentsSchemaPath: configEntry.registryPath == null
-          ? configEntry.componentsSchemaPath ??
-              directoryEntry.componentsSchemaPath
-          : configEntry.componentsSchemaPath,
-      indexPath: configEntry.indexPath ?? directoryEntry.indexPath,
-      indexSchemaPath:
-          configEntry.indexSchemaPath ?? directoryEntry.indexSchemaPath,
-      themesPath: configEntry.themesPath ?? directoryEntry.themesPath,
-      themesSchemaPath:
-          configEntry.themesSchemaPath ?? directoryEntry.themesSchemaPath,
-      folderStructurePath:
-          configEntry.folderStructurePath ?? directoryEntry.folderStructurePath,
-      metaPath: configEntry.metaPath ?? directoryEntry.metaPath,
+      baseUrl: refreshRemote
+          ? directoryEntry.baseUrl
+          : configEntry.baseUrl ?? directoryEntry.baseUrl,
+      registryUrl: refreshRemote
+          ? directoryEntry.baseUrl
+          : configEntry.registryUrl ?? directoryEntry.baseUrl,
+      componentsPath: refreshRemote
+          ? directoryEntry.componentsPath
+          : configEntry.componentsPath ?? directoryEntry.componentsPath,
+      componentsSchemaPath: refreshRemote
+          ? directoryEntry.componentsSchemaPath
+          : configEntry.registryPath == null
+              ? configEntry.componentsSchemaPath ??
+                  directoryEntry.componentsSchemaPath
+              : configEntry.componentsSchemaPath,
+      indexPath: refreshRemote
+          ? directoryEntry.indexPath
+          : configEntry.indexPath ?? directoryEntry.indexPath,
+      indexSchemaPath: refreshRemote
+          ? directoryEntry.indexSchemaPath
+          : configEntry.indexSchemaPath ?? directoryEntry.indexSchemaPath,
+      themesPath: refreshRemote
+          ? directoryEntry.themesPath
+          : configEntry.themesPath ?? directoryEntry.themesPath,
+      themesSchemaPath: refreshRemote
+          ? directoryEntry.themesSchemaPath
+          : configEntry.themesSchemaPath ?? directoryEntry.themesSchemaPath,
+      folderStructurePath: refreshRemote
+          ? directoryEntry.folderStructurePath
+          : configEntry.folderStructurePath ??
+              directoryEntry.folderStructurePath,
+      metaPath: refreshRemote
+          ? directoryEntry.metaPath
+          : configEntry.metaPath ?? directoryEntry.metaPath,
       capabilitySharedGroups: configEntry.capabilitySharedGroups ??
           directoryEntry.capabilities.sharedGroups,
       capabilityComposites: configEntry.capabilityComposites ??
@@ -794,12 +875,37 @@ extension MultiRegistryDirectoryPart on MultiRegistryManager {
     );
   }
 
+  bool _shouldRefreshRemoteFromDirectory(
+    RegistryConfigEntry configEntry,
+    RegistryDirectoryEntry directoryEntry,
+  ) {
+    if (directoryEntry.namespace != 'shadcn') {
+      return false;
+    }
+    final configured = [
+      configEntry.baseUrl,
+      configEntry.registryUrl,
+    ].whereType<String>().map((value) => value.trim()).where((value) {
+      return value.isNotEmpty;
+    });
+    return configured.any(_isStaleOfficialRegistryUrl);
+  }
+
+  bool _isStaleOfficialRegistryUrl(String value) {
+    return value
+            .contains('github.com/mibrar-dev/shadcn_flutter_kit/tree/main') ||
+        value.contains(
+            'raw.githubusercontent.com/mibrar-dev/shadcn_flutter_kit/main') ||
+        value.contains(
+            'cdn.jsdelivr.net/gh/mibrar-dev/shadcn_flutter_kit@latest');
+  }
+
   Future<RegistryDirectory> _loadDirectory() async {
     if (_directoryCache != null) {
       return _directoryCache!;
     }
     _directoryCache = await directoryClient.load(
-      projectRoot: targetDir,
+      projectRoot: _projectRoot,
       directoryUrl: directoryUrl,
       directoryPath: directoryPath,
       offline: offline,

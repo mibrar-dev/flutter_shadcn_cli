@@ -1,0 +1,304 @@
+00:00 +0: loading test/cli_integration_test.dart
+00:00 +0: CLI integration add installs component and writes manifests
+• Installing Button (button)
+00:00 +1: CLI integration locale init creates l10n.yaml and local ARB folder
+Created l10n.yaml and lib/l10n/.
+Error: l10n.yaml already exists.
+00:00 +2: CLI integration doctor runs without crashing
+✨ flutter_shadcn doctor
+
+Environment
+  Script                 /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/dart_test.kernel.06ikg1/test.dart_1.dill
+
+  CWD                    /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_CouJ2J/app
+  PUB_CACHE              /Users/ibrar/.pub-cache
+
+Registry
+
+  Mode                   local
+  Root                   /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_CouJ2J/registry
+  components.json        /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_CouJ2J/registry/components.json
+  Cache                  (local registry, no cache)
+  Schema                 /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_CouJ2J/registry/components.schema.json
+
+Configuration
+  SHADCN_REGISTRY_ROOT   (unset)
+
+  SHADCN_REGISTRY_URL    (unset)
+  cliRoot                /Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_cli
+  localRegistryRoot      /Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit/lib/registry
+  config.registryMode    (unset)
+  config.registryPath    (unset)
+  config.registryUrl     (unset)
+
+Config paths
+  installPath            lib/ui/shadcn
+
+  sharedPath             lib/ui/shadcn/shared
+  installPath valid: yes
+  sharedPath valid: yes
+  installPath exists: no
+  sharedPath exists: no
+
+Theme files
+  color_scheme.dart      missing
+
+
+Schema validation
+
+✓   components.json matches the schema.
+
+Lockfile
+  shadcn.lock            not present
+
+  lockfileVersion        1
+  locked components      0
+✓   locked files are present.
+
+Platform targets
+  (set .shadcn/config.json "platformTargets" to override paths)
+
+  android:
+    permissions: android/app/src/main/AndroidManifest.xml
+    gradle: android/app/build.gradle
+    notes: .shadcn/platform/android.md
+  ios:
+    infoPlist: ios/Runner/Info.plist
+    podfile: ios/Podfile
+    notes: .shadcn/platform/ios.md
+  macos:
+    entitlements: macos/Runner/DebugProfile.entitlements
+    notes: .shadcn/platform/macos.md
+  desktop:
+    config: .shadcn/platform/desktop.md
+00:00 +3: CLI integration init rejects multiple positional namespace tokens
+00:01 +4: CLI integration init --install-fonts is rejected by parser
+00:02 +5: CLI integration docs command requires advanced mode
+00:03 +6: CLI integration advanced flag works after command
+00:04 +7: CLI integration json flag works in any position for json-enabled commands
+00:07 +8: CLI integration list uses registries directory manifest paths without persisted config
+00:08 +9: CLI integration theme help hides import flags unless advanced mode is enabled
+00:10 +10: CLI integration theme --apply-file installs a declarative manifest in advanced mode
+00:11 +11: CLI integration theme --apply-file rejects raw preset payloads
+00:13 +12: CLI integration developer registry override requires advanced mode
+00:14 +13: CLI integration add namespace-qualified component works with older-shaped config/state
+• Installing Button (button)
+00:14 +14: CLI integration add @namespace/component installs from selected registry
+• Installing Button (button)
+00:14 +15: CLI integration add --include-files=preview with @namespace installs preview and preview_state
+• Installing Button (button)
+00:14 +16: CLI integration default command sets default namespace and registries list works
+Default registry set to: alt
+{
+  "status": "ok",
+  "command": "registries",
+  "data": {
+    "defaultNamespace": "alt",
+    "items": [
+      {
+        "namespace": "alt",
+        "displayName": "alt",
+        "isDefault": true,
+        "enabled": true,
+        "source": "config",
+        "mode": "local",
+        "baseUrl": null,
+        "registryPath": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_OV7tkC/alt_registry",
+        "installRoot": "lib/ui/alt",
+        "capabilitySharedGroups": null,
+        "capabilityComposites": null,
+        "capabilityTheme": null
+      },
+      {
+        "namespace": "shadcn",
+        "displayName": "shadcn",
+        "isDefault": false,
+        "enabled": true,
+        "source": "config",
+        "mode": "local",
+        "baseUrl": null,
+        "registryPath": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_OV7tkC/registry",
+        "installRoot": "lib/ui/shadcn",
+        "capabilitySharedGroups": null,
+        "capabilityComposites": null,
+        "capabilityTheme": null
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-17T21:16:58.557827Z"
+  }
+}
+• Installing Button (button)
+00:15 +17: CLI integration init namespace executes inline init actions from registries directory
+Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+00:15 +18: CLI integration init without namespace uses default namespace inline actions when registries are configured
+Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+00:15 +19: CLI integration init without namespace bootstraps shadcn from registries directory on a clean project
+Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+00:15 +20: CLI integration init without flags uses persisted local registry mode from config
+Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+00:15 +21: CLI integration registries schema accepts deprecated themeConverterDart path during directory load
+00:16 +22: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only
+00:32 +23: CLI integration assets and remove use inline registry actions when available
+✓ Installed assets via inline registry actions.
+✓ Rolled back inline actions (1 files, 1 dirs).
+✓ Removed inline-managed asset actions.
+00:32 +24: CLI integration assets fails instead of installing removed asset component fallback
+00:33 +25: CLI integration rejects registry path and registry url overrides together
+00:35 +26: CLI integration add exits schema invalid when components schema fails
+00:36 +27: CLI integration add bypasses invalid components schema with skip integrity
+00:37 +28: CLI integration init exits schema invalid when components schema fails
+00:38 +29: CLI integration preloaded commands map schema failures to schema invalid
+00:40 +30: CLI integration validate reports schema failures
+00:41 +31: CLI integration sync preserves component manifests
+• Installing Button (button)
+✓ Sync complete
+00:41 +32: CLI integration offline list uses cached index
+{
+  "status": "ok",
+  "command": "list",
+  "data": {
+    "registry": {
+      "id": "https___example.com_registry",
+      "baseUrl": "https://example.com/registry"
+    },
+    "count": 0,
+    "components": []
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-17T21:17:24.927455Z",
+    "exitCode": 0
+  }
+}
+00:41 +33: CLI integration default command accepts --registries-path for local registries.json
+Default registry set to: localdev
+00:41 +34: CLI integration list/search accept @namespace registry token
+{
+  "status": "ok",
+  "command": "list",
+  "data": {
+    "registry": {
+      "id": "_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_shadcn_cli_it_QmLvVL_registry",
+      "baseUrl": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_QmLvVL/registry"
+    },
+    "count": 2,
+    "components": [
+      {
+        "id": "button",
+        "name": "Button",
+        "category": "control",
+        "description": "Button component",
+        "tags": [
+          "core"
+        ],
+        "install": "flutter_shadcn add button",
+        "import": "package:app/ui/shadcn/components/button/button.dart",
+        "importPath": "ui/shadcn/components/button/button.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "dialog"
+        ]
+      },
+      {
+        "id": "dialog",
+        "name": "Dialog",
+        "category": "overlay",
+        "description": "Dialog component",
+        "tags": [
+          "overlay"
+        ],
+        "install": "flutter_shadcn add dialog",
+        "import": "package:app/ui/shadcn/components/dialog/dialog.dart",
+        "importPath": "ui/shadcn/components/dialog/dialog.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "button"
+        ]
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-17T21:17:25.085810Z",
+    "exitCode": 0
+  }
+}
+{
+  "status": "ok",
+  "command": "search",
+  "data": {
+    "query": "button",
+    "registry": {
+      "id": "_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_shadcn_cli_it_QmLvVL_registry",
+      "baseUrl": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_QmLvVL/registry"
+    },
+    "count": 2,
+    "results": [
+      {
+        "id": "button",
+        "name": "Button",
+        "category": "control",
+        "description": "Button component",
+        "tags": [
+          "core"
+        ],
+        "install": "flutter_shadcn add button",
+        "import": "package:app/ui/shadcn/components/button/button.dart",
+        "importPath": "ui/shadcn/components/button/button.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "dialog"
+        ],
+        "score": 280
+      },
+      {
+        "id": "dialog",
+        "name": "Dialog",
+        "category": "overlay",
+        "description": "Dialog component",
+        "tags": [
+          "overlay"
+        ],
+        "install": "flutter_shadcn add dialog",
+        "import": "package:app/ui/shadcn/components/dialog/dialog.dart",
+        "importPath": "ui/shadcn/components/dialog/dialog.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "button"
+        ],
+        "score": 0
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-17T21:17:25.241750Z",
+    "exitCode": 0
+  }
+}
+00:41 +35: CLI integration theme widget commands fail explicitly without runtime execution
+00:42 +36: CLI integration init without --yes still completes with default config
+Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: Init done
+✓ Initialized shadcn (0 files, 0 dirs).
+00:42 +37: CLI integration app components hides material Stepper and Step when registry stepper is installed
+• Installing Stepper (stepper)
+00:42 +38: All tests passed!

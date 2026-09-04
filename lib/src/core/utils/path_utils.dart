@@ -2,6 +2,18 @@ import 'dart:io';
 
 import 'package:path/path.dart' as p;
 
+class ProjectRootNotFoundException implements Exception {
+  final String fromDir;
+
+  const ProjectRootNotFoundException(this.fromDir);
+
+  @override
+  String toString() {
+    return 'Could not locate Flutter project root from $fromDir '
+        '(pubspec.yaml not found).';
+  }
+}
+
 bool isPathTraversal(String path) {
   return path.contains('..') || path.contains('\\');
 }
@@ -15,9 +27,7 @@ String findProjectRootFrom(String fromDir) {
     }
     final parent = current.parent;
     if (parent.path == current.path) {
-      throw Exception(
-        'Could not locate Flutter project root (pubspec.yaml not found).',
-      );
+      throw ProjectRootNotFoundException(fromDir);
     }
     current = parent;
   }

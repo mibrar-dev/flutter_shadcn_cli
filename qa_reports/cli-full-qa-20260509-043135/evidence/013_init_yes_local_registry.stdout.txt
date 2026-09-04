@@ -1,0 +1,5 @@
+! components.json validation skipped for init (shadcn).
+shared core: theme, util, color_extensions, form_control, form_value_supplier
+pub dependencies: data_widget, gap
+✓ Initialized shadcn (48 files, 3 dirs).
+✓ Applied theme: Amber Minimal

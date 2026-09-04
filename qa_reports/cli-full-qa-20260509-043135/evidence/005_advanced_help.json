@@ -1,0 +1,23 @@
+{
+  "id": "005_advanced_help",
+  "name": "advanced help",
+  "category": "help",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--help"
+  ],
+  "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.166,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "\nflutter_shadcn CLI\nUsage: flutter_shadcn <command> [arguments]\n\nComponents\n  add                     Install one or more components.\n  remove (alias: rm)      Remove one or more installed components.\n  dry-run                 Preview what would be installed.\n  list (alias: ls)        List available components.\n  search                  Search for components.\n  info (alias: i)         Show component details.\n\nProject\n  init                    Initialize shadcn_flutter in the current project.\n  registries              List available and configured registries.\n  default                 Set or sh\n...<truncated>...\n           Install AI skills for local model workflows.\n\nGlobal flags\n  General:\n    --advanced              Show and enable developer and experimental features\n    --verbose               Verbose logging\n    --offline               Disable network calls (use cache only)\n\n  Registry Selection:\n    --registry-name         Registry namespace (e.g. shadcn)\n\n  Developer:\n    --registry-path         Use a local registry root\n    --registry-url          Use a remote registry URL\n    --registries-path       Use a local registries.json file\n    --skip-integrity        Skip registry integrity checks\n\n\n",
+  "stderrExcerpt": ""
+}

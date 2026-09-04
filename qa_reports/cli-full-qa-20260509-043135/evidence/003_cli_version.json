@@ -1,0 +1,22 @@
+{
+  "id": "003_cli_version",
+  "name": "cli version",
+  "category": "environment",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "version"
+  ],
+  "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.334,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "flutter_shadcn_cli version 0.2.0\n",
+  "stderrExcerpt": ""
+}

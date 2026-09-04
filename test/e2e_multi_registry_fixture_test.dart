@@ -181,6 +181,7 @@ void main() {
         logger: CliLogger(),
         directoryUrl:
             'http://${server.address.host}:${server.port}/registries.json',
+        registryUrlOverride: 'http://${server.address.host}:${server.port}/',
       );
       await manager.runNamespaceInit('shadcn');
 

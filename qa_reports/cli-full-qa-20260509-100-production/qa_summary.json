@@ -1,0 +1,62 @@
+{
+  "generatedAt": "2026-05-09T04:18:25.999Z",
+  "score": 100,
+  "passed": 10,
+  "total": 10,
+  "passRate": "10/10",
+  "productionApp": "/tmp/shadcn_prod_qa.AK9lFm/app",
+  "componentCount": 133,
+  "installedFiles": 1699,
+  "criteria": [
+    {
+      "name": "CLI static analysis",
+      "status": "pass",
+      "evidence": "dart analyze returns no issues"
+    },
+    {
+      "name": "CLI full test suite",
+      "status": "pass",
+      "evidence": "292/292 repository tests pass"
+    },
+    {
+      "name": "Kit static analysis",
+      "status": "pass",
+      "evidence": "registry kit analyzer returns no issues"
+    },
+    {
+      "name": "Production doctor",
+      "status": "pass",
+      "evidence": "doctor --json status ok"
+    },
+    {
+      "name": "Production dry-run all",
+      "status": "pass",
+      "evidence": "133 real components, no pseudo IDs"
+    },
+    {
+      "name": "Production audit",
+      "status": "pass",
+      "evidence": "audit --json status ok"
+    },
+    {
+      "name": "Production validate",
+      "status": "pass",
+      "evidence": "validate --json status ok"
+    },
+    {
+      "name": "Generated app analyze",
+      "status": "pass",
+      "evidence": "flutter analyze returns no issues"
+    },
+    {
+      "name": "Vendored output generated",
+      "status": "pass",
+      "evidence": "1699 installed shadcn files"
+    },
+    {
+      "name": "Regression fixes covered",
+      "status": "pass",
+      "evidence": "targeted production regression tests pass"
+    }
+  ]
+}

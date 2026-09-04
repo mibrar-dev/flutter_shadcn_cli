@@ -1,0 +1,7 @@
+Usage: flutter_shadcn search <query> [--refresh] [--json]
+       flutter_shadcn search @<namespace> [query] [--refresh] [--json]
+
+Searches for components by name, description, or tags.
+Options:
+  --refresh  Refresh cache from remote
+  --json     Output machine-readable JSON

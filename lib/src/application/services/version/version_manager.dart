@@ -5,9 +5,19 @@ import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:path/path.dart' as p;
 
+class VersionManagerException implements Exception {
+  final String message;
+  final int exitCode;
+
+  const VersionManagerException(this.message, {required this.exitCode});
+
+  @override
+  String toString() => message;
+}
+
 /// Manages CLI version checking and upgrades
 class VersionManager {
-  static const String currentVersion = '0.2.0';
+  static const String currentVersion = '0.2.7';
   static const String packageName = 'flutter_shadcn_cli';
   static const String pubDevApiUrl =
       'https://pub.dev/api/packages/$packageName';
@@ -119,7 +129,10 @@ class VersionManager {
       if (latestVersion == null) {
         logger.error(
             'Unable to fetch latest version. Please check your internet connection.');
-        exit(ExitCodes.networkError);
+        throw const VersionManagerException(
+          'Unable to fetch latest version.',
+          exitCode: ExitCodes.networkError,
+        );
       }
 
       if (!force && !_isNewerVersion(latestVersion, currentVersion)) {
@@ -150,14 +163,23 @@ class VersionManager {
         logger.error('');
         logger.info('Try manually upgrading with:');
         logger.info('  dart pub global activate $packageName');
-        exit(ExitCodes.ioError);
+        throw const VersionManagerException(
+          'Failed to upgrade.',
+          exitCode: ExitCodes.ioError,
+        );
       }
     } catch (e) {
+      if (e is VersionManagerException) {
+        rethrow;
+      }
       logger.error('Error during upgrade: $e');
       logger.info('');
       logger.info('Try manually upgrading with:');
       logger.info('  dart pub global activate $packageName');
-      exit(ExitCodes.ioError);
+      throw VersionManagerException(
+        'Error during upgrade: $e',
+        exitCode: ExitCodes.ioError,
+      );
     }
   }
 

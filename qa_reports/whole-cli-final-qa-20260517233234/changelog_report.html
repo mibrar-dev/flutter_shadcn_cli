@@ -1,0 +1,66 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.1">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1"># Whole CLI Final Changelog Report</p>
+<p class="p2"><br></p>
+<p class="p1">Date: 2026-05-17</p>
+<p class="p1">Branch: `branch-v1-whole-cli-final-qa`</p>
+<p class="p2"><br></p>
+<p class="p1">## 1. Real kit registry add failed after init</p>
+<p class="p2"><br></p>
+<p class="p1">Problem:</p>
+<p class="p1">`tool/cli_manual_smoke.sh` failed in a fresh Flutter project when running `add button` against `/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit/lib/registry`.</p>
+<p class="p2"><br></p>
+<p class="p1">Before:</p>
+<p class="p1">The CLI checked `registry/components/control/button/button.meta.json` before `registry/components/control/button/meta.json`. In the kit registry, `button.meta.json` is documentation/readme metadata and does not contain install `files`. Parsing it as a component install manifest caused a malformed manifest exception.</p>
+<p class="p2"><br></p>
+<p class="p1">Resolution:</p>
+<p class="p1">`ComponentManifestResolver` now:</p>
+<p class="p2"><br></p>
+<p class="p1">- prefers `meta.json` as component install metadata</p>
+<p class="p1">- checks `{id}.meta.json` after `meta.json`</p>
+<p class="p1">- skips docs-only metadata that declares `readme_meta.schema.json`</p>
+<p class="p1">- normalizes kit-style install metadata into the internal component model</p>
+<p class="p1">- expands relative file paths into install source/destination pairs</p>
+<p class="p1">- maps grouped dependency data into `shared`, `dependsOn`, and `pubspec.dependencies`</p>
+<p class="p2"><br></p>
+<p class="p1">Current behavior:</p>
+<p class="p1">The same fresh-app smoke run now passes init and component add/file checks.</p>
+<p class="p2"><br></p>
+<p class="p1">## 2. Regression coverage added</p>
+<p class="p2"><br></p>
+<p class="p1">Problem:</p>
+<p class="p1">The existing resolver tests only covered component-local manifests that already matched the internal component JSON shape.</p>
+<p class="p2"><br></p>
+<p class="p1">Resolution:</p>
+<p class="p1">Added `ComponentManifestResolver normalizes kit-style component meta and skips docs meta`.</p>
+<p class="p2"><br></p>
+<p class="p1">Current behavior:</p>
+<p class="p1">The focused resolver suite passes 4/4 and the full CLI suite passes 328/328.</p>
+<p class="p2"><br></p>
+<p class="p1">## 3. QA evidence refreshed</p>
+<p class="p2"><br></p>
+<p class="p1">Commands run:</p>
+<p class="p2"><br></p>
+<p class="p1">- `dart analyze`</p>
+<p class="p1">- `dart test test/component_manifest_resolver_test.dart --reporter=expanded`</p>
+<p class="p1">- `bash tool/cli_manual_smoke.sh --registry-root /Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit/lib/registry`</p>
+<p class="p1">- `dart test --concurrency=1 --reporter=compact`</p>
+<p class="p1">- `git diff --check`</p>
+<p class="p1">- `graphify update .`</p>
+<p class="p2"><br></p>
+<p class="p1">Result:</p>
+<p class="p1">All gates passed. Final score: 100/100.</p>
+</body>
+</html>

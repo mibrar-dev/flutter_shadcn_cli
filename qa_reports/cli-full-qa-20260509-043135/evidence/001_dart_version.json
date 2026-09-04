@@ -1,0 +1,21 @@
+{
+  "id": "001_dart_version",
+  "name": "dart version",
+  "category": "environment",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "--version"
+  ],
+  "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 0.085,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Dart SDK version: 3.11.0 (stable) (Mon Feb 9 00:38:07 2026 -0800) on \"macos_arm64\"\n",
+  "stderrExcerpt": ""
+}

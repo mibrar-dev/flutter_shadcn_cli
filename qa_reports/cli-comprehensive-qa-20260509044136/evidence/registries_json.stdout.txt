@@ -1,0 +1,28 @@
+{
+  "status": "ok",
+  "command": "registries",
+  "data": {
+    "defaultNamespace": "shadcn",
+    "items": [
+      {
+        "namespace": "shadcn",
+        "displayName": "shadcn_flutter_kit",
+        "isDefault": true,
+        "enabled": true,
+        "source": "config+directory",
+        "mode": "remote",
+        "baseUrl": "https://github.com/mibrar-dev/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry",
+        "registryPath": null,
+        "installRoot": "lib/ui/shadcn",
+        "capabilitySharedGroups": true,
+        "capabilityComposites": true,
+        "capabilityTheme": true
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:42:16.631854Z"
+  }
+}

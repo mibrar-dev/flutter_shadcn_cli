@@ -10,7 +10,7 @@ void main() {
     final root = await _packageRoot();
     final expected = renderCommandReferenceFiles();
     final commandsRoot = Directory(
-      p.join(root, 'docs', 'reference', 'commands'),
+      p.join(root, 'doc', 'reference', 'commands'),
     );
     final failures = <String>[];
 

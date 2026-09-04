@@ -64,7 +64,6 @@ Date: 2026-02-22
   - `version` -> `presentation/cli/commands/version_command.dart`
   - `upgrade` -> `presentation/cli/commands/upgrade_command.dart`
   - `feedback` -> `presentation/cli/commands/feedback_command.dart`
-  - `install-skill` -> `presentation/cli/commands/install_skill_command.dart`
 - Deleted temporary/legacy extraction artifacts:
   - `presentation/cli/commands/ops_command.dart`
   - `presentation/cli/commands/*_command_entry.dart` placeholders
@@ -121,8 +120,6 @@ Date: 2026-02-22
   - `docs_generator.dart` -> `application/services/docs/docs_generator.dart`
   - `feedback_manager.dart` -> `application/services/feedback/feedback_manager.dart`
   - `version_manager.dart` -> `application/services/version/version_manager.dart`
-  - `skill_manager.dart` -> `application/services/skills/skill_manager.dart`
-  - `skills_loader.dart` -> `infrastructure/skills/skills_loader.dart`
   - `studio_manager.dart` -> `application/services/studio/studio_manager.dart`
   - `theme_css.dart` -> `application/services/theme/theme_css.dart`
   - `audit_command.dart` / `deps_command.dart` / `validate_command.dart` -> `application/services/legacy_commands/*`
@@ -152,7 +149,39 @@ Date: 2026-02-22
 
 ## Remaining
 - Optional: replace remaining installer `part` modules with discrete injected services
-- Optional: split bootstrap dispatcher map construction into dedicated builder module
+- Completed optional bootstrap dispatcher builder split:
+  - extracted inline command dispatch map construction from `presentation/cli/bootstrap.dart`
+  - added `presentation/cli/bootstrap_dispatcher_builder.dart` as the dedicated wiring module
+  - preserved mutable config updates for `default` and `platform` through explicit getter/setter callbacks
+- Completed installer manifest service extraction:
+  - added `InstallerManifestService` for aggregate `components.json` and per-component `.shadcn/components/*.json` persistence
+  - kept installer orchestration and lockfile collision behavior unchanged
+  - added direct service coverage for aggregate writes, per-component locale manifest payloads, timestamp preservation, and manifest clearing
+- Completed installer file writer service extraction:
+  - added `InstallerFileWriterService` for registry byte reads, parent directory creation, optional skip logging, and destination writes
+  - kept component/shared dependency traversal and destination mapping in the installer part for now
+  - added direct service coverage for writing registry bytes and skipping optional files without source reads
+- Completed installer config resolver extraction:
+  - added `InstallerConfigResolver` for registry defaults, namespace-specific config paths, explicit path overrides, and alias expansion
+  - kept interactive init prompting inside the installer config part
+  - added direct resolver coverage for defaults, namespace overrides, and alias-expanded explicit overrides
+- Completed installer file selection policy extraction:
+  - added `InstallerFileSelectionPolicy` for README/meta/preview optional file decisions
+  - preserved command override, registry config, top-level config, and default precedence
+  - added direct policy coverage for file-kind aliases, namespace overrides, explicit include/exclude overrides, and default behavior
+- Completed installer value-object extraction:
+  - moved dry-run plans, init config overrides, alias entries, pubspec update results, section ranges, and registry file ownership records out of installer `part` files into normal Dart files
+  - exported `InitConfigOverrides` through the public installer compatibility barrel for existing callers
+  - preserved installer behavior while reducing the remaining installer `part` surface
+- Completed installer shared service extraction:
+  - added `InstallerSharedService` for shared ID normalization, core init shared IDs, shared dependency closure, registry file ownership lookup, and shared install recursion
+  - kept bulk install batching and installer state flush behavior in the installer part
+  - added direct service coverage for dependency closure from relative Dart imports, dependency install ordering, legacy `utils` normalization, optional `color_scheme`, and component fallback installs
+- Completed CLI manual QA guide and real-registry smoke harness:
+  - rewrote the manual testing guide as a visual command-family QA map with expected evidence and triage format
+  - added `tool/cli_manual_smoke.sh` for disposable Flutter app smoke runs against a local real registry checkout
+  - fixed shared dependency scanning for sibling Dart imports and mutually importing shared groups found by the smoke pass
+  - current real-registry smoke passes init/add/file checks and reports remaining registry analyzer health issues separately
 - Final dead-code sweep + docs updates for the refactored command structure
   - Completed in this pass:
     - Removed temporary refactor utility file: `tool_check_shared.dart`
@@ -165,6 +194,23 @@ Date: 2026-02-22
 
 ## Multi-registry production rewrite progress (2026-05-01)
 
+- Completed v1 lockfile/source-of-truth foundation:
+  - added root `shadcn.lock` v1 model and repository
+  - installer writes registry/component lock records on add and sync
+  - component records include namespace, qualified ID, version, registry roots, source manifest hash, installed files, dependencies, post-install notes, and reserved locale key ownership
+  - remove prefers lockfile file ownership and clears lock records without changing existing `.shadcn/state.json.managedDependencies` behavior
+  - legacy `.shadcn/components/*.json` projects synthesize lock records when `shadcn.lock` is absent
+  - `doctor` reports lockfile presence, malformed lockfiles, and missing locked files
+  - parser accepts `@namespace/component@version` and add rejects explicit version mismatches
+- Completed v1 pubspec conflict policy foundation:
+  - added deterministic `PubspecChangePlanner`
+  - dependency adds classify added, kept, and conflicting constraints
+  - installer and inline `mergePubspec` fail on conflicting existing constraints instead of silently skipping
+  - map-shaped, path, SDK, and other structured dependency entries are compared without collapsing them to strings
+  - dependency removals are planned as targeted pubspec line edits instead of shelling out to `dart pub remove`
+  - dependency conflicts are preflighted before component files are written
+  - lockfile dependency ownership controls removal so shared dependencies remain until the last owner is removed
+  - dependencies already present in the opposite pubspec section are treated as conflicts to avoid duplicate package entries
 - Completed command boundary cleanup:
   - removed public legacy `--registry` routing
   - kept hidden developer overrides wired into the current multi-registry source path
@@ -197,6 +243,16 @@ Date: 2026-02-22
 - Completed nullable `copyWith` field clearing:
   - `ShadcnConfig.copyWith` and `RegistryConfigEntry.copyWith` now distinguish omitted arguments from explicit `null`
   - registry URL/path/base URL, include/exclude filters, and aliases can be cleared
+- Completed v1 dependency graph cycle detection:
+  - added registry graph preflight for component, shared, and file dependency ownership edges
+  - `add`, `add --all`, init shared installs, and dry-run now fail on cycles before install writes
+  - cycle errors report the concrete path; missing dependencies use a separate typed failure
+  - optional file dependencies are excluded from hard cycle detection
+- Completed GAP-25 namespace collision detection:
+  - added install-time namespace collision policy for pending lockfile ownership records
+  - component installs now fail before writes when another qualified component owns the same generated target, asset path, manifest key, post-install namespace, locale namespace, or locale key
+  - lockfile records reserve asset path, manifest key, post-install namespace, locale namespace, and shared-file ownership fields for v1 compatibility
+  - reinstalling the same qualified component updates its own ownership record without colliding with itself
 
 ## Verified gates (multi-registry rewrite)
 
@@ -207,9 +263,61 @@ Date: 2026-02-22
 
 ## Remaining multi-registry rewrite work
 
-- Performance pass:
-  - cache a component lookup map per registry instance
-  - cache compiled JSON schema validators per schema path/source
-  - confirm HTTP clients are injected/closed correctly
-  - reduce repeated config/directory reads inside a single command execution
-- After all verification gates pass, delete and recreate `doc/` and `README.md` with current-only user/developer/reference documentation.
+- Completed performance pass:
+  - component lookup map cache per registry instance was already present and remains covered
+  - added shared item parsing/lookup cache per registry instance
+  - kept compiled component schema validator cache and added direct generic schema validator cache coverage
+  - confirmed injected HTTP clients are not closed by schema validation
+  - cached project root/config inside a `MultiRegistryManager` command lifecycle
+  - batched unqualified add resolution so each enabled registry is loaded once per add request group
+- Completed docs/README rewrite:
+  - expanded `README.md` from a command stub into a current v1 overview
+  - updated getting-started, component, registry, config/state, inline-init, and registry-directory docs for manifest-first installs, per-component locale merging, init/assets split, and lockfile state
+  - regenerated generated command reference pages from command metadata
+- Completed full CLI QA fixes from fresh Flutter project testing:
+  - dependency planner now keeps compatible caret constraints, SDK shorthand/map equivalents, and existing `any` constraints instead of reporting false conflicts
+  - `deps` command compares dependency values structurally, so `flutter_localizations: sdk: flutter` audits correctly
+  - `project refresh` repairs grouped `copyFiles` actions without generating `../` path escapes
+  - explicit `--registry-path` now forces local registry selection even when persisted config is remote-mode
+  - local v1 registry roots with `manifests/components.json` are accepted by registry root validation
+  - `validate` carries the selected manifest schema path through the loaded registry and no longer falls back to root `components.schema.json`
+  - real-registry fresh app verification installs all 133 components, passes `deps`, and passes `validate --json`
+- Completed remaining install safety hardening:
+  - component file destinations are rejected unless they stay under the configured install root or shared root
+  - shared file destinations are rejected unless they stay under the configured shared root
+  - registry-managed asset and font pubspec paths are rejected unless they stay under `assets/`
+  - lockfile records now preserve installed locale key ownership from merged component locale resources
+  - documented generated alias handling for Material name collisions such as Stepper/Step
+- Completed final optional refactor and hardening pass:
+  - extracted `InstallerPubspecService`, `InstallerDryRunService`, and `InstallerPlatformService` from remaining installer part modules
+  - kept installer public API compatibility while moving pubspec mutation, dry-run planning, and platform instruction writes behind discrete services
+  - added direct service coverage for pubspec preservation, dry-run dependency projection, and platform marker idempotency
+  - replaced process exits in registry selection, argument parsing, version upgrade, and studio service paths with typed exceptions or command-level exit-code returns
+  - added typed exceptions for component resolution, filesystem root escapes, and missing Flutter project roots
+- Completed future cleanup pass: deterministic CLI loading feedback:
+  - added `CliLogger.progress(...)` for stable non-spinner progress output
+  - added progress feedback for add/init/theme/shared/bulk install phases
+  - covered logger output, component install progress, and inline init progress with tests
+- Completed future cleanup pass: typed theme artifact install errors:
+  - added `ThemeInstallException` with stable error codes for theme artifact failures
+  - replaced generic theme artifact exceptions for duplicate targets, SHA-256 mismatches, missing sources, unsupported schemes, offline remote sources, and failed HTTP fetches
+  - added tests for hash mismatch and unsupported source error codes
+- Completed future cleanup pass: typed locale and pubspec install errors:
+  - added `LocaleInstallException` with stable error codes for locale resource and `l10n.yaml` failures
+  - added `PubspecUpdateException` for dependency conflict failures during preflight/update/sync
+  - kept existing user-facing error messages while giving callers typed error contracts
+- Completed whole-CLI final QA pass:
+  - fixed component-local manifest resolution for the real kit registry shape
+  - `meta.json` is now preferred as install metadata, `*.meta.json` documentation metadata is skipped when it uses `readme_meta.schema.json`
+  - kit-style relative file lists and grouped dependency metadata are normalized into the internal component install model
+  - real-registry disposable Flutter smoke now passes init/add/file checks against `shadcn_flutter_kit/flutter_shadcn_kit/lib/registry`
+  - final verification passed: `dart analyze`, `dart test --concurrency=1 --reporter=compact` (328/328), `git diff --check`, and `graphify update .`
+- Completed interactive CLI QA pass:
+  - ran `init` without `--yes` in a fresh Flutter project using an expect-driven terminal session
+  - confirmed init asks for component path, shared path, optional font/icon asset groups, and starter theme
+  - confirmed skipped optional font/icon groups do not create `assets/` files during init
+  - confirmed invalid theme input is rejected and re-prompts instead of silently choosing a default
+  - installed selected components and then all 133 real-registry components
+  - verified `shadcn.lock` installed file records: 1,497 checked, 0 missing
+  - verified real-registry `validate --json`, `audit --json`, `flutter pub get`, and `flutter analyze` pass after full install
+  - fixed kit registry markdown metadata to include `markdown_live_preview.dart` in both aggregate and per-component manifest file lists

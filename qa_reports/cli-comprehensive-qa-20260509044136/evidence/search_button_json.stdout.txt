@@ -1,0 +1,630 @@
+! index.json schema validation failed (42 issues).
+{
+  "status": "ok",
+  "command": "search",
+  "data": {
+    "query": "button",
+    "registry": {
+      "id": "_tmp_shadcn_cli-comprehensive-qa-20260509044136_source_overlay_registry",
+      "baseUrl": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/source_overlay/registry"
+    },
+    "count": 13,
+    "results": [
+      {
+        "id": "badge",
+        "name": "Badge",
+        "category": "display",
+        "description": "Compact label/status components built on button styles.",
+        "tags": [
+          "display",
+          "status",
+          "label"
+        ],
+        "install": "flutter_shadcn add badge",
+        "import": "import 'package:<your_app>/ui/shadcn/display/badge/badge.dart';",
+        "importPath": "ui/shadcn/display/badge/badge.dart",
+        "api": {
+          "constructors": [
+            "`PrimaryBadge`, `SecondaryBadge`, `OutlineBadge`, `DestructiveBadge`",
+            "`child` (`Widget`, required)",
+            "`leading` / `trailing` (`Widget?`)",
+            "`onPressed` (`VoidCallback?`)",
+            "`style` (`AbstractButtonStyle?`)"
+          ],
+          "callbacks": [
+            "`onPressed`"
+          ]
+        },
+        "examples": {
+          "minimal": "PrimaryBadge(\n  child: const Text('New'),\n)"
+        },
+        "dependencies": {
+          "pubspec": {},
+          "shared": [
+            "theme"
+          ]
+        },
+        "related": [
+          "button",
+          "chip"
+        ],
+        "score": 10
+      },
+      {
+        "id": "button",
+        "name": "Button",
+        "category": "control",
+        "description": "Shadcn-style button system with variants, toggles, and groups.",
+        "tags": [
+          "controls",
+          "forms",
+          "buttons"
+        ],
+        "install": "flutter_shadcn add button",
+        "import": "import 'package:<your_app>/ui/shadcn/control/button/button.dart';",
+        "importPath": "ui/shadcn/control/button/button.dart",
+        "api": {
+          "constructors": [
+            "`Button` — base widget requiring `child` and `style`.",
+            "`PrimaryButton`, `SecondaryButton`, `OutlineButton`, `GhostButton`, `LinkButton`, `TextButton`, `DestructiveButton`, `CardButton`, `TabButton` — pre-styled variants.",
+            "`IconButton` — icon-only button, with named constructors like `IconButton.primary` and `IconButton.secondary`.",
+            "`Toggle` — boolean toggle button.",
+            "`SelectedButton` — selected/unselected button with distinct styles.",
+            "`ButtonGroup` — groups multiple buttons with shared borders."
+          ],
+          "callbacks": [
+            "`onPressed` (buttons and icon buttons)",
+            "`onChanged` (toggle and selected buttons)",
+            "`onHover`, `onFocus`",
+            "`onTapDown`, `onTapUp`, `onTapCancel`",
+            "`onSecondaryTapDown`, `onSecondaryTapUp`, `onSecondaryTapCancel`",
+            "`onTertiaryTapDown`, `onTertiaryTapUp`, `onTertiaryTapCancel`",
+            "`onLongPressStart`, `onLongPressUp`, `onLongPressMoveUpdate`, `onLongPressEnd`",
+            "`onSecondaryLongPress`, `onTertiaryLongPress`"
+          ]
+        },
+        "examples": {
+          "minimal": "PrimaryButton(\n  onPressed: () {},\n  child: const Text('Save'),\n)"
+        },
+        "dependencies": {
+          "pubspec": {
+            "data_widget": "^0.0.2",
+            "gap": "^3.0.1"
+          },
+          "shared": [
+            "theme",
+            "color_extensions",
+            "geometry_extensions",
+            "clickable",
+            "form_control",
+            "form_value_supplier",
+            "menu_group"
+          ]
+        },
+        "related": [
+          "clickable",
+          "hover",
+          "patch"
+        ],
+        "score": 280
+      },
+      {
+        "id": "calendar",
+        "name": "Calendar",
+        "category": "display",
+        "description": "Date picker and calendar widgets for single, range, and multi selection.",
+        "tags": [
+          "calendar",
+          "date",
+          "picker",
+          "display"
+        ],
+        "install": "flutter_shadcn add calendar",
+        "import": "import 'package:<your_app>/ui/shadcn/display/calendar/calendar.dart';",
+        "importPath": "ui/shadcn/display/calendar/calendar.dart",
+        "api": {
+          "constructors": [
+            "`Calendar`",
+            "`view` (`CalendarView`, required)",
+            "`selectionMode` (`CalendarSelectionMode`, required)",
+            "`value` (`CalendarValue?`)",
+            "`onChanged` (`ValueChanged<CalendarValue?>?`)",
+            "`stateBuilder` (`DateStateBuilder?`)",
+            "`DatePickerDialog`",
+            "`initialViewType` (`CalendarViewType`, required)",
+            "`selectionMode` (`CalendarSelectionMode`, required)",
+            "`initialValue` (`CalendarValue?`)",
+            "`onChanged` (`ValueChanged<CalendarValue?>?`)",
+            "`CalendarView` — view helpers (`now`, `fromDateTime`).",
+            "`CalendarValue` — single/range/multi selection values."
+          ],
+          "callbacks": [
+            "`onChanged` (Calendar, DatePickerDialog)",
+            "`stateBuilder` (Calendar, DatePickerDialog)"
+          ]
+        },
+        "examples": {
+          "minimal": "Calendar(\n  view: CalendarView.now(),\n  selectionMode: CalendarSelectionMode.single,\n  onChanged: (value) {},\n)"
+        },
+        "dependencies": {
+          "pubspec": {
+            "gap": "^3.0.1"
+          },
+          "shared": [
+            "theme",
+            "style_value",
+            "text_modifiers",
+            "icon_extensions",
+            "localizations",
+            "lucide_icons"
+          ]
+        },
+        "related": [
+          "button",
+          "form/date_picker"
+        ],
+        "score": 0
+      },
+      {
+        "id": "chip",
+        "name": "Chip",
+        "category": "display",
+        "description": "Compact tag-style button with optional leading/trailing widgets.",
+        "tags": [
+          "display",
+          "forms",
+          "tag"
+        ],
+        "install": "flutter_shadcn add chip",
+        "import": "import 'package:<your_app>/ui/shadcn/display/chip/chip.dart';",
+        "importPath": "ui/shadcn/display/chip/chip.dart",
+        "api": {
+          "constructors": [
+            "`Chip`",
+            "`child` (`Widget`, required)",
+            "`leading` / `trailing` (`Widget?`)",
+            "`onPressed` (`VoidCallback?`)",
+            "`style` (`AbstractButtonStyle?`)"
+          ],
+          "callbacks": [
+            "`onPressed`"
+          ]
+        },
+        "examples": {
+          "minimal": "Chip(\n  child: const Text('Tag'),\n  onPressed: () {},\n)"
+        },
+        "dependencies": {
+          "pubspec": {},
+          "shared": [
+            "theme",
+            "style_value"
+          ]
+        },
+        "related": [
+          "badge",
+          "button"
+        ],
+        "score": 10
+      },
+      {
+        "id": "chip_input",
+        "name": "Chip Input",
+        "category": "form",
+        "description": "Inline text input that converts typed tokens into chip widgets with removable buttons and autocomplete hooks.",
+        "tags": [
+          "form",
+          "input",
+          "chips",
+          "tokens"
+        ],
+        "install": "flutter_shadcn add chip_input",
+        "import": "import 'package:<your_app>/ui/shadcn/form/chip_input/chip_input.dart';",
+        "importPath": "ui/shadcn/form/chip_input/chip_input.dart",
+        "api": {
+          "constructors": [
+            "`ChipInput<T>`",
+            "`chipBuilder` (`ChipWidgetBuilder<T>`, required)",
+            "`onChipSubmitted` (`ChipSubmissionCallback<T>`, required)",
+            "`onChipsChanged` (`ValueChanged<List<T>>?`)",
+            "`initialChips` (`List<T>?`)",
+            "`useChips` (`bool?`)",
+            "`autoInsertSuggestion` (`bool`)",
+            "`ChipEditingController<T>` — controller for chip text and values."
+          ],
+          "callbacks": [
+            "`onChipsChanged`"
+          ]
+        },
+        "examples": {
+          "minimal": "ChipInput<String>(\n  chipBuilder: (context, chip) => Chip(child: Text(chip)),\n  onChipSubmitted: (text) => text.isEmpty ? null : text,\n)"
+        },
+        "dependencies": {
+          "pubspec": {
+            "data_widget": "^0.0.2",
+            "gap": "^3.0.1"
+          },
+          "shared": [
+            "theme",
+            "style_value",
+            "form_value_supplier",
+            "lucide_icons"
+          ]
+        },
+        "related": [
+          "chip",
+          "text_field",
+          "autocomplete"
+        ],
+        "score": 10
+      },
+      {
+        "id": "clickable",
+        "name": "Clickable",
+        "category": "control",
+        "description": "State-aware gesture surface with hover, focus, and press handling.",
+        "tags": [
+          "interaction",
+          "primitive",
+          "gesture"
+        ],
+        "install": "flutter_shadcn add clickable",
+        "import": "import 'package:<your_app>/ui/shadcn/control/clickable/clickable.dart';",
+        "importPath": "ui/shadcn/control/clickable/clickable.dart",
+        "api": {
+          "constructors": [
+            "`child` (`Widget`, required) — content for the interactive surface.",
+            "`onPressed` (`VoidCallback?`) — primary tap callback.",
+            "`enabled` (`bool`) — enables/disables interactions (default: `true`).",
+            "`decoration`, `padding`, `margin`, `textStyle`, `iconTheme`, `mouseCursor`, `transform` — `WidgetStateProperty` values for state-based styling.",
+            "`focusNode`, `onFocus` — focus management and callbacks.",
+            "`onHover` — hover state callback.",
+            "`behavior` (`HitTestBehavior`) — hit testing behavior.",
+            "`disableTransition`, `disableHoverEffect`, `disableFocusOutline` — toggles for visual behavior.",
+            "`shortcuts`, `actions` — keyboard shortcut handling.",
+            "`statesController` — programmatic state control."
+          ],
+          "callbacks": [
+            "`onPressed`, `onDoubleTap`, `onLongPress`",
+            "`onTapDown`, `onTapUp`, `onTapCancel`",
+            "`onSecondaryTapDown`, `onSecondaryTapUp`, `onSecondaryTapCancel`",
+            "`onTertiaryTapDown`, `onTertiaryTapUp`, `onTertiaryTapCancel`",
+            "`onLongPressStart`, `onLongPressUp`, `onLongPressMoveUpdate`, `onLongPressEnd`",
+            "`onSecondaryLongPress`, `onTertiaryLongPress`",
+            "`onHover`, `onFocus`"
+          ]
+        },
+        "examples": {
+          "minimal": "Clickable(\n  onPressed: () {},\n  child: const Padding(\n    padding: EdgeInsets.all(8),\n    child: Text('Click me'),\n  ),\n)"
+        },
+        "dependencies": {
+          "pubspec": {
+            "data_widget": "^0.0.2"
+          },
+          "shared": [
+            "clickable"
+          ]
+        },
+        "related": [
+          "button",
+          "hover",
+          "patch"
+        ],
+        "score": 0
+      },
+      {
+        "id": "code_snippet",
+        "name": "Code Snippet",
+        "category": "display",
+        "description": "Stylized code container with action slot and theme overrides.",
+        "tags": [
+          "display",
+          "code",
+          "text"
+        ],
+        "install": "flutter_shadcn add code_snippet",
+        "import": "import 'package:<your_app>/ui/shadcn/display/code_snippet/code_snippet.dart';",
+        "importPath": "ui/shadcn/display/code_snippet/code_snippet.dart",
+        "api": {
+          "constructors": [
+            "`CodeSnippet`",
+            "`code` (`Widget`, required)",
+            "`actions` (`List<Widget>`)",
+            "`constraints` (`BoxConstraints?`)"
+          ],
+          "callbacks": []
+        },
+        "examples": {
+          "minimal": "CodeSnippet(\n  code: const Text('flutter run'),\n)"
+        },
+        "dependencies": {
+          "pubspec": {
+            "gap": "^3.0.1"
+          },
+          "shared": [
+            "theme",
+            "style_value",
+            "text_modifiers"
+          ]
+        },
+        "related": [
+          "text",
+          "button"
+        ],
+        "score": 0
+      },
+      {
+        "id": "empty_state",
+        "name": "Empty State",
+        "category": "display",
+        "description": "Standardized empty state block for empty, no-results, or error.",
+        "tags": [
+          "empty",
+          "state",
+          "no-results",
+          "error",
+          "placeholder"
+        ],
+        "install": "flutter_shadcn add empty_state",
+        "import": "import 'package:<your_app>/ui/shadcn/display/empty_state/empty_state.dart';",
+        "importPath": "ui/shadcn/display/empty_state/empty_state.dart",
+        "api": {
+          "constructors": [
+            "`EmptyState`",
+            "`variant` (`EmptyStateVariant`)",
+            "`size` (`EmptyStateSize`)",
+            "`icon`, `title`, `description` (`Widget?`)",
+            "`primaryAction`, `secondaryAction`, `footerAction` (`EmptyStateAction?`)",
+            "`maxWidth` (`double?`)",
+            "`showIconContainer` (`bool`)",
+            "`EmptyStateAction`",
+            "`label` (`String`, required)",
+            "`onPressed` (`VoidCallback?`)",
+            "`icon`, `trailingIcon` (`Widget?`)",
+            "`style` (`EmptyStateActionStyle`)"
+          ],
+          "callbacks": [
+            "`onPressed` (EmptyStateAction)"
+          ]
+        },
+        "examples": {
+          "minimal": "EmptyState(\n  title: const Text('No results'),\n  description: const Text('Try adjusting your filters.'),\n)"
+        },
+        "dependencies": {
+          "pubspec": {
+            "gap": "^3.0.1"
+          },
+          "shared": [
+            "theme",
+            "radix_icons"
+          ]
+        },
+        "related": [
+          "button",
+          "card"
+        ],
+        "score": 0
+      },
+      {
+        "id": "feature_carousel",
+        "name": "Feature Carousel",
+        "category": "display",
+        "description": "Animated feature card carousel with autoplay, swipe, and CTA support. (WIP)",
+        "tags": [
+          "display",
+          "carousel",
+          "feature"
+        ],
+        "install": "flutter_shadcn add feature_carousel",
+        "import": "import 'package:<your_app>/ui/shadcn/display/feature_carousel/feature_carousel.dart';",
+        "importPath": "ui/shadcn/display/feature_carousel/feature_carousel.dart",
+        "api": {
+          "constructors": [
+            "`FeatureCardCarousel`",
+            "`items` (`List<FeatureCarouselItem>`, required)",
+            "`controller` (`FeatureCarouselController?`)",
+            "`height`, `width` (`double?`)",
+            "`theme` (`FeatureCarouselThemeData?`)",
+            "`cardBuilder`, `titleBuilder`, `descriptionBuilder`, `ctaBuilder`, `backgroundBuilder`",
+            "`FeatureCarouselItem`",
+            "`title`, `description` (`String?`)",
+            "`icon` (`IconData?`)",
+            "`iconBuilder` (`FeatureCarouselIconBuilder?`)",
+            "`accentColor` (`Color?`)",
+            "`FeatureCarouselController` — autoplay, navigation, CTA configuration.",
+            "`FeatureCarouselAnimationStyle` — animation styles for transitions."
+          ],
+          "callbacks": [
+            "`onPrimaryAction` (FeatureCarouselController)",
+            "`onIndexChanged` (FeatureCarouselController)"
+          ]
+        },
+        "examples": {
+          "minimal": "FeatureCardCarousel(\n  items: const [\n    FeatureCarouselItem(title: 'Fast', description: 'Quick setup'),\n    FeatureCarouselItem(title: 'Flexible', description: 'Composable APIs'),\n  ],\n)"
+        },
+        "dependencies": {
+          "pubspec": {},
+          "shared": []
+        },
+        "related": [
+          "carousel",
+          "button"
+        ],
+        "score": 0
+      },
+      {
+        "id": "hover",
+        "name": "Hover",
+        "category": "control",
+        "description": "Hover timing helpers plus lightweight state tracking widgets.",
+        "tags": [
+          "hover",
+          "pointer",
+          "interaction"
+        ],
+        "install": "flutter_shadcn add hover",
+        "import": "import 'package:<your_app>/ui/shadcn/control/hover/hover.dart';",
+        "importPath": "ui/shadcn/control/hover/hover.dart",
+        "api": {
+          "constructors": [
+            "`Hover` — timed hover activation with `waitDuration`, `minDuration`, and `showDuration`.",
+            "`HoverActivity` — raw enter/exit/hover callbacks, optional `debounceDuration`."
+          ],
+          "callbacks": [
+            "`onHover` (Hover, HoverActivity)",
+            "`onEnter`, `onExit` (HoverActivity)"
+          ]
+        },
+        "examples": {
+          "minimal": "Hover(\n  onHover: (hovered) {},\n  child: const Text('Hover me'),\n)"
+        },
+        "dependencies": {
+          "pubspec": {},
+          "shared": [
+            "theme",
+            "style_value"
+          ]
+        },
+        "related": [
+          "clickable",
+          "button"
+        ],
+        "score": 0
+      },
+      {
+        "id": "icon",
+        "name": "Icon",
+        "category": "display",
+        "description": "Theme-driven icon size/color helpers and WrappedIcon.",
+        "tags": [
+          "icon",
+          "theme"
+        ],
+        "install": "flutter_shadcn add icon",
+        "import": "import 'package:<your_app>/ui/shadcn/display/icon/icon.dart';",
+        "importPath": "ui/shadcn/display/icon/icon.dart",
+        "api": {
+          "constructors": [
+            "`WrappedIcon` — wraps an icon theme around a child.",
+            "`IconExtension` — provides helpers:",
+            "size: `iconXSmall`, `iconSmall`, `iconMedium`, `iconLarge`, `iconXLarge`",
+            "color: `iconMutedForeground`, `iconPrimary`, `iconSecondary`, `iconPrimaryForeground`"
+          ],
+          "callbacks": []
+        },
+        "examples": {
+          "minimal": "Icon(Icons.star).iconSmall"
+        },
+        "dependencies": {
+          "pubspec": {},
+          "shared": [
+            "theme"
+          ]
+        },
+        "related": [
+          "text",
+          "button"
+        ],
+        "score": 0
+      },
+      {
+        "id": "input",
+        "name": "Input",
+        "category": "form",
+        "description": "Input feature extensions for `TextField`: hint, clear/copy/paste, password toggle, autocomplete, spinner, stepper buttons, and above/below helpers.",
+        "tags": [
+          "form",
+          "input",
+          "text"
+        ],
+        "install": "flutter_shadcn add input",
+        "import": "import 'package:<your_app>/ui/shadcn/form/input/input.dart';",
+        "importPath": "ui/shadcn/form/input/input.dart",
+        "api": {
+          "constructors": [],
+          "callbacks": [],
+          "items": [
+            "`InputFeaturePosition`: `leading`, `trailing`, `above`, `below`.",
+            "`SuggestionBuilder`: `FutureOr<Iterable<String>> Function(String query)`.",
+            "Feature classes:",
+            "`InputHintFeature`",
+            "`InputPasswordToggleFeature`",
+            "`InputClearFeature`",
+            "`InputRevalidateFeature`",
+            "`InputAutoCompleteFeature`",
+            "`InputSpinnerFeature` (`step`, `invalidValue`, `min`, `max`, `enableGesture`)",
+            "`InputStepperButtonFeature` / `InputStepperButtonFeature.decrement`",
+            "`InputCopyFeature`",
+            "`InputPasteFeature`",
+            "`InputLeadingFeature`",
+            "`InputTrailingFeature`",
+            "`InputAboveBelowFeature` (`above`/`below`)"
+          ]
+        },
+        "examples": {
+          "minimal": ""
+        },
+        "dependencies": {
+          "pubspec": {
+            "data_widget": "^0.0.2"
+          },
+          "shared": [
+            "constants",
+            "form_value_supplier",
+            "lucide_icons",
+            "overlay",
+            "theme",
+            "util"
+          ]
+        },
+        "related": [],
+        "score": 10
+      },
+      {
+        "id": "pagination",
+        "name": "Pagination",
+        "category": "navigation",
+        "description": "Page navigation controls with skip, previous/next, and ellipsis handling.",
+        "tags": [
+          "navigation",
+          "pagination"
+        ],
+        "install": "flutter_shadcn add pagination",
+        "import": "import 'package:<your_app>/ui/shadcn/navigation/pagination/pagination.dart';",
+        "importPath": "ui/shadcn/navigation/pagination/pagination.dart",
+        "api": {
+          "constructors": [
+            "`Pagination`",
+            "`page` (`int`, required)",
+            "`total` (`int`, required)",
+            "`onChanged` (`ValueChanged<int>?`)",
+            "`showLabel`, `gap`, `siblingCount`, `boundaryCount`",
+            "`PaginationTheme` — spacing and label visibility."
+          ],
+          "callbacks": []
+        },
+        "examples": {
+          "minimal": "Pagination(\n  page: 1,\n  total: 10,\n  onChanged: (page) {},\n)"
+        },
+        "dependencies": {
+          "pubspec": {},
+          "shared": [
+            "theme",
+            "style_value",
+            "localizations",
+            "radix_icons"
+          ]
+        },
+        "related": [
+          "button"
+        ],
+        "score": 0
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-09T04:42:19.616682Z",
+    "exitCode": 0
+  }
+}

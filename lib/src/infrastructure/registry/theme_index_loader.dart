@@ -34,6 +34,10 @@ class ThemeIndexLoader {
     SchemaValidator? schemaValidator,
   }) : schemaValidator = schemaValidator ?? SchemaValidator();
 
+  void close() {
+    schemaValidator.close();
+  }
+
   Future<Map<String, dynamic>> load() async {
     final cacheFile = _getCacheFile();
     final localPath = _resolveLocalPath();
@@ -155,7 +159,7 @@ class ThemeIndexLoader {
         registryBaseUrl,
         ResolverV1.normalizeRelativePath(themesPath),
       );
-      final response = await http.get(uri);
+      final response = await http.get(uri).timeout(const Duration(seconds: 20));
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw Exception(
           'Failed to fetch theme index ${uri.toString()} (${response.statusCode})',
@@ -211,7 +215,8 @@ class ThemeIndexLoader {
       logger: logger,
     );
     if (!result.isValid) {
-      logger?.warn(
+      // Must go to STDERR: STDOUT is reserved for parseable JSON in --json mode.
+      logger?.warnToStderr(
         'theme.index.json schema validation failed (${result.errors.length} issues).',
       );
     }

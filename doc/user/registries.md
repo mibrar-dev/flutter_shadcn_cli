@@ -68,3 +68,27 @@ The registry directory defines:
 - inline init actions
 
 Reference details are in [../reference/registries-json.md](../reference/registries-json.md).
+
+## Manifest Resolution
+
+The registry directory entry and project config tell the CLI which manifest paths belong to a namespace. During install, the CLI treats the resolved registry manifest data as the source of truth for a component.
+
+Resolution order is registry-scoped:
+
+- use the component manifest source published by the registry when available
+- fall back to the registry's configured `components.json`
+- fall back to the registry's configured `index.json` only for lookup metadata when the registry supports it
+
+If a registry does not publish a per-component manifest source, that absence is cached for that registry during resolution so later component installs do not repeatedly probe the same missing source.
+
+## Init and Assets
+
+`flutter_shadcn init [namespace]` executes inline `init.actions` from `registries.json`. Public init no longer depends on fetching `meta.json` before bootstrap.
+
+`flutter_shadcn init --yes` installs the required bootstrap surface only. Optional fonts, icons, and asset packs are installed explicitly:
+
+```bash
+flutter_shadcn assets --typography
+flutter_shadcn assets --icons
+flutter_shadcn assets --all
+```

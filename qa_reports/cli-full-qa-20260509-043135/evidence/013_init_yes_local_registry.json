@@ -1,0 +1,27 @@
+{
+  "id": "013_init_yes_local_registry",
+  "name": "init yes local registry",
+  "category": "init",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "init",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "--yes"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.679,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "! components.json validation skipped for init (shadcn).\nshared core: theme, util, color_extensions, form_control, form_value_supplier\npub dependencies: data_widget, gap\n\u2713 Initialized shadcn (48 files, 3 dirs).\n\u2713 Applied theme: Amber Minimal\n",
+  "stderrExcerpt": ""
+}

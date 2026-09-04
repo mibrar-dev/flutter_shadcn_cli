@@ -13,7 +13,7 @@ import 'package:json_schema/json_schema.dart';
 import 'package:path/path.dart' as p;
 
 const String defaultRegistriesDirectoryUrl =
-    'https://raw.githubusercontent.com/ibrar-x/shadcn-flutter-registry/master/registries.v4.json';
+    'https://flutter-shadcn.github.io/registry-directory/registries/registries.json';
 
 class RegistryDirectoryClient {
   final http.Client _client;
@@ -97,7 +97,7 @@ class RegistryDirectoryClient {
         'Local registries.json not found: ${candidate.path}',
       );
     }
-    return candidate.readAsString();
+    return await candidate.readAsString();
   }
 
   String _resolveDirectoryPath(String projectRoot, String input) {
@@ -152,7 +152,7 @@ class RegistryDirectoryClient {
           'Offline mode: cache not found for ${url.toString()}',
         );
       }
-      return bodyCacheFile.readAsString();
+      return await bodyCacheFile.readAsString();
     }
 
     final etag = await _readEtag(metaCacheFile);
@@ -169,7 +169,7 @@ class RegistryDirectoryClient {
             'Received 304 but cache body missing for ${url.toString()}',
           );
         }
-        return bodyCacheFile.readAsString();
+        return await bodyCacheFile.readAsString();
       }
       if (response.statusCode < 200 || response.statusCode >= 300) {
         throw RegistryDirectoryException(
@@ -185,10 +185,10 @@ class RegistryDirectoryClient {
       return response.body;
     } catch (e) {
       if (await bodyCacheFile.exists()) {
-        logger?.warn(
+        logger?.warnToStderr(
           'Using stale cache after fetch failure for ${url.toString()}: $e',
         );
-        return bodyCacheFile.readAsString();
+        return await bodyCacheFile.readAsString();
       }
       rethrow;
     }

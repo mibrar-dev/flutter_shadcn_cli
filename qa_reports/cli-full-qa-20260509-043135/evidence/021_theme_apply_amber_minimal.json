@@ -1,0 +1,24 @@
+{
+  "id": "021_theme_apply_amber_minimal",
+  "name": "theme apply amber minimal",
+  "category": "theme",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "theme",
+    "--apply",
+    "amber-minimal"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 17.58,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "\u2713 Applied theme: Amber Minimal\n",
+  "stderrExcerpt": ""
+}

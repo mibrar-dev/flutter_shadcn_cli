@@ -1,5 +1,0 @@
-id: flutter-shadcn-cli
-name: Flutter shadcn CLI
-version: 1.0.0
-description: AI skill for maintaining and using the flutter_shadcn CLI itself.
-main: SKILL.md

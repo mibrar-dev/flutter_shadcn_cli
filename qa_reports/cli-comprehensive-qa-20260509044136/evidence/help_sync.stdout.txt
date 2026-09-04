@@ -1,0 +1,3 @@
+Usage: flutter_shadcn sync
+
+Re-applies .shadcn/config.json (paths, theme) to existing files.

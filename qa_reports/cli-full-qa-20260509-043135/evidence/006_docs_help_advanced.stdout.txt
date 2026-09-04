@@ -1,0 +1,6 @@
+Usage: flutter_shadcn docs [--generate]
+
+Regenerate docs/reference/commands from CLI metadata.
+Options:
+  --generate, -g     Regenerate command reference docs (default)
+  --help, -h         Show this message

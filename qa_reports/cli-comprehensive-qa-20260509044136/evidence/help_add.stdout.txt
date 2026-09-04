@@ -1,0 +1,6 @@
+Usage: flutter_shadcn add <@namespace/component> [<@namespace/component> ...]
+       flutter_shadcn add <component> [<component> ...]  # resolves using default/enabled registries
+Options:
+  --include-files   Optional kinds to include: readme, preview, meta
+  --exclude-files   Optional kinds to exclude: readme, preview, meta
+  --help, -h         Show this message

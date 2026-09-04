@@ -1,0 +1,4 @@
+
+📦 Available Components
+✗ Failed to load components: baseUrl must be an absolute URL
+Tip: Check the configured registry URL and try again.

@@ -1,12 +1,15 @@
 import 'dart:convert';
 import 'dart:io';
 
+import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
+import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_editor.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 import 'package:http/http.dart' as http;
 import 'package:path/path.dart' as p;
-import 'package:yaml/yaml.dart';
+
+import 'init_destination_policy.dart';
 
 part 'init_action_engine_exception_part.dart';
 part 'init_execution_result_part.dart';
@@ -118,9 +121,14 @@ class InitActionEngine {
         }
       }
 
+      logger?.progress('Running init action: $type');
       switch (type) {
         case 'ensureDirs':
-          final created = await _runEnsureDirs(projectRoot, action);
+          final created = await _runEnsureDirs(
+            projectRoot,
+            action,
+            logger: logger,
+          );
           dirsCreated += created.length;
           createdDirs.addAll(created);
           break;
@@ -130,6 +138,7 @@ class InitActionEngine {
             baseUrl: baseUrl,
             action: action,
             groupSelector: groupSelector,
+            logger: logger,
           );
           if (written.isEmpty && _hasActionGroups(action)) {
             continue;
@@ -146,6 +155,7 @@ class InitActionEngine {
             baseUrl: baseUrl,
             action: action,
             groupSelector: groupSelector,
+            logger: logger,
           );
           if (written.isEmpty && _hasActionGroups(action)) {
             continue;
@@ -161,6 +171,7 @@ class InitActionEngine {
             projectRoot,
             action,
             derivedFlutterAssets: writtenAssetCandidates,
+            logger: logger,
           );
           pubspecDelta = pubspecDelta.merge(delta);
           break;
@@ -242,12 +253,22 @@ class InitActionEngine {
 
   Future<List<String>> _runEnsureDirs(
     String projectRoot,
-    Map<String, dynamic> action,
-  ) async {
+    Map<String, dynamic> action, {
+    CliLogger? logger,
+  }) async {
     final dirs = (action['dirs'] as List<dynamic>? ?? const []);
+    logger?.progress(
+      'Ensuring init directories '
+      '(${dirs.length} ${dirs.length == 1 ? 'path' : 'paths'})',
+    );
     final created = <String>[];
     for (final entry in dirs) {
       final relPath = ResolverV1.normalizeRelativePath(entry.toString());
+      try {
+        InitDestinationPolicy.assertCopyDestination(relPath);
+      } catch (e) {
+        throw InitActionEngineException(e.toString());
+      }
       final absPath = ProjectPathGuard.resolveSafeWritePath(
         projectRoot: projectRoot,
         destinationRelativePath: relPath,
@@ -266,6 +287,7 @@ class InitActionEngine {
     required String baseUrl,
     required Map<String, dynamic> action,
     InitActionGroupSelector? groupSelector,
+    CliLogger? logger,
   }) async {
     final base = action['base']?.toString();
     final destBase = action['destBase']?.toString();
@@ -311,9 +333,17 @@ class InitActionEngine {
       baseUrl: baseUrl,
       groupSelector: groupSelector,
     );
+    if (files.isEmpty) {
+      return const <String>[];
+    }
 
+    logger?.progress(
+      'Copying init files '
+      '(${files.length} ${files.length == 1 ? 'file' : 'files'})',
+    );
     final written = <String>[];
-    for (final fileEntry in files) {
+    for (var i = 0; i < files.length; i += 1) {
+      final fileEntry = files[i];
       final filePath = ResolverV1.normalizeRelativePath(fileEntry.toString());
       final destinationRel = usesDirMapping
           ? InitPathMapper.mapCopyDirDestination(
@@ -328,6 +358,11 @@ class InitActionEngine {
               base: base,
               destBase: destBase,
             );
+      try {
+        InitDestinationPolicy.assertCopyDestination(destinationRel);
+      } catch (e) {
+        throw InitActionEngineException(e.toString());
+      }
       final destinationAbs = ProjectPathGuard.resolveSafeWritePath(
         projectRoot: projectRoot,
         destinationRelativePath: destinationRel,
@@ -358,7 +393,9 @@ class InitActionEngine {
     String projectRoot,
     Map<String, dynamic> action, {
     Set<String> derivedFlutterAssets = const <String>{},
+    CliLogger? logger,
   }) async {
+    logger?.progress('Merging init pubspec updates');
     final file = File(
       ProjectPathGuard.resolveSafeWritePath(
         projectRoot: projectRoot,
@@ -371,6 +408,14 @@ class InitActionEngine {
 
     final dependencies = _pubspecMap(action['dependencies']);
     final devDependencies = _pubspecMap(action['devDependencies']);
+    final duplicateRequestedDeps =
+        dependencies.keys.where(devDependencies.containsKey).toList()..sort();
+    if (duplicateRequestedDeps.isNotEmpty) {
+      throw InitActionEngineException(
+        'pubspec.yaml dependency conflict: ${duplicateRequestedDeps.join(', ')} '
+        'requested in both dependencies and dev_dependencies.',
+      );
+    }
     final explicitFonts = _fontFamilies(action['flutterFonts']);
     final derivedFonts = _fontFamiliesFromAssets(derivedFlutterAssets);
     final derivedFontAssets = derivedFonts
@@ -387,38 +432,70 @@ class InitActionEngine {
       <_FontFamilySpec>[...explicitFonts, ...derivedFonts],
     );
 
-    final document = _loadPubspecDocument(file);
-    final addedDeps =
-        _mergeTopLevelMapEntries(document, 'dependencies', dependencies);
-    final addedDevDeps =
-        _mergeTopLevelMapEntries(document, 'dev_dependencies', devDependencies);
-    final addedAssets =
-        _mergeFlutterAssetsIntoDocument(document, flutterAssets);
-    final addedFonts = _mergeFlutterFontsIntoDocument(document, flutterFonts);
+    final content = file.readAsStringSync();
+    final lines = content.split('\n');
+    final planner = const PubspecChangePlanner();
+    final dependencyPlan = planner.planAddDependencies(lines, dependencies);
+    final devDependencyPlan = planner.planAddDependencies(
+      lines,
+      devDependencies,
+      section: 'dev_dependencies',
+    );
+    final conflicts = [
+      ...dependencyPlan.conflicts,
+      ...devDependencyPlan.conflicts,
+    ];
+    if (conflicts.isNotEmpty) {
+      throw InitActionEngineException(_formatPubspecConflicts(conflicts));
+    }
 
-    await file.writeAsString(_encodeYamlDocument(document));
-
-    return InitPubspecDelta(
-      dependencies: addedDeps,
-      devDependencies: addedDevDeps,
-      flutterAssets: addedAssets,
-      flutterFonts: addedFonts
-          .map(
-            (family) => {
-              'family': family.family,
-              'fonts': family.fonts
-                  .map(
-                    (font) => {
-                      'asset': font.asset,
-                      if (font.weight != null) 'weight': font.weight,
-                      if (font.style != null && font.style!.isNotEmpty)
-                        'style': font.style,
-                    },
-                  )
+    final editor = PubspecEditor(content);
+    editor.addDependencies(dependencies);
+    editor.addDevDependencies(devDependencies);
+    editor.addFlutterAssets(flutterAssets);
+    editor.addFlutterFonts(flutterFonts
+        .map((spec) => PubspecFontFamily(
+              spec.family,
+              spec.fonts
+                  .map((font) => PubspecFontAsset(
+                        font.asset,
+                        weight: font.weight,
+                        style: font.style,
+                      ))
                   .toList(),
-            },
-          )
-          .toList(),
+            ))
+        .toList());
+
+    await file.writeAsString(editor.toString());
+
+    final delta = editor.recordDelta();
+    return InitPubspecDelta(
+      dependencies: Map.fromEntries(delta.dependencies.map((key) {
+        final val = dependencies[key];
+        return MapEntry(key, val is String ? val : jsonEncode(val));
+      })),
+      devDependencies: Map.fromEntries(delta.devDependencies.map((key) {
+        final val = devDependencies[key];
+        return MapEntry(key, val is String ? val : jsonEncode(val));
+      })),
+      flutterAssets: delta.flutterAssets,
+      flutterFonts: delta.flutterFonts.map((family) {
+        final spec = flutterFonts.firstWhere(
+          (s) => s.family == family,
+          orElse: () => _FontFamilySpec(family: family, fonts: []),
+        );
+        return {
+          'family': family,
+          'fonts': spec.fonts
+              .map((font) => {
+                    'asset': font.asset,
+                    if (font.weight != null) 'weight': font.weight,
+                    if (font.style != null && font.style!.isNotEmpty)
+                      'style': font.style,
+                  })
+              .toList(),
+        };
+      }).toList(),
     );
   }
 
@@ -428,6 +505,17 @@ class InitActionEngine {
       throw InitActionEngineException('message.lines must be a list');
     }
     return lines.map((e) => e.toString()).toList();
+  }
+
+  String _formatPubspecConflicts(List<PubspecDependencyConflict> conflicts) {
+    final details = conflicts
+        .map(
+          (conflict) =>
+              '${conflict.package} existing ${conflict.existing}, requested ${conflict.requested}',
+        )
+        .join('; ');
+    return 'pubspec.yaml dependency conflict: $details. '
+        'Keep the existing constraint, update it manually, or abort.';
   }
 
   Future<List<String>> _loadCopyDirIndexFiles({
@@ -537,10 +625,11 @@ class InitActionEngine {
       if (!await file.exists()) {
         throw InitActionEngineException('File not found: ${file.path}');
       }
-      return file.readAsBytes();
+      return await file.readAsBytes();
     }
     final uri = ResolverV1.resolveUrl(baseUrl, relativePath);
-    final response = await _client.get(uri);
+    final response =
+        await _client.get(uri).timeout(const Duration(seconds: 20));
     if (response.statusCode < 200 || response.statusCode >= 300) {
       throw InitActionEngineException(
         'Failed to fetch ${uri.toString()} (${response.statusCode})',
@@ -795,411 +884,18 @@ class InitActionEngine {
     if (!file.existsSync()) {
       return;
     }
-    final document = _loadPubspecDocument(file);
-    _removeTopLevelMapEntries(
-        document, 'dependencies', delta.dependencies.keys);
-    _removeTopLevelMapEntries(
-      document,
-      'dev_dependencies',
-      delta.devDependencies.keys,
-    );
-    _removeFlutterAssetsFromDocument(document, delta.flutterAssets);
-    final families = delta.flutterFonts
-        .map((entry) => entry['family']?.toString())
-        .whereType<String>()
-        .where((family) => family.trim().isNotEmpty)
-        .toSet();
-    _removeFlutterFamiliesFromDocument(document, families);
-    await file.writeAsString(_encodeYamlDocument(document));
-  }
-
-  Map<String, dynamic> _loadPubspecDocument(File file) {
     final content = file.readAsStringSync();
-    final raw = loadYaml(content);
-    if (raw is! YamlMap) {
-      throw InitActionEngineException('pubspec.yaml must contain a YAML map');
-    }
-    return _deepConvertYamlMap(raw);
-  }
-
-  Map<String, dynamic> _deepConvertYamlMap(YamlMap map) {
-    final converted = <String, dynamic>{};
-    map.nodes.forEach((keyNode, valueNode) {
-      final key = keyNode.value.toString();
-      converted[key] = _deepConvertYamlValue(valueNode.value);
-    });
-    return converted;
-  }
-
-  dynamic _deepConvertYamlValue(dynamic value) {
-    if (value is YamlMap) {
-      return _deepConvertYamlMap(value);
-    }
-    if (value is YamlList) {
-      return value.nodes
-          .map((node) => _deepConvertYamlValue(node.value))
-          .toList(growable: true);
-    }
-    return value;
-  }
-
-  Map<String, String> _mergeTopLevelMapEntries(
-    Map<String, dynamic> document,
-    String section,
-    Map<String, dynamic> desired,
-  ) {
-    if (desired.isEmpty) {
-      return const {};
-    }
-    final sectionMap = _ensureTopLevelStringMap(document, section);
-    final added = <String, String>{};
-    final orderedKeys = desired.keys.toList()..sort();
-    for (final key in orderedKeys) {
-      if (!sectionMap.containsKey(key)) {
-        final value = desired[key]!;
-        sectionMap[key] = value;
-        added[key] = value is String ? value : jsonEncode(value);
-      }
-    }
-    return added;
-  }
-
-  Map<String, dynamic> _ensureTopLevelStringMap(
-    Map<String, dynamic> document,
-    String section,
-  ) {
-    final existing = document[section];
-    if (existing == null) {
-      final next = <String, dynamic>{};
-      document[section] = next;
-      return next;
-    }
-    if (existing is Map<String, dynamic>) {
-      return existing;
-    }
-    if (existing is Map) {
-      final next = <String, dynamic>{}
-        ..addAll(existing.map((key, value) => MapEntry(key.toString(), value)));
-      document[section] = next;
-      return next;
-    }
-    throw InitActionEngineException('pubspec.$section must be a YAML map');
-  }
-
-  Map<String, dynamic> _ensureFlutterSectionMap(
-    Map<String, dynamic> document,
-  ) {
-    final existing = document['flutter'];
-    if (existing == null) {
-      final next = <String, dynamic>{};
-      document['flutter'] = next;
-      return next;
-    }
-    if (existing is Map<String, dynamic>) {
-      return existing;
-    }
-    if (existing is Map) {
-      final next = <String, dynamic>{}
-        ..addAll(existing.map((key, value) => MapEntry(key.toString(), value)));
-      document['flutter'] = next;
-      return next;
-    }
-    throw InitActionEngineException('pubspec.flutter must be a YAML map');
-  }
-
-  List<String> _mergeFlutterAssetsIntoDocument(
-    Map<String, dynamic> document,
-    List<String> assets,
-  ) {
-    if (assets.isEmpty) {
-      return const [];
-    }
-    final flutter = _ensureFlutterSectionMap(document);
-    final existingRaw = flutter['assets'];
-    final existing = existingRaw is List
-        ? existingRaw.map((entry) => entry.toString()).toSet()
-        : <String>{};
-    final normalized = assets.toSet().toList()..sort();
-    final added =
-        normalized.where((asset) => !existing.contains(asset)).toList();
-    if (added.isEmpty) {
-      return const [];
-    }
-    final merged = <String>{...existing, ...normalized}.toList()..sort();
-    flutter['assets'] = merged;
-    return added;
-  }
-
-  List<_FontFamilySpec> _mergeFlutterFontsIntoDocument(
-    Map<String, dynamic> document,
-    List<_FontFamilySpec> fonts,
-  ) {
-    if (fonts.isEmpty) {
-      return const [];
-    }
-    final flutter = _ensureFlutterSectionMap(document);
-    final existingRaw = flutter['fonts'];
-    final existingFamilies = <String>{};
-    final mergedFonts = <Map<String, dynamic>>[];
-    if (existingRaw is List) {
-      for (final entry in existingRaw) {
-        if (entry is Map) {
-          final normalized = <String, dynamic>{}..addAll(
-              entry.map((key, value) => MapEntry(key.toString(), value)));
-          mergedFonts.add(normalized);
-          final family = normalized['family']?.toString();
-          if (family != null && family.trim().isNotEmpty) {
-            existingFamilies.add(family.trim());
-          }
-        }
-      }
-    }
-
-    final additions = fonts
-        .where((family) => !existingFamilies.contains(family.family))
-        .toList();
-    if (additions.isEmpty) {
-      return const [];
-    }
-    for (final family in additions) {
-      mergedFonts.add(_fontFamilyToMap(family));
-    }
-    flutter['fonts'] = mergedFonts;
-    return additions;
-  }
-
-  Map<String, dynamic> _fontFamilyToMap(_FontFamilySpec family) {
-    final map = <String, dynamic>{};
-    map['family'] = family.family;
-    map['fonts'] = family.fonts.map((entry) {
-      final font = <String, dynamic>{};
-      font['asset'] = entry.asset;
-      if (entry.weight != null) {
-        font['weight'] = entry.weight;
-      }
-      if (entry.style != null && entry.style!.isNotEmpty) {
-        font['style'] = entry.style;
-      }
-      return font;
-    }).toList(growable: false);
-    return map;
-  }
-
-  void _removeTopLevelMapEntries(
-    Map<String, dynamic> document,
-    String section,
-    Iterable<String> keys,
-  ) {
-    final target = keys.toSet();
-    if (target.isEmpty) {
-      return;
-    }
-    final existing = document[section];
-    if (existing is! Map) {
-      return;
-    }
-    final normalized = <String, dynamic>{}
-      ..addAll(existing.map((key, value) => MapEntry(key.toString(), value)));
-    normalized.removeWhere((key, _) => target.contains(key));
-    if (normalized.isEmpty) {
-      document.remove(section);
-      return;
-    }
-    document[section] = normalized;
-  }
-
-  void _removeFlutterAssetsFromDocument(
-    Map<String, dynamic> document,
-    Iterable<String> assets,
-  ) {
-    final target = assets.toSet();
-    if (target.isEmpty) {
-      return;
-    }
-    final flutter = document['flutter'];
-    if (flutter is! Map) {
-      return;
-    }
-    final flutterMap = <String, dynamic>{}
-      ..addAll(flutter.map((key, value) => MapEntry(key.toString(), value)));
-    final existingRaw = flutterMap['assets'];
-    if (existingRaw is! List) {
-      document['flutter'] = flutterMap;
-      return;
-    }
-    final next = existingRaw
-        .map((entry) => entry.toString())
-        .where((entry) => !target.contains(entry))
-        .toList(growable: false);
-    if (next.isEmpty) {
-      flutterMap.remove('assets');
-    } else {
-      flutterMap['assets'] = next;
-    }
-    document['flutter'] = flutterMap;
-  }
-
-  void _removeFlutterFamiliesFromDocument(
-    Map<String, dynamic> document,
-    Set<String> families,
-  ) {
-    if (families.isEmpty) {
-      return;
-    }
-    final flutter = document['flutter'];
-    if (flutter is! Map) {
-      return;
-    }
-    final flutterMap = <String, dynamic>{}
-      ..addAll(flutter.map((key, value) => MapEntry(key.toString(), value)));
-    final existingRaw = flutterMap['fonts'];
-    if (existingRaw is! List) {
-      document['flutter'] = flutterMap;
-      return;
-    }
-    final next = existingRaw.where((entry) {
-      if (entry is! Map) {
-        return true;
-      }
-      final family = entry['family']?.toString().trim();
-      return family == null || !families.contains(family);
-    }).toList(growable: false);
-    if (next.isEmpty) {
-      flutterMap.remove('fonts');
-    } else {
-      flutterMap['fonts'] = next;
-    }
-    document['flutter'] = flutterMap;
-  }
-
-  String _encodeYamlDocument(Map<String, dynamic> document) {
-    final lines = <String>[];
-    document.forEach((key, value) {
-      _writeYamlEntry(lines, 0, key, value);
-    });
-    return '${lines.join('\n')}\n';
-  }
-
-  void _writeYamlEntry(
-    List<String> lines,
-    int indent,
-    String key,
-    dynamic value,
-  ) {
-    final prefix = ' ' * indent;
-    if (value is Map) {
-      lines.add('$prefix$key:');
-      value.forEach((childKey, childValue) {
-        _writeYamlEntry(
-          lines,
-          indent + 2,
-          childKey.toString(),
-          childValue,
-        );
-      });
-      return;
-    }
-    if (value is List) {
-      if (value.isEmpty) {
-        lines.add('$prefix$key: []');
-        return;
-      }
-      lines.add('$prefix$key:');
-      for (final item in value) {
-        _writeYamlListItem(lines, indent + 2, item);
-      }
-      return;
-    }
-    lines.add('$prefix$key: ${_encodeYamlScalar(value)}');
-  }
-
-  void _writeYamlListItem(List<String> lines, int indent, dynamic value) {
-    final prefix = ' ' * indent;
-    if (value is Map) {
-      if (value.isEmpty) {
-        lines.add('$prefix- {}');
-        return;
-      }
-      final entries = value.entries.toList(growable: false);
-      final first = entries.first;
-      final firstValue = first.value;
-      if (firstValue is Map || firstValue is List) {
-        lines.add('$prefix- ${first.key}:');
-        _writeYamlNestedValue(lines, indent + 4, firstValue);
-      } else {
-        lines.add(
-          '$prefix- ${first.key}: ${_encodeYamlScalar(firstValue)}',
-        );
-      }
-      for (final entry in entries.skip(1)) {
-        _writeYamlEntry(lines, indent + 2, entry.key.toString(), entry.value);
-      }
-      return;
-    }
-    if (value is List) {
-      if (value.isEmpty) {
-        lines.add('$prefix- []');
-        return;
-      }
-      lines.add('$prefix-');
-      for (final item in value) {
-        _writeYamlListItem(lines, indent + 2, item);
-      }
-      return;
-    }
-    lines.add('$prefix- ${_encodeYamlScalar(value)}');
-  }
-
-  void _writeYamlNestedValue(List<String> lines, int indent, dynamic value) {
-    if (value is Map) {
-      value.forEach((childKey, childValue) {
-        _writeYamlEntry(lines, indent, childKey.toString(), childValue);
-      });
-      return;
-    }
-    if (value is List) {
-      for (final item in value) {
-        _writeYamlListItem(lines, indent, item);
-      }
-      return;
-    }
-    lines.add('${' ' * indent}${_encodeYamlScalar(value)}');
-  }
-
-  String _encodeYamlScalar(dynamic value) {
-    if (value == null) {
-      return 'null';
-    }
-    if (value is num || value is bool) {
-      return value.toString();
-    }
-    final stringValue = value.toString();
-    if (stringValue.isEmpty) {
-      return "''";
-    }
-    final safe = RegExp(r'^[A-Za-z0-9_./@:+<>=^~ -]+$');
-    final reserved = <String>{
-      'null',
-      'Null',
-      'NULL',
-      'true',
-      'false',
-      'yes',
-      'no',
-      'on',
-      'off',
-    };
-    if (safe.hasMatch(stringValue) &&
-        !stringValue.startsWith('-') &&
-        !stringValue.startsWith('{') &&
-        !stringValue.startsWith('[') &&
-        !stringValue.contains('<') &&
-        !stringValue.contains('>') &&
-        !stringValue.contains('#') &&
-        !stringValue.contains(': ') &&
-        !reserved.contains(stringValue)) {
-      return stringValue;
-    }
-    return "'${stringValue.replaceAll("'", "''")}'";
+    final editor = PubspecEditor(content);
+    editor.rollbackDelta(PubspecDelta(
+      dependencies: delta.dependencies.keys.toList(),
+      devDependencies: delta.devDependencies.keys.toList(),
+      flutterAssets: delta.flutterAssets,
+      flutterFonts: delta.flutterFonts
+          .map((entry) => entry['family']?.toString())
+          .whereType<String>()
+          .where((family) => family.trim().isNotEmpty)
+          .toList(),
+    ));
+    await file.writeAsString(editor.toString());
   }
 }

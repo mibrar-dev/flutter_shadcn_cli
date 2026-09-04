@@ -15,7 +15,6 @@ Advanced mode is position-flexible, so the flag may appear before or after the c
 These commands require `--advanced`:
 
 - `docs`
-- `install-skill`
 
 ## Developer Flags
 

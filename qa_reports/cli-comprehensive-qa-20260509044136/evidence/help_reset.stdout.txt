@@ -1,0 +1,4 @@
+Usage: flutter_shadcn reset
+
+Delete global CLI-managed cache and state under ~/.flutter_shadcn.
+This does not remove project files or uninstall the executable.

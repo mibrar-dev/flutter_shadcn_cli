@@ -1,0 +1,22 @@
+{
+  "id": "045_cli_dart_test_full_suite",
+  "name": "cli dart test full suite",
+  "category": "repo-gate",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "test",
+    "--reporter=compact"
+  ],
+  "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 48.55,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "\n00:00 +0: loading test/config_test.dart                                                                                                                                                                \n00:00 +0: test/config_test.dart: config roundtrip preserves settings                                                                                                                                   \n00:00 +1: test/config_test.dart: config roundtrip preserves settings                                                                                                                                   \n...<truncated>...\n00:47 +286: test/cli_integration_test.dart: CLI integration theme widget commands fail explicitly without runtime execution                                                                            \n00:47 +287: test/cli_integration_test.dart: CLI integration theme widget commands fail explicitly without runtime execution                                                                            \n00:47 +287: All tests passed!                                                                                                                                                                          \n",
+  "stderrExcerpt": "Error: Invalid component address \"@shadcn/button/extra\". Use @namespace/component\nError: Invalid component address \"shadcn:\". Use @namespace/component\nError: Invalid component address \"@shadcn\". Use @namespace/component\nError: l10n.yaml already exists.\n"
+}

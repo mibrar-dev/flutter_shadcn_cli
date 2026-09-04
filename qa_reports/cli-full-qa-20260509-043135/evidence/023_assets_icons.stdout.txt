@@ -1,0 +1,1 @@
+✓ Installed assets via inline registry actions.

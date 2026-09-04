@@ -3,6 +3,7 @@ import 'dart:io';
 import 'dart:isolate';
 
 import 'package:flutter_shadcn_cli/src/init_action_engine.dart';
+import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry_directory.dart';
 import 'package:flutter_shadcn_cli/src/resolver_v1.dart';
 import 'package:path/path.dart' as p;
@@ -37,12 +38,6 @@ void main() {
           await request.response.close();
           return;
         }
-        if (path == '/registry/shared/images/logo.svg') {
-          request.response.statusCode = 200;
-          request.response.write('<svg></svg>');
-          await request.response.close();
-          return;
-        }
         if (path == '/registry/shared/fonts/bootstrap.otf') {
           request.response.statusCode = 200;
           request.response.write('font-bytes');
@@ -51,7 +46,7 @@ void main() {
         }
         if (path == '/registry/shared/fonts/lucide.ttf') {
           request.response.statusCode = 200;
-          request.response.write('lucide-font-bytes');
+          request.response.write('lucide-bytes');
           await request.response.close();
           return;
         }
@@ -64,6 +59,12 @@ void main() {
         if (path == '/registry/shared/fonts/geist/Geist-BoldItalic.otf') {
           request.response.statusCode = 200;
           request.response.write('geist-bold-italic-bytes');
+          await request.response.close();
+          return;
+        }
+        if (path == '/registry/shared/images/logo.svg') {
+          request.response.statusCode = 200;
+          request.response.write('<svg></svg>');
           await request.response.close();
           return;
         }
@@ -145,6 +146,165 @@ void main() {
       expect(flutterSection['fonts'], isA<YamlList>());
       expect(dependencies['assets'], isNull);
       expect(dependencies['fonts'], isNull);
+    });
+
+    test('reports compact inline init progress for copy and pubspec actions',
+        () async {
+      final entry = await _loadFixtureEntry(
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+      );
+      final engine = InitActionEngine();
+      final lines = <String>[];
+
+      await engine.executeRegistryInit(
+        projectRoot: projectRoot.path,
+        registry: entry,
+        logger: CliLogger(useColor: false, writeLine: lines.add),
+      );
+
+      expect(
+        lines,
+        containsAllInOrder([
+          '... Running init action: ensureDirs',
+          '... Ensuring init directories (2 paths)',
+          '... Running init action: copyFiles',
+          '... Copying init files (1 file)',
+          '... Running init action: copyDir',
+          '... Copying init files (1 file)',
+          '... Running init action: mergePubspec',
+          '... Merging init pubspec updates',
+        ]),
+      );
+      expect(
+        lines.where((line) => line.contains('Writing init file')),
+        isEmpty,
+      );
+    });
+
+    test('does not report copy progress for skipped optional groups', () async {
+      final engine = InitActionEngine();
+      final lines = <String>[];
+
+      await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        logger: CliLogger(useColor: false, writeLine: lines.add),
+        groupSelector: (_, __) async => const <Map<String, dynamic>>[],
+        actions: [
+          {
+            'type': 'copyFiles',
+            'base': 'registry/shared',
+            'destBase': 'assets',
+            'from': 'fonts',
+            'to': 'fonts',
+            'groups': [
+              {
+                'label': 'Fonts',
+                'files': ['bootstrap.otf'],
+              }
+            ],
+          }
+        ],
+      );
+
+      expect(lines, ['... Running init action: copyFiles']);
+      expect(
+        lines.where((line) => line.contains('Copying init files (0 files)')),
+        isEmpty,
+      );
+    });
+
+    test('mergePubspec writes sdk dependencies as nested yaml maps', () async {
+      final engine = InitActionEngine();
+
+      await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'mergePubspec',
+            'dependencies': {'flutter_localizations': 'sdk: flutter'},
+          }
+        ],
+      );
+
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, contains('flutter_localizations:'));
+      expect(pubspec, contains('  sdk: flutter'));
+      expect(pubspec, isNot(contains("flutter_localizations: 'sdk: flutter'")));
+
+      final doc = loadYaml(pubspec) as YamlMap;
+      final dependencies = doc['dependencies'] as YamlMap;
+      final localizations = dependencies['flutter_localizations'] as YamlMap;
+      expect(localizations['sdk'], 'flutter');
+    });
+
+    test('mergePubspec fails on conflicting dependency constraint', () async {
+      File(p.join(projectRoot.path, 'pubspec.yaml')).writeAsStringSync(
+        [
+          'name: test_app',
+          'dependencies:',
+          '  intl: ^0.19.0',
+        ].join('\n'),
+      );
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'mergePubspec',
+              'dependencies': {'intl': '^0.20.0'},
+            }
+          ],
+        ),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('pubspec.yaml dependency conflict') &&
+                error.toString().contains('intl'),
+          ),
+        ),
+      );
+
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, contains('intl: ^0.19.0'));
+      expect(pubspec, isNot(contains('intl: ^0.20.0')));
+    });
+
+    test(
+        'mergePubspec rejects same package in dependencies and devDependencies',
+        () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'mergePubspec',
+              'dependencies': {'foo': '^1.0.0'},
+              'devDependencies': {'foo': '^1.0.0'},
+            }
+          ],
+        ),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('pubspec.yaml dependency conflict') &&
+                error.toString().contains('foo'),
+          ),
+        ),
+      );
+
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('foo: ^1.0.0')));
     });
 
     test('rolls back recorded inline changes', () async {
@@ -249,7 +409,7 @@ void main() {
           projectRoot: projectRoot.path,
           registry: entry,
         ),
-        throwsA(isA<ResolverV1Exception>()),
+        throwsA(isA<InitActionEngineException>()),
       );
     });
 
@@ -286,6 +446,321 @@ void main() {
 
     test(
         'supports optional actions, grouped copyFiles, and derived flutter assets from written files',
+        () async {
+      final engine = InitActionEngine();
+      final prompts = <String>[];
+      var groupPrompted = false;
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'ensureDirs',
+            'dirs': ['lib/ui/shadcn'],
+          },
+          {
+            'type': 'ensureDirs',
+            'optional': true,
+            'promptLabel': 'Create optional assets dir?',
+            'promptDescription': 'Only needed for add-on assets.',
+            'dirs': ['assets/optional'],
+          },
+          {
+            'type': 'copyFiles',
+            'optional': true,
+            'promptLabel': 'Install shared assets?',
+            'promptDescription': 'Pick the shared groups to install.',
+            'base': 'registry',
+            'destBase': '.',
+            'from': 'shared',
+            'to': 'assets',
+            'groups': [
+              {
+                'label': 'Fonts',
+                'description': 'Font assets',
+                'default': true,
+                'files': ['fonts/bootstrap.otf'],
+              },
+              {
+                'label': 'Helpers',
+                'description': 'Source helpers',
+                'default': false,
+                'files': ['theme/color_scheme.dart'],
+              },
+            ],
+          },
+          {
+            'type': 'mergePubspec',
+            'deriveFlutterAssets': true,
+          },
+        ],
+        optionalActionDecider: (action) async {
+          prompts.add(
+            '${action['promptLabel']}|${action['promptDescription'] ?? ''}',
+          );
+          return false;
+        },
+        groupSelector: (action, groups) async {
+          groupPrompted = true;
+          expect(action['promptLabel'], 'Install shared assets?');
+          return groups
+              .where((group) => group['label'] == 'Fonts')
+              .toList(growable: false);
+        },
+      );
+
+      expect(
+        prompts,
+        ['Create optional assets dir?|Only needed for add-on assets.'],
+      );
+      expect(groupPrompted, isTrue);
+      expect(
+        Directory(p.join(projectRoot.path, 'assets', 'optional')).existsSync(),
+        isFalse,
+      );
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'fonts', 'bootstrap.otf'))
+            .existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'theme', 'color_scheme.dart'))
+            .existsSync(),
+        isFalse,
+      );
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec.contains('family: BootstrapIcons'), isTrue);
+      expect(pubspec.contains('asset: assets/fonts/bootstrap.otf'), isTrue);
+      expect(pubspec.contains('assets/theme/color_scheme.dart'), isFalse);
+      expect(result.filesWritten, 1);
+      expect(result.record.filesWritten, ['assets/fonts/bootstrap.otf']);
+      expect(result.record.pubspecDelta.flutterAssets, isEmpty);
+      expect(result.record.pubspecDelta.flutterFonts.single['family'],
+          'BootstrapIcons');
+    });
+
+    test('inline init rejects code writes outside lib but allows assets',
+        () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'copyFiles',
+              'base': 'registry/shared',
+              'destBase': '.',
+              'files': ['theme/color_scheme.dart'],
+            }
+          ],
+        ),
+        throwsA(isA<InitActionEngineException>()),
+      );
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'base': 'registry',
+            'destBase': '.',
+            'from': 'shared/fonts',
+            'to': 'assets/fonts',
+            'files': ['shared/fonts/lucide.ttf'],
+          },
+        ],
+      );
+
+      expect(result.filesWritten, 1);
+      expect(
+        File(p.join(projectRoot.path, 'assets/fonts/lucide.ttf')).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('inline init rejects ensureDirs outside lib or assets', () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'ensureDirs',
+              'dirs': ['shared'],
+            }
+          ],
+        ),
+        throwsA(isA<InitActionEngineException>()),
+      );
+    });
+
+    test('inline init rejects traversal escape even with valid prefix',
+        () async {
+      final engine = InitActionEngine();
+
+      await expectLater(
+        engine.executeActions(
+          projectRoot: projectRoot.path,
+          baseUrl: 'http://${server.address.host}:${server.port}/',
+          actions: [
+            {
+              'type': 'copyFiles',
+              'base': 'registry',
+              'destBase': 'lib/../escape',
+              'files': ['registry/shared/theme/color_scheme.dart'],
+            }
+          ],
+        ),
+        throwsA(isA<ResolverV1Exception>()),
+      );
+    });
+
+    test('empty group selection skips grouped copyFiles (Enter to skip)',
+        () async {
+      final engine = InitActionEngine();
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'optional': true,
+            'promptLabel': 'Install shared assets?',
+            'base': 'registry',
+            'destBase': '.',
+            'from': 'shared',
+            'to': 'assets',
+            'groups': [
+              {
+                'label': 'Fonts',
+                'default': true,
+                'files': ['fonts/bootstrap.otf'],
+              },
+            ],
+          },
+          {
+            'type': 'mergePubspec',
+            'deriveFlutterAssets': true,
+          },
+        ],
+        groupSelector: (action, groups) async => const [],
+      );
+
+      expect(result.filesWritten, 0);
+      expect(result.record.filesWritten, isEmpty);
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'fonts', 'bootstrap.otf'))
+            .existsSync(),
+        isFalse,
+      );
+    });
+
+    test(
+        'optional action decider returning false skips non-grouped optional action',
+        () async {
+      final engine = InitActionEngine();
+      final prompts = <String>[];
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'ensureDirs',
+            'optional': true,
+            'promptLabel': 'Create optional assets dir?',
+            'dirs': ['assets/optional'],
+          },
+          {
+            'type': 'ensureDirs',
+            'dirs': ['lib/ui/shadcn'],
+          },
+        ],
+        optionalActionDecider: (action) async {
+          prompts.add(action['promptLabel']!.toString());
+          return false;
+        },
+      );
+
+      expect(
+        prompts,
+        ['Create optional assets dir?'],
+      );
+      expect(result.dirsCreated, 1);
+      expect(
+        Directory(p.join(projectRoot.path, 'assets', 'optional')).existsSync(),
+        isFalse,
+      );
+      expect(
+        Directory(p.join(projectRoot.path, 'lib', 'ui', 'shadcn')).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('group selector selects all groups with "a"', () async {
+      final engine = InitActionEngine();
+
+      final result = await engine.executeActions(
+        projectRoot: projectRoot.path,
+        baseUrl: 'http://${server.address.host}:${server.port}/',
+        actions: [
+          {
+            'type': 'copyFiles',
+            'optional': true,
+            'promptLabel': 'Install shared assets?',
+            'base': 'registry',
+            'destBase': '.',
+            'from': 'shared',
+            'to': 'assets',
+            'groups': [
+              {
+                'label': 'Images',
+                'default': true,
+                'files': ['images/logo.svg'],
+              },
+              {
+                'label': 'Fonts',
+                'default': false,
+                'files': ['fonts/bootstrap.otf'],
+              },
+            ],
+          },
+          {
+            'type': 'mergePubspec',
+            'deriveFlutterAssets': true,
+          },
+        ],
+        groupSelector: (action, groups) async => groups.toList(),
+      );
+
+      expect(result.filesWritten, 2);
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'images', 'logo.svg'))
+            .existsSync(),
+        isTrue,
+      );
+      expect(
+        File(p.join(projectRoot.path, 'assets', 'fonts', 'bootstrap.otf'))
+            .existsSync(),
+        isTrue,
+      );
+      final pubspec =
+          File(p.join(projectRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, contains('assets/images/logo.svg'));
+      expect(pubspec, contains('family: BootstrapIcons'));
+      expect(pubspec, contains('asset: assets/fonts/bootstrap.otf'));
+    });
+
+    test(
+        'supports optional actions, grouped copyFiles, and derived flutter assets from written files (image asset variant)',
         () async {
       final engine = InitActionEngine();
       final prompts = <String>[];

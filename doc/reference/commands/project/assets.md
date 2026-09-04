@@ -29,6 +29,10 @@ flutter_shadcn assets --list
 flutter_shadcn assets --icons --typography
 ```
 
+## Notes
+
+Assets are registry-provided inline actions. Use this command for optional fonts, icons, and asset packs after `init`.
+
 ## See Also
 
 - [`flutter_shadcn init`](init.md)

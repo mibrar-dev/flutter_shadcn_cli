@@ -4,19 +4,15 @@ import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
+import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
 
 Future<int> runDryRunCommand({
   required ArgResults dryRunCommand,
   required Installer? installer,
 }) async {
-  final activeInstaller = installer;
-  if (activeInstaller == null) {
-    stderr.writeln('Error: Installer is not available.');
-    return ExitCodes.registryNotFound;
-  }
   if (dryRunCommand['help'] == true) {
     print(
-        'Usage: flutter_shadcn dry-run <component> [<component> ...] [--json]');
+        'Usage: flutter_shadcn dry-run <component|@namespace/component> [<component|@namespace/component> ...] [--json]');
     print('       flutter_shadcn dry-run --all [--json]');
     print('');
     print(
@@ -27,12 +23,15 @@ Future<int> runDryRunCommand({
     print('  --help, -h         Show this message');
     return ExitCodes.success;
   }
+  final activeInstaller = installer;
+  if (activeInstaller == null) {
+    stderr.writeln('Error: Installer is not available.');
+    return ExitCodes.registryNotFound;
+  }
   final rest = dryRunCommand.rest;
   final dryRunAll = dryRunCommand['all'] == true || rest.contains('all');
   final componentIds = <String>[];
   if (dryRunAll) {
-    componentIds.add('icon_fonts');
-    componentIds.add('typography_fonts');
     componentIds.addAll(activeInstaller.registry.components.map((c) => c.id));
   } else {
     if (rest.isEmpty) {
@@ -40,7 +39,7 @@ Future<int> runDryRunCommand({
       print('       flutter_shadcn dry-run --all');
       return ExitCodes.usage;
     }
-    componentIds.addAll(rest);
+    componentIds.addAll(rest.map(normalizeDryRunComponentRef));
   }
   final plan = await activeInstaller.buildDryRunPlan(componentIds);
   final hasMissing = plan.missing.isNotEmpty;
@@ -66,4 +65,13 @@ Future<int> runDryRunCommand({
     activeInstaller.printDryRunPlan(plan);
   }
   return dryRunExitCode;
+}
+
+/// Normalizes a dry-run component reference the same way `add` and `info`
+/// accept it: a qualified `@namespace/component` ref resolves to its bare
+/// component id, while bare ids and malformed refs pass through unchanged
+/// (unknown ids are reported as missing downstream).
+String normalizeDryRunComponentRef(String token) {
+  final qualified = MultiRegistryManager.parseComponentRef(token);
+  return qualified?.componentId ?? token;
 }

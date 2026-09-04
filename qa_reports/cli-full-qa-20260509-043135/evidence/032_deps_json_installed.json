@@ -1,0 +1,27 @@
+{
+  "id": "032_deps_json_installed",
+  "name": "deps json installed",
+  "category": "health",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "deps",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.252,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"deps\",\n  \"data\": {\n    \"components\": [\n      \"alert\",\n      \"card\"\n    ],\n    \"dependencies\": [\n      {\n        \"package\": \"data_widget\",\n        \"required\": [\n          \"^0.0.2\"\n        ],\n        \"installed\": \"^0.0.2\",\n        \"status\": \"ok\"\n      }\n    ]\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:01.653289Z\",\n    \"exitCode\": 0\n  }\n}\n",
+  "stderrExcerpt": ""
+}

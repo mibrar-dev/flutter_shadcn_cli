@@ -1,0 +1,1 @@
+Error: Local registry not found: /tmp/shadcn_cli-comprehensive-qa-20260509044136/missing_registry

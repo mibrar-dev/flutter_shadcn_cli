@@ -3,20 +3,11 @@ part of 'installer.dart';
 extension InstallerFileInstallPart on Installer {
   Future<void> _installFile(RegistryFile file) async {
     await _ensureConfigLoaded();
-    final destFile = File(_resolveDestinationPath(file.destination));
-
-    if (!await destFile.parent.exists()) {
-      await destFile.parent.create(recursive: true);
-    }
-
-    if (!_shouldInstallFile(file.destination)) {
-      logger.detail('Skipping optional ${file.destination}');
-      return;
-    }
-
-    logger.detail('Writing ${destFile.path}');
-    final bytes = await registry.readSourceBytes(file.source);
-    await destFile.writeAsBytes(bytes, flush: true);
+    await _fileWriter.writeRegistryFile(
+      file: file,
+      destinationPath: _resolveDestinationPath(file.destination),
+      shouldInstall: _shouldInstallFile(file.destination),
+    );
   }
 
   Future<void> _installComponentFile(
@@ -27,6 +18,7 @@ extension InstallerFileInstallPart on Installer {
     await _ensureConfigLoaded();
     await _installFileDependencies(component, file, availableFiles);
     final destination = _resolveComponentDestination(component, file);
+    _validateComponentFileDestination(destination);
     final patched = RegistryFile(
       source: file.source,
       destination: destination,
@@ -40,13 +32,28 @@ extension InstallerFileInstallPart on Installer {
     if (files.isEmpty) {
       return;
     }
+    await _ensureConfigLoaded();
+    final installableCount =
+        files.where((file) => _shouldInstallFile(file.destination)).length;
+    logger.progress(
+      'Installing files for ${component.name} '
+      '($installableCount ${installableCount == 1 ? 'file' : 'files'})',
+    );
     var index = 0;
+    var installOrdinal = 0;
     Future<void> worker() async {
       while (true) {
         if (index >= files.length) {
           return;
         }
         final file = files[index++];
+        if (_shouldInstallFile(file.destination)) {
+          final fileNumber = ++installOrdinal;
+          logger.progress(
+            'Installing file $fileNumber/$installableCount: '
+            '${_progressFileLabel(_resolveComponentDestination(component, file))}',
+          );
+        }
         await _installComponentFile(component, file, files);
       }
     }
@@ -66,6 +73,12 @@ extension InstallerFileInstallPart on Installer {
       availableFiles,
       sharedId: sharedId,
     );
+    _validateSharedFileDestination(file.destination);
+    if (_shouldInstallFile(file.destination)) {
+      logger.progress(
+        'Installing shared file: ${_progressFileLabel(file.destination)}',
+      );
+    }
     await _installFile(file);
   }
 
@@ -100,6 +113,7 @@ extension InstallerFileInstallPart on Installer {
           RegistryFile(source: dep.source, destination: dep.source);
       final destination =
           _resolveComponentDestination(component, resolvedMapping);
+      _validateComponentFileDestination(destination);
       final target = File(destination);
       if (await target.exists()) {
         continue;
@@ -143,6 +157,7 @@ extension InstallerFileInstallPart on Installer {
       final resolvedMapping = mapping ??
           owner?.file ??
           RegistryFile(source: dep.source, destination: dep.source);
+      _validateSharedFileDestination(resolvedMapping.destination);
       final target = File(_resolveDestinationPath(resolvedMapping.destination));
       if (await target.exists()) {
         continue;
@@ -192,4 +207,83 @@ extension InstallerFileInstallPart on Installer {
 
     return _resolveDestinationPath(file.destination);
   }
+
+  String _progressFileLabel(String destination) {
+    var label = destination.replaceAll('\\', '/');
+    final config = _cachedConfig;
+    if (config != null) {
+      final installRoot =
+          _resolveProjectPath(_installPath(config)).replaceAll('\\', '/');
+      final sharedRoot =
+          _resolveProjectPath(_sharedPath(config)).replaceAll('\\', '/');
+      if (label.startsWith('$installRoot/')) {
+        label = label.substring(installRoot.length + 1);
+      } else if (label.startsWith('$sharedRoot/')) {
+        label = label.substring(sharedRoot.length + 1);
+      } else if (label.startsWith('${_installPath(config)}/')) {
+        label = label.substring(_installPath(config).length + 1);
+      } else if (label.startsWith('${_sharedPath(config)}/')) {
+        label = label.substring(_sharedPath(config).length + 1);
+      }
+    }
+    label = label
+        .replaceFirst('{installPath}/', '')
+        .replaceFirst('{sharedPath}/', '');
+
+    const maxLength = 96;
+    if (label.length <= maxLength) {
+      return label;
+    }
+    return '...${label.substring(label.length - maxLength + 3)}';
+  }
+
+  void _validateComponentInstallTargets(Component component) {
+    for (final file in component.files) {
+      _validateComponentFileDestination(
+        _resolveComponentDestination(component, file),
+      );
+    }
+    for (final asset in component.assets) {
+      _validateAssetPath(asset);
+    }
+    for (final font in component.fonts) {
+      for (final asset in font.fonts) {
+        _validateAssetPath(asset.asset);
+      }
+    }
+  }
+
+  void _validateComponentFileDestination(String destination) {
+    final config = _cachedConfig;
+    _installTargetPolicy.validateFileDestination(
+      projectRoot: targetDir,
+      namespace: _targetNamespace,
+      installRoot: _installPath(config),
+      sharedRoot: _sharedPath(config),
+      destinationPath: destination,
+      kind: InstallTargetKind.componentFile,
+    );
+  }
+
+  void _validateSharedFileDestination(String destination) {
+    final config = _cachedConfig;
+    _installTargetPolicy.validateFileDestination(
+      projectRoot: targetDir,
+      namespace: _targetNamespace,
+      installRoot: _installPath(config),
+      sharedRoot: _sharedPath(config),
+      destinationPath: _resolveDestinationPath(destination),
+      kind: InstallTargetKind.sharedFile,
+    );
+  }
+
+  void _validateAssetPath(String assetPath) {
+    _installTargetPolicy.validateAssetPath(
+      namespace: _targetNamespace,
+      assetPath: assetPath,
+    );
+  }
+
+  String get _targetNamespace =>
+      registryNamespace ?? stateNamespace ?? 'shadcn';
 }

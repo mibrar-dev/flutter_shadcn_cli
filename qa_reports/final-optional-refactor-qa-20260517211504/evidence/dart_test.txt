@@ -1,0 +1,795 @@
+00:00 +0: loading test/config_test.dart
+00:00 +0: test/config_test.dart: config roundtrip preserves settings
+00:00 +1: test/config_test.dart: active registry include/exclude file settings are surfaced
+00:00 +2: test/config_test.dart: config copyWith can clear nullable routing and alias fields
+00:00 +3: test/config_test.dart: registry entry copyWith can clear nullable source and file filters
+00:00 +4: test/config_test.dart: registry entry ignores legacy theme converter path during json mapping
+00:00 +5: loading test/reset_command_test.dart
+00:00 +5: test/reset_command_test.dart: GlobalResetService deletes only CLI-owned home-directory state
+00:00 +6: loading test/deps_command_test.dart
+00:00 +6: test/deps_command_test.dart: runDepsCommand matches sdk dependency shorthand against pubspec map syntax
+✨ Dependency audit
+✓ ✓ flutter_localizations  sdk: flutter
+00:00 +7: loading test/validate_command_test.dart
+00:00 +7: test/validate_command_test.dart: runValidateCommand uses the schema path captured by registry selection
+✨ Registry validation
+Schema: /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/validate_command_DdLFRM/registry/manifests/components.schema.json
+✓ Schema validation passed.
+✓ Component dependencies: OK
+✓ Source files: OK
+✓ File dependencies: OK
+00:00 +8: loading test/installer_file_selection_policy_test.dart
+00:00 +8: test/installer_file_selection_policy_test.dart: InstallerFileSelectionPolicy installs non-optional files by default
+00:00 +9: test/installer_file_selection_policy_test.dart: InstallerFileSelectionPolicy uses default readme meta and preview behavior
+00:00 +10: test/installer_file_selection_policy_test.dart: InstallerFileSelectionPolicy does not classify required preview-named implementation files as optional
+00:00 +11: test/installer_file_selection_policy_test.dart: InstallerFileSelectionPolicy explicit include override wins before config excludes
+00:00 +12: test/installer_file_selection_policy_test.dart: InstallerFileSelectionPolicy explicit exclude override skips matching optional files
+00:00 +13: test/installer_file_selection_policy_test.dart: InstallerFileSelectionPolicy normalizes configured file kind aliases
+00:00 +14: test/installer_file_selection_policy_test.dart: InstallerFileSelectionPolicy uses namespace registry file options before top-level options
+00:00 +15: loading test/registry_location_test.dart
+00:00 +15: test/registry_location_test.dart: RegistryLocation local path fallback reads components.json when relative path is registry/components.json and root already ends with registry
+00:00 +16: test/registry_location_test.dart: RegistryLocation local path fallback still supports normal registry/components.json when root is parent
+00:00 +17: loading test/registry_selection_test.dart
+00:00 +17: test/registry_selection_test.dart: registry selection accepts v1 registry roots with manifests components json
+00:00 +18: test/registry_selection_test.dart: registry selection explicit registry path overrides persisted remote mode
+00:00 +19: test/registry_selection_test.dart: registry selection missing registry namespace throws bootstrap exception
+00:00 +20: test/registry_selection_test.dart: registry selection missing explicit local registry throws bootstrap exception
+00:00 +21: loading test/component_address_command_test.dart
+00:00 +21: test/component_address_command_test.dart: component address command boundaries info rejects malformed qualified component refs before lookup
+Error: Invalid component address "@shadcn/button/extra". Use @namespace/component
+00:00 +22: test/component_address_command_test.dart: component address command boundaries remove rejects malformed qualified component refs before installer
+Error: Invalid component address "shadcn:". Use @namespace/component
+Error: Invalid component address "@shadcn". Use @namespace/component
+00:00 +23: test/component_address_command_test.dart: component address command boundaries remove rejects malformed refs before registry preload
+00:00 +24: loading test/registry_dependency_graph_test.dart
+00:00 +24: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects component dependency cycles with exact path
+00:01 +25: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects component self cycles
+00:01 +26: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects shared dependency cycles from imports
+00:01 +27: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects shared dependency cycles from exports
+00:01 +28: test/registry_dependency_graph_test.dart: RegistryDependencyGraph ignores unrelated file cycles outside requested install graph
+00:01 +29: test/registry_dependency_graph_test.dart: RegistryDependencyGraph does not treat optional file dependencies as hard cycles
+00:01 +30: test/registry_dependency_graph_test.dart: RegistryDependencyGraph detects same-component file dependency cycles
+00:01 +31: test/registry_dependency_graph_test.dart: RegistryDependencyGraph reports missing component dependencies separately
+00:01 +32: test/registry_dependency_graph_test.dart: RegistryDependencyGraph reports missing required file dependencies separately
+00:01 +33: loading test/version_manager_test.dart
+00:01 +33: test/version_manager_test.dart: VersionManager Version Display shows current version
+flutter_shadcn_cli version 0.2.0
+00:01 +34: test/version_manager_test.dart: VersionManager Version Display current version is valid semver format
+00:01 +35: test/version_manager_test.dart: VersionManager Version Comparison correctly identifies newer versions
+00:01 +36: test/version_manager_test.dart: VersionManager Version Comparison handles pre-release versions
+00:01 +37: test/version_manager_test.dart: VersionManager Cache Management creates cache directory if it does not exist
+00:01 +38: test/version_manager_test.dart: VersionManager Cache Management saves cache data with timestamp
+00:01 +39: test/version_manager_test.dart: VersionManager Cache Management respects 24-hour cache staleness policy
+00:01 +40: test/version_manager_test.dart: VersionManager Cache Management uses fresh cache within 24 hours
+00:01 +41: test/version_manager_test.dart: VersionManager Update Notification notification format includes version info
+00:01 +42: test/version_manager_test.dart: VersionManager Opt-out Behavior respects checkUpdates config flag
+00:01 +43: test/version_manager_test.dart: VersionManager Error Handling handles network errors gracefully
+00:01 +44: test/version_manager_test.dart: VersionManager Error Handling handles malformed version responses
+00:01 +45: loading test/reset_cli_command_test.dart
+00:01 +45: test/reset_cli_command_test.dart: runResetCommand cancels when confirmation is not yes
+This will delete global flutter_shadcn state under ~/.flutter_shadcn. Continue? [y/N]: 00:01 +46: test/reset_cli_command_test.dart: runResetCommand runs global reset after confirmation
+This will delete global flutter_shadcn state under ~/.flutter_shadcn. Continue? [y/N]: 00:01 +47: test/reset_cli_command_test.dart: runProjectCommand project reset prints undo expiry
+00:01 +48: test/reset_cli_command_test.dart: runProjectCommand project refresh reports regenerated files
+00:01 +49: loading test/command_matrix_test.dart
+00:01 +49: test/command_matrix_test.dart: Command matrix documented command set stays in sync
+00:01 +50: test/command_matrix_test.dart: Command matrix all documented commands resolve with --help
+00:25 +51: test/command_matrix_test.dart: Command matrix new registry commands resolve with --help
+00:27 +52: test/command_matrix_test.dart: Command matrix older-shaped config/state normalize and add shadcn:button
+00:29 +53: test/command_matrix_test.dart: Command matrix older-shaped config supports @namespace/component add syntax
+00:30 +54: test/command_matrix_test.dart: Command matrix registry selector token works across command set
+00:43 +55: loading test/schema_validation_test.dart
+00:43 +55: test/schema_validation_test.dart: components.json validates against schema
+00:43 +56: test/schema_validation_test.dart: invalid fixture fails schema validation
+00:43 +57: test/schema_validation_test.dart: Registry.fromContent rejects invalid explicit schema by default
+00:43 +58: test/schema_validation_test.dart: Registry.fromContent rejects missing explicit schema by default
+00:43 +59: test/schema_validation_test.dart: Registry.fromContent rejects missing implicit schema by default
+00:43 +60: test/schema_validation_test.dart: Registry caches parsed components per instance
+00:43 +61: test/schema_validation_test.dart: schema validator caches compiled validators by schema source
+00:43 +62: test/schema_validation_test.dart: schema validator evicts failed schema reads
+00:43 +63: test/schema_validation_test.dart: generic schema validator caches local schemas across instances
+00:43 +64: test/schema_validation_test.dart: generic schema validator reuses remote schema across instances
+00:43 +65: test/schema_validation_test.dart: generic schema validator does not close injected HTTP client
+00:43 +66: test/schema_validation_test.dart: Registry.fromContent bypasses schema validation with skipIntegrity
+00:43 +67: loading test/pubspec_change_planner_test.dart
+00:43 +67: test/pubspec_change_planner_test.dart: PubspecChangePlanner keeps an existing dependency with the same constraint
+00:43 +68: test/pubspec_change_planner_test.dart: PubspecChangePlanner reports conflicting existing dependency constraints
+00:43 +69: test/pubspec_change_planner_test.dart: PubspecChangePlanner keeps an existing caret dependency that satisfies requested range
+00:43 +70: test/pubspec_change_planner_test.dart: PubspecChangePlanner reports an existing caret dependency below the requested minimum
+00:43 +71: test/pubspec_change_planner_test.dart: PubspecChangePlanner preserves and compares map-shaped dependencies structurally
+00:43 +72: test/pubspec_change_planner_test.dart: PubspecChangePlanner normalizes quoted scalar dependencies before comparison
+00:43 +73: test/pubspec_change_planner_test.dart: PubspecChangePlanner matches sdk shorthand against map-shaped dependency syntax
+00:43 +74: test/pubspec_change_planner_test.dart: PubspecChangePlanner keeps an existing any constraint for requested hosted dependency
+00:43 +75: test/pubspec_change_planner_test.dart: PubspecChangePlanner compares nested git dependency maps structurally
+00:43 +76: test/pubspec_change_planner_test.dart: PubspecChangePlanner removes only owned dependency entries and preserves comments
+00:43 +77: test/pubspec_change_planner_test.dart: PubspecChangePlanner preserves comments that belong to the next dependency
+00:43 +78: test/pubspec_change_planner_test.dart: PubspecChangePlanner removes map-shaped dependency entries with internal comments
+00:43 +79: test/pubspec_change_planner_test.dart: PubspecChangePlanner detects dependency already present in opposite section
+00:43 +80: test/pubspec_change_planner_test.dart: PubspecChangePlanner detects runtime dependency already present in dev dependencies
+00:43 +81: loading test/installer_pubspec_service_test.dart
+00:43 +81: test/installer_pubspec_service_test.dart: InstallerPubspecService preserves comments while adding dependencies, assets, and fonts
+✓ Added dependencies: gap
+✓ Added assets: assets/generated/
+✓ Added font families: Inter
+00:43 +82: test/installer_pubspec_service_test.dart: InstallerPubspecService preflight reports dependency conflicts without rewriting pubspec
+00:43 +83: loading test/resolver_v1_test.dart
+00:43 +83: test/resolver_v1_test.dart: ResolverV1 normalizes base URL with exactly one trailing slash
+00:43 +84: test/resolver_v1_test.dart: ResolverV1 resolves by concatenation without discarding base path
+00:43 +85: test/resolver_v1_test.dart: ResolverV1 normalizes github tree base URL to raw base URL
+00:43 +86: test/resolver_v1_test.dart: ResolverV1 builds github contents API URL for file lookup
+00:43 +87: test/resolver_v1_test.dart: ResolverV1 rejects invalid relative paths
+00:43 +88: test/resolver_v1_test.dart: ProjectPathGuard allows project-root relative writes
+00:43 +89: test/resolver_v1_test.dart: ProjectPathGuard rejects traversal outside project root
+00:43 +90: test/resolver_v1_test.dart: InitPathMapper maps copyFiles with base/destBase
+00:43 +91: test/resolver_v1_test.dart: InitPathMapper maps copyFiles with relative file path under base
+00:43 +92: test/resolver_v1_test.dart: InitPathMapper maps copyFiles source path relative to base without rejecting prefix
+00:43 +93: test/resolver_v1_test.dart: InitPathMapper maps copyFiles source path by prepending base when needed
+00:43 +94: test/resolver_v1_test.dart: InitPathMapper maps copyDir destination with base/destBase
+00:43 +95: test/resolver_v1_test.dart: InitPathMapper maps copyDir destination when file path is relative to base
+00:43 +96: test/resolver_v1_test.dart: InitPathMapper rejects copyDir source outside base/from prefix
+00:43 +97: test/resolver_v1_test.dart: InitPathMapper rejects base-relative copyDir source outside from prefix
+00:43 +98: loading test/installer_test.dart
+00:43 +98: test/installer_test.dart: Installer installs component files with optional filters
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:44 +99: test/installer_test.dart: Installer rejects component file destinations outside install scope
+00:44 +100: test/installer_test.dart: Installer rejects component asset paths outside assets root
+00:44 +101: test/installer_test.dart: Installer rejects shared file destinations outside shared root
+• Installing Button (button)
+00:44 +102: test/installer_test.dart: Installer merges component-local JSON locale resources into app ARB
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:44 +103: test/installer_test.dart: Installer registry includeFiles=preview installs preview and preview_state
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:44 +104: test/installer_test.dart: Installer registry excludeFiles=preview excludes preview and preview_state
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:44 +105: test/installer_test.dart: Installer supports @alias paths for install locations
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:44 +106: test/installer_test.dart: Installer adds missing dependencies to pubspec.yaml
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:44 +107: test/installer_test.dart: Installer writes lockfile record without changing managed dependencies
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:44 +108: test/installer_test.dart: Installer fails before writes when another component owns generated target
+00:44 +109: test/installer_test.dart: Installer fails when manifest namespace ownership collides
+00:44 +110: test/installer_test.dart: Installer reinstalling same qualified component updates ownership record
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+✓ Added assets: assets/fonts/shared.ttf
+00:44 +111: test/installer_test.dart: Installer remove deletes lockfile record for removed component
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:44 +112: test/installer_test.dart: Installer inserts dependencies when section missing
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:44 +113: test/installer_test.dart: Installer fails when dependency is already present in dev_dependencies
+• Installing Button (button)
+00:44 +114: test/installer_test.dart: Installer fails when existing dependency constraint conflicts
+• Installing Button (button)
+00:44 +115: test/installer_test.dart: Installer fails before writes when component dependency graph has a cycle
+00:44 +116: test/installer_test.dart: Installer dry-run fails when component dependency graph has a cycle
+00:44 +117: test/installer_test.dart: Installer skips meta.json when includeMeta is false
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:44 +118: test/installer_test.dart: Installer remove uses lockfile when meta tracking is disabled
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:44 +119: test/installer_test.dart: Installer installs dependencies before component
+• Installing Dialog (dialog)
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+00:44 +120: test/installer_test.dart: Installer remove blocks when dependents exist
+• Installing Dialog (dialog)
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+! Cannot remove button; required by dialog
+00:44 +121: test/installer_test.dart: Installer force remove deletes component files
+• Installing Dialog (dialog)
+• Installing Button (button)
+✓ Added dependencies: skeletonizer
+• Removing Button (button)
+Removed dependencies: skeletonizer
+00:44 +122: test/installer_test.dart: Installer init with overrides normalizes paths and aliases
+✨ Initializing flutter_shadcn
+
+Installing core shared modules
+
+! pubspec.yaml not found; skipping dependency updates.
+✓ Initialization complete
+00:44 +123: test/installer_test.dart: Installer init auto-reuses existing config/state without prompts
+✨ Initializing flutter_shadcn
+Detected existing .shadcn config/state. Re-initializing with saved settings.
+
+Installing core shared modules
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+00:44 +124: test/installer_test.dart: Installer applies theme artifact manifest and updates config theme id
+✨ Initializing flutter_shadcn
+
+Installing core shared modules
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+✓ Applied theme: Modern Minimal
+00:44 +125: test/installer_test.dart: Installer aborts theme install before writes when artifact hash mismatches
+✨ Initializing flutter_shadcn
+
+Installing core shared modules
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+00:44 +126: test/installer_test.dart: Installer rejects dangerous theme manifest targets before writes
+00:44 +127: loading test/installer_config_resolver_test.dart
+00:44 +127: test/installer_config_resolver_test.dart: InstallerConfigResolver uses registry defaults when project config has no paths
+00:44 +128: test/installer_config_resolver_test.dart: InstallerConfigResolver uses namespace registry config before top-level config
+00:44 +129: test/installer_config_resolver_test.dart: InstallerConfigResolver explicit overrides win and expand aliases
+00:44 +130: loading test/docs_generator_test.dart
+00:45 +130: test/docs_generator_test.dart: generated command reference is up to date
+00:45 +131: loading test/project_reset_service_test.dart
+00:45 +131: test/project_reset_service_test.dart: ResetSnapshotStore creates snapshot bundle under project-resets hash with manifest
+00:45 +132: test/project_reset_service_test.dart: ResetSnapshotStore defaults snapshot retention to 24 hours
+00:45 +133: test/project_reset_service_test.dart: ResetSnapshotStore restores latest non-expired snapshot for project
+00:45 +134: test/project_reset_service_test.dart: ResetSnapshotStore refuses restore after snapshot expiry
+00:45 +135: test/project_reset_service_test.dart: ResetSnapshotStore prunes expired snapshots and leaves active ones
+00:45 +136: test/project_reset_service_test.dart: ProjectResetService reset snapshots and deletes CLI-owned project artifacts
+00:45 +137: test/project_reset_service_test.dart: ProjectResetService undo restores the latest reset snapshot
+00:45 +138: loading test/installer_file_writer_service_test.dart
+00:45 +138: test/installer_file_writer_service_test.dart: InstallerFileWriterService writes registry bytes to destination and creates parents
+00:45 +139: test/installer_file_writer_service_test.dart: InstallerFileWriterService skips optional file without reading registry source
+00:45 +140: loading test/registry_directory_test.dart
+00:45 +140: test/registry_directory_test.dart: RegistryDirectoryClient fetches directory, validates schema, and reuses ETag cache
+00:45 +141: test/registry_directory_test.dart: RegistryDirectoryClient loads and caches components.json with ETag
+00:45 +142: test/registry_directory_test.dart: RegistryDirectoryClient enforces sha256 trust mode for components.json
+00:45 +143: test/registry_directory_test.dart: RegistryDirectoryClient fails sha256 trust mode on digest mismatch
+00:45 +144: test/registry_directory_test.dart: RegistryDirectoryClient loads registries directory from local file path
+00:45 +145: test/registry_directory_test.dart: RegistryDirectoryClient loads registries directory from local directory path
+00:45 +146: test/registry_directory_test.dart: RegistryDirectoryClient rejects invalid registries schema
+00:45 +147: test/registry_directory_test.dart: RegistryDirectoryClient reuses compiled registries schema for repeated local loads
+00:45 +148: test/registry_directory_test.dart: RegistryDirectoryClient does not close injected HTTP client
+00:45 +149: test/registry_directory_test.dart: RegistryDirectoryClient RegistryDirectoryEntry parses all paths/capabilities/trust getters
+00:45 +150: loading test/theme_loader_test.dart
+00:45 +150: test/theme_loader_test.dart: Index and theme loaders IndexLoader resolves configured indexPath
+00:45 +151: test/theme_loader_test.dart: Index and theme loaders ThemeIndexLoader loads and parses theme entries
+00:45 +152: test/theme_loader_test.dart: Index and theme loaders ThemePresetLoader reads declarative file entries from theme index
+00:45 +153: test/theme_loader_test.dart: Index and theme loaders ThemePresetLoader loads declarative theme manifests and caches artifacts
+00:45 +154: test/theme_loader_test.dart: Index and theme loaders ThemePresetLoader revalidates cached artifacts before reuse
+00:45 +155: loading test/installer_dry_run_service_test.dart
+00:45 +155: test/installer_dry_run_service_test.dart: InstallerDryRunService builds dependency-aware plan with configured destinations
+00:46 +156: loading test/add_resolution_service_test.dart
+00:46 +156: test/add_resolution_service_test.dart: AddResolutionService @namespace/component parses to canonical component ref
+00:46 +157: test/add_resolution_service_test.dart: AddResolutionService @namespace/component@version preserves requested version
+00:46 +158: test/add_resolution_service_test.dart: AddResolutionService namespace:component parses to the same canonical component ref
+00:46 +159: test/add_resolution_service_test.dart: AddResolutionService colon alias splits on the first colon only
+00:46 +160: test/add_resolution_service_test.dart: AddResolutionService malformed component refs are rejected
+00:46 +161: test/add_resolution_service_test.dart: AddResolutionService qualified colon aliases resolve without probing raw input
+00:46 +162: test/add_resolution_service_test.dart: AddResolutionService malformed qualified refs fail before component probing
+00:46 +163: test/add_resolution_service_test.dart: AddResolutionService ambiguity errors show only canonical address form
+00:46 +164: loading test/crash_reporter_test.dart
+00:46 +164: test/crash_reporter_test.dart: CrashReporter redacts registry override flag values while preserving flag names
+00:46 +165: test/crash_reporter_test.dart: CrashReporter builds crash log with redacted command and stack trace
+00:46 +166: test/crash_reporter_test.dart: CrashReporter writes crash log and prunes older logs to keep ten
+00:46 +167: test/crash_reporter_test.dart: CrashReporter skips prompt and browser launch when stdin is not a TTY
+00:46 +168: test/crash_reporter_test.dart: CrashReporter opens crash issue only after explicit opt-in
+00:46 +169: loading test/installer_shared_service_test.dart
+00:46 +169: test/installer_shared_service_test.dart: InstallerSharedService normalizes legacy utils id to util
+00:46 +170: test/installer_shared_service_test.dart: InstallerSharedService includes optional color_scheme in core init ids when present
+00:46 +171: test/installer_shared_service_test.dart: InstallerSharedService resolves shared dependency closure from relative Dart imports
+00:46 +172: test/installer_shared_service_test.dart: InstallerSharedService resolves sibling Dart imports without dot prefixes as relative imports
+00:46 +173: test/installer_shared_service_test.dart: InstallerSharedService ignores imports between files owned by the same shared item
+00:46 +174: test/installer_shared_service_test.dart: InstallerSharedService installs shared dependencies before owning shared item
+00:46 +175: test/installer_shared_service_test.dart: InstallerSharedService installs mutually importing shared items without recursion failure
+00:46 +176: test/installer_shared_service_test.dart: InstallerSharedService falls back to component install when shared id is a component
+00:46 +177: loading test/installer_manifest_service_test.dart
+00:46 +177: test/installer_manifest_service_test.dart: InstallerManifestService writes aggregate and per-component manifests
+00:46 +178: test/installer_manifest_service_test.dart: InstallerManifestService preserves installedAt when rewriting component manifest
+00:46 +179: test/installer_manifest_service_test.dart: InstallerManifestService clears per-component manifests when aggregate install set is empty
+00:46 +180: loading test/config_state_migration_test.dart
+00:46 +180: test/config_state_migration_test.dart: config and state normalization normalizes older-shaped config to registries map
+00:46 +181: test/config_state_migration_test.dart: config and state normalization loads new config format fixture
+00:46 +182: test/config_state_migration_test.dart: config and state normalization normalizes older-shaped state to registries map
+00:46 +183: test/config_state_migration_test.dart: config and state normalization loads new state format fixture
+00:46 +184: test/config_state_migration_test.dart: config and state normalization missing config and state files load empty defaults
+00:46 +185: test/config_state_migration_test.dart: config and state normalization invalid config json throws typed load error
+00:46 +186: test/config_state_migration_test.dart: config and state normalization invalid state json throws typed load error
+00:46 +187: loading test/production_qa_regression_test.dart
+00:46 +187: test/production_qa_regression_test.dart: production QA regressions dry-run --all includes only registry components
+{
+  "status": "ok",
+  "command": "dry-run",
+  "data": {
+    "requested": [
+      "button"
+    ],
+    "missing": [],
+    "components": [
+      "button"
+    ],
+    "dependencyGraph": {
+      "button": []
+    },
+    "shared": [],
+    "pubspecDependencies": {},
+    "assets": [],
+    "fonts": [],
+    "postInstall": [],
+    "fileDependencies": [],
+    "platformChanges": {},
+    "componentFiles": {
+      "button": [
+        {
+          "source": "registry/components/button/button.dart",
+          "destination": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/production_qa_piKvaY/app/lib/ui/shadcn/components/button/button.dart"
+        }
+      ]
+    },
+    "manifestPreview": {
+      "button": {
+        "id": "button",
+        "name": "button",
+        "version": null,
+        "tags": [],
+        "shared": [],
+        "dependsOn": [],
+        "files": [
+          "registry/components/button/button.dart"
+        ],
+        "registryRoot": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/production_qa_piKvaY/registry"
+      }
+    }
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-17T21:15:52.922374Z",
+    "exitCode": 0
+  }
+}
+00:46 +188: test/production_qa_regression_test.dart: production QA regressions doctor validates v1 manifests schema when root schema is absent
+00:47 +189: test/production_qa_regression_test.dart: production QA regressions audit ignores optional preview files excluded by project config
+✨ Component audit
+Installed components: 1
+✓ Registry coverage: OK
+✓ Files: OK
+00:48 +190: test/production_qa_regression_test.dart: production QA regressions explicit missing registry path after command is rejected locally
+00:49 +191: test/production_qa_regression_test.dart: production QA regressions init installs shared app and localization modules by default
+✨ Initializing flutter_shadcn
+
+Installing core shared modules
+
+✓ Added dependencies: data_widget, gap
+✓ Initialization complete
+00:49 +192: loading test/path_utils_test.dart
+00:49 +192: test/path_utils_test.dart: path utils throws typed exception when project root cannot be found
+00:49 +193: loading test/widget_theme_installer_test.dart
+00:49 +193: test/widget_theme_installer_test.dart: Widget theme installer apply from file fails explicitly without modifying widget files
+00:49 +194: test/widget_theme_installer_test.dart: Widget theme installer reset fails explicitly without modifying widget files
+00:49 +195: loading test/multi_registry_manager_test.dart
+00:49 +195: test/multi_registry_manager_test.dart: MultiRegistryManager unqualified add fails when component is ambiguous
+00:49 +196: test/multi_registry_manager_test.dart: MultiRegistryManager unqualified add fails when default and another registry both match
+00:49 +197: test/multi_registry_manager_test.dart: MultiRegistryManager unqualified add uses default registry when it is the only match
+• Installing Button (button)
+00:50 +198: test/multi_registry_manager_test.dart: MultiRegistryManager qualified @namespace/component installs from selected registry
+• Installing Button (button)
+00:50 +199: test/multi_registry_manager_test.dart: MultiRegistryManager qualified namespace:component installs from selected registry
+• Installing Button (button)
+00:50 +200: test/multi_registry_manager_test.dart: MultiRegistryManager configureDefaultRegistryLocal persists local registry settings
+00:50 +201: test/multi_registry_manager_test.dart: MultiRegistryManager registry path override is used as current-engine source
+• Installing Button (button)
+00:50 +202: test/multi_registry_manager_test.dart: MultiRegistryManager invalid components schema blocks public add
+00:50 +203: test/multi_registry_manager_test.dart: MultiRegistryManager skip integrity bypasses invalid components schema for developer add
+• Installing Button (button)
+00:50 +204: test/multi_registry_manager_test.dart: MultiRegistryManager component add rejects symlink escape through install path
+00:50 +205: test/multi_registry_manager_test.dart: MultiRegistryManager registry path override is used for inline init copyFiles
+✓ Initialized shadcn (1 files, 0 dirs).
+00:50 +206: test/multi_registry_manager_test.dart: MultiRegistryManager assume yes skips optional init asset groups by default
+✓ Initialized shadcn (0 files, 0 dirs).
+00:50 +207: test/multi_registry_manager_test.dart: MultiRegistryManager assume yes installs only optional init groups marked required
+✓ Initialized shadcn (1 files, 0 dirs).
+00:50 +208: test/multi_registry_manager_test.dart: MultiRegistryManager offline inline init requires components manifest validation
+00:50 +209: test/multi_registry_manager_test.dart: MultiRegistryManager skip integrity allows offline inline init without components manifest
+! components.json validation skipped for init (shadcn).
+✓ Initialized shadcn (0 files, 1 dirs).
+00:50 +210: test/multi_registry_manager_test.dart: MultiRegistryManager registry path override is used for inline assets copyFiles
+00:50 +211: test/multi_registry_manager_test.dart: MultiRegistryManager registry path override preserves directory components path
+• Installing Button (button)
+00:50 +212: test/multi_registry_manager_test.dart: MultiRegistryManager registry path override uses explicit schema path for component manifest
+• Installing Button (button)
+00:50 +213: test/multi_registry_manager_test.dart: MultiRegistryManager relative registry path override is used for inline init copyFiles
+✓ Initialized shadcn (1 files, 0 dirs).
+00:50 +214: test/multi_registry_manager_test.dart: MultiRegistryManager failed inline assets do not mutate config
+00:50 +215: test/multi_registry_manager_test.dart: MultiRegistryManager failed inline asset execution does not mutate config
+00:50 +216: test/multi_registry_manager_test.dart: MultiRegistryManager setDefaultRegistry updates config and list reflects default
+00:50 +217: test/multi_registry_manager_test.dart: MultiRegistryManager setDefaultRegistry keeps theme manifests but omits legacy converter wiring
+00:50 +218: test/multi_registry_manager_test.dart: MultiRegistryManager inline assets install and rollback use registry actions
+✓ Rolled back inline actions (1 files, 1 dirs).
+00:50 +219: loading test/cli_parser_test.dart
+00:50 +219: test/cli_parser_test.dart: CLI parser rejects removed public registry selector
+00:50 +220: test/cli_parser_test.dart: CLI parser rejects removed registries url override
+00:50 +221: test/cli_parser_test.dart: CLI parser keeps developer registry flags parseable
+00:50 +222: test/cli_parser_test.dart: CLI parser advanced flag is accepted before command
+00:50 +223: test/cli_parser_test.dart: CLI parser advanced flag is accepted after command
+00:50 +224: test/cli_parser_test.dart: CLI parser json flag is accepted before json-enabled command
+00:50 +225: test/cli_parser_test.dart: CLI parser json flag is accepted after json-enabled command arguments
+00:50 +226: test/cli_parser_test.dart: CLI parser json flag remains invalid for commands without json output
+00:50 +227: test/cli_parser_test.dart: CLI parser hides developer registry flags from parser usage
+00:50 +228: test/cli_parser_test.dart: CLI parser removes public registry override wording from root usage
+00:50 +229: test/cli_parser_test.dart: CLI parser advanced root usage shows advanced-only commands and flags
+00:50 +230: test/cli_parser_test.dart: CLI parser theme import flags are hidden from normal parser usage
+00:50 +231: test/cli_parser_test.dart: CLI parser theme import flags remain parseable
+00:50 +232: test/cli_parser_test.dart: CLI parser hoists hidden developer flags after subcommands
+00:50 +233: test/cli_parser_test.dart: CLI parser normalizes theme namespace token before widget subcommand
+00:50 +234: test/cli_parser_test.dart: CLI parser parses nested theme widget command
+00:50 +235: test/cli_parser_test.dart: CLI parser parses top-level reset command
+00:50 +236: test/cli_parser_test.dart: CLI parser parses project reset subcommand and undo flag
+00:50 +237: test/cli_parser_test.dart: CLI parser parses project refresh subcommand
+00:50 +238: test/cli_parser_test.dart: CLI parser shows reset and project commands in normal usage
+00:50 +239: loading test/filesystem_guard_test.dart
+00:50 +239: test/filesystem_guard_test.dart: FilesystemGuard throws typed exception when target escapes root
+00:50 +240: loading test/component_manifest_resolver_test.dart
+00:50 +240: test/component_manifest_resolver_test.dart: ComponentManifestResolver prefers category component-local meta over components.json
+00:50 +241: test/component_manifest_resolver_test.dart: ComponentManifestResolver falls back to components.json when registry has no local manifests
+00:50 +242: test/component_manifest_resolver_test.dart: ComponentManifestResolver fails when a component-local manifest is malformed
+00:50 +243: loading test/project_refresh_service_test.dart
+00:50 +243: test/project_refresh_service_test.dart: ProjectRefreshService repairs only missing scaffold files without overwriting existing files or component installs
+00:50 +244: test/project_refresh_service_test.dart: ProjectRefreshService re-offers optional init actions only while their scaffold outputs are absent
+00:50 +245: test/project_refresh_service_test.dart: ProjectRefreshService repairs grouped directory-mapped files without path escape
+00:50 +246: loading test/e2e_multi_registry_fixture_test.dart
+00:50 +246: test/e2e_multi_registry_fixture_test.dart: E2E fixtures older-shaped config/state fixture supports add shadcn:button
+• Installing Button (button)
+00:51 +247: test/e2e_multi_registry_fixture_test.dart: E2E fixtures init shadcn executes inline init fixture actions
+Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+00:51 +248: loading test/cli_integration_test.dart
+00:51 +248: test/cli_integration_test.dart: CLI integration add installs component and writes manifests
+• Installing Button (button)
+00:51 +249: test/cli_integration_test.dart: CLI integration locale init creates l10n.yaml and local ARB folder
+Created l10n.yaml and lib/l10n/.
+Error: l10n.yaml already exists.
+00:51 +250: test/cli_integration_test.dart: CLI integration doctor runs without crashing
+✨ flutter_shadcn doctor
+
+Environment
+
+  Script                 /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/dart_test.kernel.Z7fdGV/test.dart_39.dill
+  CWD                    /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_DMOIsc/app
+  PUB_CACHE              /Users/ibrar/.pub-cache
+
+Registry
+
+  Mode                   local
+  Root                   /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_DMOIsc/registry
+  components.json        /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_DMOIsc/registry/components.json
+  Cache                  (local registry, no cache)
+  Schema                 /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_DMOIsc/registry/components.schema.json
+
+Configuration
+
+  SHADCN_REGISTRY_ROOT   (unset)
+  SHADCN_REGISTRY_URL    (unset)
+  cliRoot                /Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_cli
+  localRegistryRoot      /Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit/lib/registry
+  config.registryMode    (unset)
+  config.registryPath    (unset)
+  config.registryUrl     (unset)
+
+Config paths
+
+  installPath            lib/ui/shadcn
+  sharedPath             lib/ui/shadcn/shared
+  installPath valid: yes
+  sharedPath valid: yes
+  installPath exists: no
+  sharedPath exists: no
+
+Theme files
+
+  color_scheme.dart      missing
+
+Schema validation
+
+✓   components.json matches the schema.
+
+Lockfile
+
+  shadcn.lock            not present
+  lockfileVersion        1
+  locked components      0
+✓   locked files are present.
+
+Platform targets
+
+  (set .shadcn/config.json "platformTargets" to override paths)
+  android:
+    permissions: android/app/src/main/AndroidManifest.xml
+    gradle: android/app/build.gradle
+    notes: .shadcn/platform/android.md
+  ios:
+    infoPlist: ios/Runner/Info.plist
+    podfile: ios/Podfile
+    notes: .shadcn/platform/ios.md
+  macos:
+    entitlements: macos/Runner/DebugProfile.entitlements
+    notes: .shadcn/platform/macos.md
+  desktop:
+    config: .shadcn/platform/desktop.md
+00:51 +251: test/cli_integration_test.dart: CLI integration init rejects multiple positional namespace tokens
+00:52 +252: test/cli_integration_test.dart: CLI integration init --install-fonts is rejected by parser
+00:53 +253: test/cli_integration_test.dart: CLI integration docs command requires advanced mode
+00:54 +254: test/cli_integration_test.dart: CLI integration advanced flag works after command
+00:55 +255: test/cli_integration_test.dart: CLI integration json flag works in any position for json-enabled commands
+00:58 +256: test/cli_integration_test.dart: CLI integration list uses registries directory manifest paths without persisted config
+00:59 +257: test/cli_integration_test.dart: CLI integration theme help hides import flags unless advanced mode is enabled
+01:01 +258: test/cli_integration_test.dart: CLI integration theme --apply-file installs a declarative manifest in advanced mode
+01:03 +259: test/cli_integration_test.dart: CLI integration theme --apply-file rejects raw preset payloads
+01:04 +260: test/cli_integration_test.dart: CLI integration developer registry override requires advanced mode
+01:05 +261: test/cli_integration_test.dart: CLI integration add namespace-qualified component works with older-shaped config/state
+• Installing Button (button)
+01:05 +262: test/cli_integration_test.dart: CLI integration add @namespace/component installs from selected registry
+• Installing Button (button)
+01:05 +263: test/cli_integration_test.dart: CLI integration add --include-files=preview with @namespace installs preview and preview_state
+• Installing Button (button)
+01:06 +264: test/cli_integration_test.dart: CLI integration default command sets default namespace and registries list works
+Default registry set to: alt
+{
+  "status": "ok",
+  "command": "registries",
+  "data": {
+    "defaultNamespace": "alt",
+    "items": [
+      {
+        "namespace": "alt",
+        "displayName": "alt",
+        "isDefault": true,
+        "enabled": true,
+        "source": "config",
+        "mode": "local",
+        "baseUrl": null,
+        "registryPath": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_E82R3M/alt_registry",
+        "installRoot": "lib/ui/alt",
+        "capabilitySharedGroups": null,
+        "capabilityComposites": null,
+        "capabilityTheme": null
+      },
+      {
+        "namespace": "shadcn",
+        "displayName": "shadcn",
+        "isDefault": false,
+        "enabled": true,
+        "source": "config",
+        "mode": "local",
+        "baseUrl": null,
+        "registryPath": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_E82R3M/registry",
+        "installRoot": "lib/ui/shadcn",
+        "capabilitySharedGroups": null,
+        "capabilityComposites": null,
+        "capabilityTheme": null
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-17T21:16:12.325677Z"
+  }
+}
+• Installing Button (button)
+01:06 +265: test/cli_integration_test.dart: CLI integration init namespace executes inline init actions from registries directory
+Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+01:06 +266: test/cli_integration_test.dart: CLI integration init without namespace uses default namespace inline actions when registries are configured
+Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+01:06 +267: test/cli_integration_test.dart: CLI integration init without namespace bootstraps shadcn from registries directory on a clean project
+Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+01:06 +268: test/cli_integration_test.dart: CLI integration init without flags uses persisted local registry mode from config
+Init done
+✓ Initialized shadcn (2 files, 2 dirs).
+01:06 +269: test/cli_integration_test.dart: CLI integration registries schema accepts deprecated themeConverterDart path during directory load
+01:07 +270: test/cli_integration_test.dart: CLI integration init consumes optional grouped actions from registries schema and derives assets from written files only
+01:23 +271: test/cli_integration_test.dart: CLI integration assets and remove use inline registry actions when available
+✓ Installed assets via inline registry actions.
+✓ Rolled back inline actions (1 files, 1 dirs).
+✓ Removed inline-managed asset actions.
+01:23 +272: test/cli_integration_test.dart: CLI integration assets fails instead of installing removed asset component fallback
+01:25 +273: test/cli_integration_test.dart: CLI integration rejects registry path and registry url overrides together
+01:26 +274: test/cli_integration_test.dart: CLI integration add exits schema invalid when components schema fails
+01:27 +275: test/cli_integration_test.dart: CLI integration add bypasses invalid components schema with skip integrity
+01:28 +276: test/cli_integration_test.dart: CLI integration init exits schema invalid when components schema fails
+01:29 +277: test/cli_integration_test.dart: CLI integration preloaded commands map schema failures to schema invalid
+01:31 +278: test/cli_integration_test.dart: CLI integration validate reports schema failures
+01:32 +279: test/cli_integration_test.dart: CLI integration sync preserves component manifests
+• Installing Button (button)
+✓ Sync complete
+01:32 +280: test/cli_integration_test.dart: CLI integration offline list uses cached index
+{
+  "status": "ok",
+  "command": "list",
+  "data": {
+    "registry": {
+      "id": "https___example.com_registry",
+      "baseUrl": "https://example.com/registry"
+    },
+    "count": 0,
+    "components": []
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-17T21:16:38.515726Z",
+    "exitCode": 0
+  }
+}
+01:32 +281: test/cli_integration_test.dart: CLI integration default command accepts --registries-path for local registries.json
+Default registry set to: localdev
+01:32 +282: test/cli_integration_test.dart: CLI integration list/search accept @namespace registry token
+{
+  "status": "ok",
+  "command": "list",
+  "data": {
+    "registry": {
+      "id": "_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_shadcn_cli_it_go9ddf_registry",
+      "baseUrl": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_go9ddf/registry"
+    },
+    "count": 2,
+    "components": [
+      {
+        "id": "button",
+        "name": "Button",
+        "category": "control",
+        "description": "Button component",
+        "tags": [
+          "core"
+        ],
+        "install": "flutter_shadcn add button",
+        "import": "package:app/ui/shadcn/components/button/button.dart",
+        "importPath": "ui/shadcn/components/button/button.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "dialog"
+        ]
+      },
+      {
+        "id": "dialog",
+        "name": "Dialog",
+        "category": "overlay",
+        "description": "Dialog component",
+        "tags": [
+          "overlay"
+        ],
+        "install": "flutter_shadcn add dialog",
+        "import": "package:app/ui/shadcn/components/dialog/dialog.dart",
+        "importPath": "ui/shadcn/components/dialog/dialog.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "button"
+        ]
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-17T21:16:38.676520Z",
+    "exitCode": 0
+  }
+}
+{
+  "status": "ok",
+  "command": "search",
+  "data": {
+    "query": "button",
+    "registry": {
+      "id": "_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_shadcn_cli_it_go9ddf_registry",
+      "baseUrl": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/shadcn_cli_it_go9ddf/registry"
+    },
+    "count": 2,
+    "results": [
+      {
+        "id": "button",
+        "name": "Button",
+        "category": "control",
+        "description": "Button component",
+        "tags": [
+          "core"
+        ],
+        "install": "flutter_shadcn add button",
+        "import": "package:app/ui/shadcn/components/button/button.dart",
+        "importPath": "ui/shadcn/components/button/button.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "dialog"
+        ],
+        "score": 280
+      },
+      {
+        "id": "dialog",
+        "name": "Dialog",
+        "category": "overlay",
+        "description": "Dialog component",
+        "tags": [
+          "overlay"
+        ],
+        "install": "flutter_shadcn add dialog",
+        "import": "package:app/ui/shadcn/components/dialog/dialog.dart",
+        "importPath": "ui/shadcn/components/dialog/dialog.dart",
+        "api": {},
+        "examples": {},
+        "dependencies": {},
+        "related": [
+          "button"
+        ],
+        "score": 0
+      }
+    ]
+  },
+  "errors": [],
+  "warnings": [],
+  "meta": {
+    "timestamp": "2026-05-17T21:16:38.847769Z",
+    "exitCode": 0
+  }
+}
+01:32 +283: test/cli_integration_test.dart: CLI integration theme widget commands fail explicitly without runtime execution
+01:33 +284: test/cli_integration_test.dart: CLI integration init without --yes still completes with default config
+Component install path inside lib/ (e.g. lib/ui/shadcn or lib/pages/docs) (default: lib/ui/shadcn). Enter to keep: Init done
+✓ Initialized shadcn (0 files, 0 dirs).
+01:33 +285: test/cli_integration_test.dart: CLI integration app components hides material Stepper and Step when registry stepper is installed
+• Installing Stepper (stepper)
+01:33 +286: loading test/init_action_engine_test.dart
+01:33 +286: test/init_action_engine_test.dart: InitActionEngine executes inline init actions happy path
+01:34 +287: test/init_action_engine_test.dart: InitActionEngine mergePubspec writes sdk dependencies as nested yaml maps
+01:34 +288: test/init_action_engine_test.dart: InitActionEngine mergePubspec fails on conflicting dependency constraint
+01:34 +289: test/init_action_engine_test.dart: InitActionEngine mergePubspec rejects same package in dependencies and devDependencies
+01:34 +290: test/init_action_engine_test.dart: InitActionEngine rolls back recorded inline changes
+01:34 +291: test/init_action_engine_test.dart: InitActionEngine copyDir requires exactly one of files or index
+01:34 +292: test/init_action_engine_test.dart: InitActionEngine copyFiles from/to accepts files relative to base
+01:34 +293: test/init_action_engine_test.dart: InitActionEngine rejects path traversal attempts on destination writes
+01:34 +294: test/init_action_engine_test.dart: InitActionEngine rejects symlink escape on destination writes
+01:34 +295: test/init_action_engine_test.dart: InitActionEngine supports optional actions, grouped copyFiles, and derived flutter assets from written files
+01:34 +296: test/init_action_engine_test.dart: InitActionEngine inline init rejects code writes outside lib but allows assets
+01:34 +297: test/init_action_engine_test.dart: InitActionEngine inline init rejects ensureDirs outside lib or assets
+01:34 +298: test/init_action_engine_test.dart: InitActionEngine inline init rejects traversal escape even with valid prefix
+01:34 +299: test/init_action_engine_test.dart: InitActionEngine empty group selection skips grouped copyFiles (Enter to skip)
+01:34 +300: test/init_action_engine_test.dart: InitActionEngine optional action decider returning false skips non-grouped optional action
+01:34 +301: test/init_action_engine_test.dart: InitActionEngine group selector selects all groups with "a"
+01:34 +302: loading test/installer_platform_service_test.dart
+01:34 +302: test/installer_platform_service_test.dart: InstallerPlatformService writes marked platform sections once using configured targets
+01:34 +303: test/installer_platform_service_test.dart: InstallerPlatformService reports post-install notes through logger without throwing
+
+Post-install notes for Camera
+  • Enable camera permissions in your store profile.
+01:34 +304: loading test/pubspec_editor_test.dart
+01:34 +304: test/pubspec_editor_test.dart: PubspecEditor appends dependencies, assets, and fonts without rewriting comments
+01:34 +305: test/pubspec_editor_test.dart: PubspecEditor does not add dependencies that already exist
+01:34 +306: test/pubspec_editor_test.dart: PubspecEditor appends dependencies when section is missing
+01:34 +307: test/pubspec_editor_test.dart: PubspecEditor appends flutter section when missing
+01:34 +308: test/pubspec_editor_test.dart: PubspecEditor preserves blank lines and indentation
+01:34 +309: test/pubspec_editor_test.dart: PubspecEditor does not duplicate assets that already exist
+01:34 +310: test/pubspec_editor_test.dart: PubspecEditor does not duplicate font families that already exist
+01:34 +311: test/pubspec_editor_test.dart: PubspecEditor handles sdk-style dependency values
+01:34 +312: test/pubspec_editor_test.dart: PubspecEditor rollback removes only added entries
+01:34 +313: test/pubspec_editor_test.dart: PubspecEditor preserves comments in flutter section
+01:34 +314: test/pubspec_editor_test.dart: PubspecEditor handles dev_dependencies section
+01:34 +315: test/pubspec_editor_test.dart: PubspecEditor handles multi-line dependency values
+01:34 +316: loading test/shadcn_lock_repository_test.dart
+01:34 +316: test/shadcn_lock_repository_test.dart: ShadcnLockRepository synthesizes legacy component manifests when lockfile is missing
+01:34 +317: loading test/arg_helpers_test.dart
+01:34 +317: test/arg_helpers_test.dart: arg helpers parseFileKindOptions throws typed usage error for invalid kind
+01:34 +318: All tests passed!

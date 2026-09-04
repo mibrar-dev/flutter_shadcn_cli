@@ -6,6 +6,7 @@ import 'package:path/path.dart' as p;
 import 'package:test/test.dart';
 
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry.dart';
@@ -74,6 +75,387 @@ void main() {
       expect(
         File(p.join(installDir, 'preview_state.dart')).existsSync(),
         isFalse,
+      );
+    });
+
+    test('reports component install progress in normal output', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final lines = <String>[];
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(useColor: false, writeLine: lines.add),
+        registryBaseUrlOverride: p.dirname(registryRoot.path),
+        themesPathOverride: 'registry/manifests/theme.index.json',
+      );
+
+      await installer.addComponent('button');
+
+      expect(
+        lines,
+        containsAllInOrder([
+          '... Resolving component: button',
+          '• Installing Button (button)',
+          '... Installing files for Button (2 files)',
+          '... Installing file 1/2: components/button/button.dart',
+          '... Installing file 2/2: components/button/meta.json',
+          '... Updating pubspec dependencies for Button',
+          '... Writing component manifest for Button',
+          '... Regenerating app component aliases',
+          '... Syncing component registry manifest',
+          '... Updating project state',
+        ]),
+      );
+    });
+
+    test('rejects component file destinations outside install scope', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(p.dirname(registryRoot.path), 'external_button.dart'))
+          .writeAsStringSync('class ExternalButton {}');
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['files'] = [
+          {
+            'source': 'external_button.dart',
+            'destination': 'lib/escape/button.dart',
+          }
+        ];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('outside allowed install scope') &&
+                error.toString().contains('lib/escape/button.dart'),
+          ),
+        ),
+      );
+      expect(
+        File(p.join(targetRoot.path, 'lib', 'escape', 'button.dart'))
+            .existsSync(),
+        isFalse,
+      );
+    });
+
+    test('rejects component asset paths outside assets root', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['assets'] = ['lib/secret.txt'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('Asset path must be under assets/'),
+          ),
+        ),
+      );
+      final pubspec =
+          File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('lib/secret.txt')));
+      expect(
+        File(p.join(targetRoot.path, 'lib', 'ui', 'shadcn', 'components',
+                'button', 'button.dart'))
+            .existsSync(),
+        isFalse,
+      );
+    });
+
+    test('rejects shared file destinations outside shared root', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(p.dirname(registryRoot.path), 'external_shared.dart'))
+          .writeAsStringSync('class ExternalShared {}');
+      _mutateRegistryJson(registryRoot, (json) {
+        final sharedItems = (json['shared'] as List).cast<Map>();
+        final util = sharedItems.firstWhere((item) => item['id'] == 'util');
+        util['files'] = [
+          {
+            'source': 'external_shared.dart',
+            'destination': 'pubspec.yaml',
+          }
+        ];
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['shared'] = ['util'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error
+                    .toString()
+                    .contains('cannot write reserved project file') &&
+                error.toString().contains('pubspec.yaml'),
+          ),
+        ),
+      );
+      expect(
+        File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync(),
+        contains('name: test_app'),
+      );
+    });
+
+    test('merges component-local JSON locale resources into app ARB', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      File(p.join(targetRoot.path, 'l10n.yaml')).writeAsStringSync('''
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+''');
+      Directory(p.join(targetRoot.path, 'lib', 'l10n'))
+          .createSync(recursive: true);
+      File(p.join(targetRoot.path, 'lib', 'l10n', 'app_en.arb'))
+          .writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert({
+          '@@locale': 'en',
+          'buttonSave': 'Keep existing',
+        }),
+      );
+      Directory(p.join(
+              registryRoot.path, 'components', 'control', 'button', 'locales'))
+          .createSync(recursive: true);
+      File(p.join(registryRoot.path, 'components', 'control', 'button',
+              'locales', 'en.json'))
+          .writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert({
+          'buttonSave': 'Save',
+          'buttonCancel': 'Cancel',
+          '@buttonCancel': {'description': 'Cancel action label'},
+        }),
+      );
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['locale'] = {
+          'defaultLocale': 'en',
+          'required': ['en'],
+          'resources': [
+            {
+              'locale': 'en',
+              'format': 'json',
+              'source': 'registry/components/control/button/locales/en.json',
+              'required': true,
+            }
+          ],
+        };
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await installer.addComponent('button');
+
+      final appArb = jsonDecode(
+        File(p.join(targetRoot.path, 'lib', 'l10n', 'app_en.arb'))
+            .readAsStringSync(),
+      ) as Map<String, dynamic>;
+      expect(appArb['buttonSave'], 'Keep existing');
+      expect(appArb['buttonCancel'], 'Cancel');
+      expect(appArb['@buttonCancel'], {'description': 'Cancel action label'});
+
+      final manifest = jsonDecode(
+        File(p.join(targetRoot.path, '.shadcn', 'components', 'button.json'))
+            .readAsStringSync(),
+      ) as Map<String, dynamic>;
+      final resources =
+          ((manifest['locale'] as Map)['resourcesInstalled'] as List)
+              .cast<Map<String, dynamic>>();
+      expect(resources.single['destination'], 'lib/l10n/app_en.arb');
+      expect(resources.single['addedKeys'], contains('buttonCancel'));
+      expect(resources.single['addedKeys'], isNot(contains('buttonSave')));
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      final record = lock.componentFor(
+        namespace: 'shadcn',
+        componentId: 'button',
+      );
+      expect(record?.localeKeys, [
+        'lib/l10n/app_en.arb:@buttonCancel',
+        'lib/l10n/app_en.arb:buttonCancel',
+      ]);
+
+      await installer.removeComponent('button', force: true);
+
+      final afterRemove = jsonDecode(
+        File(p.join(targetRoot.path, 'lib', 'l10n', 'app_en.arb'))
+            .readAsStringSync(),
+      ) as Map<String, dynamic>;
+      expect(afterRemove['buttonSave'], 'Keep existing');
+      expect(afterRemove.containsKey('buttonCancel'), isFalse);
+    });
+
+    test('locale install failures expose typed error codes', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = (json['components'] as List).cast<Map>();
+        final button = components.firstWhere((item) => item['id'] == 'button');
+        button['locale'] = {
+          'defaultLocale': 'en',
+          'resources': [
+            {
+              'locale': 'en',
+              'format': 'yaml',
+              'source': 'registry/components/button/locales/en.yaml',
+            }
+          ],
+        };
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          isA<LocaleInstallException>()
+              .having((error) => error.code, 'code', 'missing-l10n-config')
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Locale resources require l10n.yaml'),
+              ),
+        ),
+      );
+
+      File(p.join(targetRoot.path, 'l10n.yaml')).writeAsStringSync('''
+arb-dir: lib/l10n
+template-arb-file: app_en.arb
+output-localization-file: app_localizations.dart
+''');
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          isA<LocaleInstallException>()
+              .having((error) => error.code, 'code', 'unsupported-format')
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Unsupported locale resource format'),
+              ),
+        ),
       );
     });
 
@@ -255,6 +637,291 @@ void main() {
       expect(pubspecAgain.contains('skeletonizer: ^2.1.0+1'), isTrue);
     });
 
+    test('writes lockfile record without changing managed dependencies',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('button');
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      expect(lock.lockfileVersion, 1);
+      expect(lock.registries['shadcn']?.namespace, 'shadcn');
+      expect(lock.components, hasLength(1));
+
+      final record = lock.components.single;
+      expect(record.namespace, 'shadcn');
+      expect(record.componentId, 'button');
+      expect(record.qualifiedId, '@shadcn/button');
+      expect(record.installedFiles,
+          contains('lib/ui/shadcn/components/button/button.dart'));
+      expect(record.installedFiles,
+          contains('lib/ui/shadcn/components/button/meta.json'));
+      expect(record.installedFiles,
+          isNot(contains('lib/ui/shadcn/components/button/README.md')));
+      expect(record.dependencies, {'skeletonizer': '^2.1.0+1'});
+      expect(record.sourceManifestHash, isNotEmpty);
+
+      final state = await ShadcnState.load(targetRoot.path);
+      expect(state.managedDependencies, contains('data_widget'));
+      expect(state.managedDependencies, contains('gap'));
+    });
+
+    test('fails before writes when another component owns generated target',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: false,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _writeRawLock(
+        targetRoot,
+        components: [
+          _rawLockComponent(
+            namespace: 'other',
+            componentId: 'card',
+            installedFiles: [
+              'lib/ui/shadcn/components/button/button.dart',
+            ],
+          ),
+        ],
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('Namespace collision') &&
+                error
+                    .toString()
+                    .contains('lib/ui/shadcn/components/button/button.dart') &&
+                error.toString().contains('@other/card') &&
+                error.toString().contains('@shadcn/button'),
+          ),
+        ),
+      );
+
+      expect(
+        File(p.join(
+          targetRoot.path,
+          'lib/ui/shadcn/components/button/button.dart',
+        )).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('fails when manifest namespace ownership collides', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button = components
+            .cast<Map<String, dynamic>>()
+            .firstWhere((component) => component['id'] == 'button');
+        button['assets'] = ['assets/fonts/shared.ttf'];
+        button['manifestKeys'] = ['shared.button.label'];
+        button['postInstallNamespaces'] = ['shared.bootstrap'];
+        button['localeNamespaces'] = ['shared'];
+      });
+      _writeRawLock(
+        targetRoot,
+        components: [
+          _rawLockComponent(
+            namespace: 'other',
+            componentId: 'card',
+            assetPaths: ['assets/fonts/shared.ttf'],
+            manifestKeys: ['shared.button.label'],
+            postInstallNamespaces: ['shared.bootstrap'],
+            localeNamespaces: ['shared'],
+          ),
+        ],
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('Namespace collision') &&
+                error.toString().contains('assets/fonts/shared.ttf') &&
+                error.toString().contains('shared.button.label') &&
+                error.toString().contains('shared.bootstrap') &&
+                error.toString().contains('shared'),
+          ),
+        ),
+      );
+    });
+
+    test('reinstalling same qualified component updates ownership record',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button = components
+            .cast<Map<String, dynamic>>()
+            .firstWhere((component) => component['id'] == 'button');
+        button['assets'] = ['assets/fonts/shared.ttf'];
+        button['manifestKeys'] = ['shadcn.button.label'];
+        button['postInstallNamespaces'] = ['shadcn.button.bootstrap'];
+        button['localeNamespaces'] = ['shadcn.button'];
+      });
+      _writeRawLock(
+        targetRoot,
+        components: [
+          _rawLockComponent(
+            namespace: 'shadcn',
+            componentId: 'button',
+            installedFiles: [
+              'lib/ui/shadcn/components/button/button.dart',
+              'lib/ui/shadcn/components/button/meta.json',
+            ],
+            assetPaths: ['assets/fonts/shared.ttf'],
+            manifestKeys: ['shadcn.button.label'],
+            postInstallNamespaces: ['shadcn.button.bootstrap'],
+            localeNamespaces: ['shadcn.button'],
+          ),
+        ],
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('button');
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      final record = lock.componentFor(
+        namespace: 'shadcn',
+        componentId: 'button',
+      );
+      expect(record, isNotNull);
+      expect(record!.installedFiles,
+          contains('lib/ui/shadcn/components/button/button.dart'));
+      expect(record.assetPaths, ['assets/fonts/shared.ttf']);
+      expect(record.manifestKeys, ['shadcn.button.label']);
+      expect(record.postInstallNamespaces, ['shadcn.button.bootstrap']);
+      expect(record.localeNamespaces, ['shadcn.button']);
+    });
+
+    test('remove deletes lockfile record for removed component', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          defaultNamespace: 'shadcn',
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+        registryNamespace: 'shadcn',
+      );
+
+      await installer.addComponent('button');
+      await installer.removeComponent('button', force: true);
+
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+      expect(lock.components, isEmpty);
+      final pubspec =
+          File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync();
+      expect(pubspec, isNot(contains('skeletonizer:')));
+    });
+
     test('inserts dependencies when section missing', () async {
       await _writeConfig(
         targetRoot,
@@ -289,7 +956,8 @@ void main() {
       expect(pubspec.contains('skeletonizer: ^2.1.0+1'), isTrue);
     });
 
-    test('does not duplicate dependency present in dev_dependencies', () async {
+    test('fails when dependency is already present in dev_dependencies',
+        () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -322,12 +990,174 @@ void main() {
         logger: CliLogger(),
       );
 
-      await installer.addComponent('button');
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('pubspec.yaml dependency conflict') &&
+                error.toString().contains('skeletonizer'),
+          ),
+        ),
+      );
+    });
+
+    test('fails when existing dependency constraint conflicts', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: true,
+        ),
+      );
+      File(p.join(targetRoot.path, 'pubspec.yaml')).writeAsStringSync(
+        [
+          'name: test_app',
+          'dependencies:',
+          '  flutter:',
+          '    sdk: flutter',
+          '  skeletonizer: ^1.0.0',
+        ].join('\n'),
+      );
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('pubspec.yaml dependency conflict') &&
+                error.toString().contains('skeletonizer'),
+          ),
+        ),
+      );
 
       final pubspec =
           File(p.join(targetRoot.path, 'pubspec.yaml')).readAsStringSync();
-      final occurrences = RegExp('skeletonizer:').allMatches(pubspec).length;
-      expect(occurrences, 1);
+      expect(pubspec, contains('skeletonizer: ^1.0.0'));
+      expect(pubspec, isNot(contains('skeletonizer: ^2.1.0+1')));
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'button',
+            'button.dart',
+          ),
+        ).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('fails before writes when component dependency graph has a cycle',
+        () async {
+      _writePubspec(targetRoot);
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button =
+            components.cast<Map<String, dynamic>>().firstWhere((entry) {
+          return entry['id'] == 'button';
+        });
+        button['dependsOn'] = ['dialog'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+        skipIntegrity: true,
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.addComponent('button'),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('dependency cycle') &&
+                error.toString().contains('button -> dialog -> button'),
+          ),
+        ),
+      );
+
+      expect(
+        File(
+          p.join(
+            targetRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'button',
+            'button.dart',
+          ),
+        ).existsSync(),
+        isFalse,
+      );
+      expect(
+        Directory(p.join(targetRoot.path, '.shadcn')).existsSync(),
+        isFalse,
+      );
+    });
+
+    test('dry-run fails when component dependency graph has a cycle', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: true,
+        ),
+      );
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        final button =
+            components.cast<Map<String, dynamic>>().firstWhere((entry) {
+          return entry['id'] == 'button';
+        });
+        button['dependsOn'] = ['dialog'];
+      });
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+        skipIntegrity: true,
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.buildDryRunPlan(['button']),
+        throwsA(
+          predicate(
+            (Object error) =>
+                error.toString().contains('dependency cycle') &&
+                error.toString().contains('button -> dialog -> button'),
+          ),
+        ),
+      );
     });
 
     test('skips meta.json when includeMeta is false', () async {
@@ -364,6 +1194,48 @@ void main() {
       );
 
       expect(File(p.join(installDir, 'meta.json')).existsSync(), isFalse);
+    });
+
+    test('remove uses lockfile when meta tracking is disabled', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await installer.addComponent('button');
+      await installer.removeComponent('button', force: true);
+
+      final buttonFile = File(
+        p.join(
+          targetRoot.path,
+          'lib',
+          'ui',
+          'shadcn',
+          'components',
+          'button',
+          'button.dart',
+        ),
+      );
+      final lock = await ShadcnLockRepository(targetRoot.path).load();
+
+      expect(buttonFile.existsSync(), isFalse);
+      expect(lock.components, isEmpty);
     });
 
     test('installs dependencies before component', () async {
@@ -510,7 +1382,7 @@ void main() {
       await installer.init(
         skipPrompts: true,
         configOverrides: const InitConfigOverrides(
-          installPath: 'ui/shadcn',
+          installPath: 'lib/ui/shadcn',
           sharedPath: 'lib/ui/shadcn/shared',
           includeReadme: false,
           includeMeta: true,
@@ -601,7 +1473,8 @@ void main() {
       );
     });
 
-    test('applies theme artifact manifest and updates config theme id', () async {
+    test('applies theme artifact manifest and updates config theme id',
+        () async {
       await _writeConfig(
         targetRoot,
         const ShadcnConfig(
@@ -671,7 +1544,8 @@ void main() {
       );
       final manifestData =
           jsonDecode(manifestFile.readAsStringSync()) as Map<String, dynamic>;
-      final files = (manifestData['files'] as List).cast<Map<String, dynamic>>();
+      final files =
+          (manifestData['files'] as List).cast<Map<String, dynamic>>();
       files[0] = {
         ...files[0],
         'sha256': '0' * 64,
@@ -712,14 +1586,60 @@ void main() {
       await expectLater(
         installer.applyThemeById('modern-minimal'),
         throwsA(
-          isA<Exception>().having(
-            (error) => error.toString(),
-            'message',
-            contains('SHA-256'),
-          ),
+          isA<ThemeInstallException>()
+              .having((error) => error.code, 'code', 'hash-mismatch')
+              .having((error) => error.message, 'message', contains('SHA-256')),
         ),
       );
       expect(generatedThemeFile.existsSync(), isFalse);
+    });
+
+    test('theme artifact failures expose typed error codes', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeReadme: false,
+          includeMeta: true,
+          includePreview: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+      );
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await expectLater(
+        installer.applyThemeFromJson({
+          'id': 'bad-source',
+          'name': 'Bad Source',
+          'files': [
+            {
+              'source': 'ftp://example.com/theme.dart',
+              'target':
+                  '{sharedPath}/theme/_impl/core/generated_bad_source.dart',
+              'sha256': '00',
+            }
+          ],
+        }),
+        throwsA(
+          isA<ThemeInstallException>()
+              .having((error) => error.code, 'code', 'unsupported-source')
+              .having(
+                (error) => error.message,
+                'message',
+                contains('Unsupported theme artifact source'),
+              ),
+        ),
+      );
     });
 
     test('rejects dangerous theme manifest targets before writes', () async {
@@ -809,8 +1729,42 @@ void _writeRegistryFixtures(Directory registryRoot) {
   File(p.join(componentsDir.path, 'button.dart'))
       .writeAsStringSync('class Button {}');
   File(p.join(componentsDir.path, 'README.md')).writeAsStringSync('# Button');
-  File(p.join(componentsDir.path, 'meta.json'))
-      .writeAsStringSync('{"id":"button"}');
+  File(p.join(componentsDir.path, 'meta.json')).writeAsStringSync(
+    jsonEncode({
+      'id': 'button',
+      'name': 'Button',
+      'files': [
+        {
+          'source': 'registry/components/button/button.dart',
+          'destination': '{installPath}/components/button/button.dart'
+        },
+        {
+          'source': 'registry/components/button/README.md',
+          'destination': '{installPath}/components/button/README.md'
+        },
+        {
+          'source': 'registry/components/button/meta.json',
+          'destination': '{installPath}/components/button/meta.json'
+        },
+        {
+          'source': 'registry/components/button/preview.dart',
+          'destination': '{installPath}/components/button/preview.dart'
+        },
+        {
+          'source': 'registry/components/button/preview_state.dart',
+          'destination': '{installPath}/components/button/preview_state.dart'
+        }
+      ],
+      'shared': [],
+      'dependsOn': [],
+      'pubspec': {
+        'dependencies': {'skeletonizer': '^2.1.0+1'}
+      },
+      'assets': [],
+      'fonts': [],
+      'postInstall': [],
+    }),
+  );
   File(p.join(componentsDir.path, 'preview.dart'))
       .writeAsStringSync('void main() {}');
   File(p.join(componentsDir.path, 'preview_state.dart'))
@@ -818,8 +1772,28 @@ void _writeRegistryFixtures(Directory registryRoot) {
 
   File(p.join(dialogDir.path, 'dialog.dart'))
       .writeAsStringSync('class Dialog {}');
-  File(p.join(dialogDir.path, 'meta.json'))
-      .writeAsStringSync('{"id":"dialog"}');
+  File(p.join(dialogDir.path, 'meta.json')).writeAsStringSync(
+    jsonEncode({
+      'id': 'dialog',
+      'name': 'Dialog',
+      'files': [
+        {
+          'source': 'registry/components/dialog/dialog.dart',
+          'destination': '{installPath}/components/dialog/dialog.dart'
+        },
+        {
+          'source': 'registry/components/dialog/meta.json',
+          'destination': '{installPath}/components/dialog/meta.json'
+        }
+      ],
+      'shared': [],
+      'dependsOn': ['button'],
+      'pubspec': {'dependencies': {}},
+      'assets': [],
+      'fonts': [],
+      'postInstall': [],
+    }),
+  );
 
   File(p.join(sharedThemeDir.path, 'theme.dart'))
       .writeAsStringSync('class ThemeHelper {}');
@@ -1026,6 +2000,82 @@ class ColorSchemes {
         ],
       }),
     );
+}
+
+void _mutateRegistryJson(
+  Directory registryRoot,
+  void Function(Map<String, dynamic> json) mutate,
+) {
+  final file = File(p.join(registryRoot.path, 'components.json'));
+  final json = jsonDecode(file.readAsStringSync()) as Map<String, dynamic>;
+  mutate(json);
+  file.writeAsStringSync(const JsonEncoder.withIndent('  ').convert(json));
+  for (final component
+      in (json['components'] as List).cast<Map<String, dynamic>>()) {
+    final id = component['id'] as String;
+    final manifest = File(
+      p.join(p.dirname(registryRoot.path), 'registry', 'components', id,
+          'meta.json'),
+    );
+    if (manifest.existsSync()) {
+      manifest.writeAsStringSync(
+        const JsonEncoder.withIndent('  ').convert(component),
+      );
+    }
+  }
+}
+
+void _writeRawLock(
+  Directory targetRoot, {
+  required List<Map<String, dynamic>> components,
+}) {
+  File(p.join(targetRoot.path, 'shadcn.lock')).writeAsStringSync(
+    const JsonEncoder.withIndent('  ').convert({
+      'lockfileVersion': 1,
+      'registries': {
+        'shadcn': {
+          'namespace': 'shadcn',
+          'registryRoot': '/tmp/shadcn',
+          'sourceRoot': '/tmp/shadcn',
+          'sourceManifestHash': 'hash',
+        },
+        'other': {
+          'namespace': 'other',
+          'registryRoot': '/tmp/other',
+          'sourceRoot': '/tmp/other',
+          'sourceManifestHash': 'hash',
+        },
+      },
+      'components': components,
+    }),
+  );
+}
+
+Map<String, dynamic> _rawLockComponent({
+  required String namespace,
+  required String componentId,
+  List<String> installedFiles = const [],
+  List<String> assetPaths = const [],
+  List<String> manifestKeys = const [],
+  List<String> postInstallNamespaces = const [],
+  List<String> localeNamespaces = const [],
+}) {
+  return {
+    'namespace': namespace,
+    'componentId': componentId,
+    'qualifiedId': '@$namespace/$componentId',
+    'version': '1.0.0',
+    'registryRoot': '/tmp/$namespace',
+    'sourceManifestHash': 'hash',
+    'installedFiles': installedFiles,
+    'dependencies': {},
+    'postInstall': [],
+    'localeKeys': [],
+    'assetPaths': assetPaths,
+    'manifestKeys': manifestKeys,
+    'postInstallNamespaces': postInstallNamespaces,
+    'localeNamespaces': localeNamespaces,
+  };
 }
 
 void _writePubspec(Directory targetRoot, {Map<String, String>? dependencies}) {

@@ -24,6 +24,7 @@ Future<int> runValidateCommand({
     schemaSource = ComponentsSchemaValidator.resolveSchemaSource(
       data: registry.data,
       registryRoot: registryRoot,
+      schemaPathOverride: registry.schemaPath,
     );
     if (schemaSource != null) {
       final result = await ComponentsSchemaValidator.validateWithJsonSchema(
@@ -99,10 +100,52 @@ Future<int> runValidateCommand({
     ));
     skippedCount = fileSources.length;
   } else {
-    for (final source in fileSources) {
-      checkedCount++;
-      if (!await _sourceExists(sourceRoot, source)) {
-        missingFiles.add(source);
+    // Remote registries list ~1.8k source files; sequential HEAD/GETs used
+    // to hang for 60-120s+ with no output. Check with bounded concurrency,
+    // per-file timeouts, and progress on STDERR (STDOUT stays pure JSON).
+    final ordered = fileSources.toList()..sort();
+    void reportProgress(int done) {
+      final message = 'Checking source files ($done/${ordered.length})...';
+      if (jsonOutput) {
+        stderr.writeln('... $message');
+      } else {
+        logger.progress(message);
+      }
+    }
+
+    if (ordered.isNotEmpty) {
+      reportProgress(0);
+    }
+    if (sourceRoot.isRemote) {
+      const concurrency = 12;
+      var completed = 0;
+      for (var i = 0; i < ordered.length; i += concurrency) {
+        final chunk = ordered.sublist(
+          i,
+          (i + concurrency > ordered.length) ? ordered.length : i + concurrency,
+        );
+        final results = await Future.wait(
+          chunk.map((source) => _sourceExists(sourceRoot, source)),
+        );
+        for (var j = 0; j < chunk.length; j++) {
+          checkedCount++;
+          completed++;
+          if (!results[j]) {
+            missingFiles.add(chunk[j]);
+          }
+        }
+        // Progress every chunk; keeps long remote runs visibly alive.
+        reportProgress(completed);
+      }
+    } else {
+      for (final source in ordered) {
+        checkedCount++;
+        if (!await _sourceExists(sourceRoot, source)) {
+          missingFiles.add(source);
+        }
+        if (checkedCount % 200 == 0 || checkedCount == ordered.length) {
+          reportProgress(checkedCount);
+        }
       }
     }
   }
@@ -244,11 +287,18 @@ Future<int> runValidateCommand({
 }
 
 Future<bool> _sourceExists(RegistryLocation root, String source) async {
-  if (!root.isRemote) {
-    return File(p.join(root.root, source)).existsSync();
-  }
+  // Per-file timeout so a single stalled HEAD/GET cannot hang `validate`
+  // for minutes. Remote reads already try `manifests/` + `registry/`
+  // fallbacks inside RegistryLocation.
   try {
-    await root.readBytes(source);
+    if (!root.isRemote) {
+      // Use RegistryLocation candidates (manifests/ + registry/ fallbacks)
+      // instead of a raw File check so `components.json` at
+      // `manifests/components.json` resolves.
+      await root.readBytes(source).timeout(const Duration(seconds: 10));
+      return true;
+    }
+    await root.readBytes(source).timeout(const Duration(seconds: 20));
     return true;
   } catch (_) {
     return false;

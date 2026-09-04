@@ -1,0 +1,25 @@
+{
+  "id": "011_missing_registry_path_rejected",
+  "name": "missing registry path rejected",
+  "category": "negative",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "list",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/missing_registry"
+  ],
+  "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "expectedExitCodes": [
+    41
+  ],
+  "exitCode": 40,
+  "timedOut": false,
+  "durationSeconds": 1.618,
+  "status": "FAIL",
+  "notes": "",
+  "stdoutExcerpt": "\n\ud83d\udce6 Available Components\n\u2717 Failed to load components: baseUrl must be an absolute URL\nTip: Check the configured registry URL and try again.\n",
+  "stderrExcerpt": ""
+}

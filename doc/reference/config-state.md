@@ -2,6 +2,8 @@
 
 The CLI stores project configuration in `.shadcn/config.json` and command state in `.shadcn/state.json`. Both files are project-local. They are created by `flutter_shadcn init` and updated by registry, install, remove, theme, platform, and dependency commands.
 
+Installed v1 component source records are stored in `shadcn.lock`. Per-component install manifests are stored under `.shadcn/components/`.
+
 ## `.shadcn/config.json`
 
 `config.json` describes how the CLI should resolve registries and where generated files should be written.
@@ -134,3 +136,7 @@ Valid older-shaped config and state files are normalized on load. The CLI keeps 
 Missing files are treated as empty defaults. Invalid JSON is a command error and does not silently reset the project.
 
 Component addresses persisted in manifests, state, and managed dependency metadata are written in canonical `@namespace/component` form.
+
+## Locale Ownership
+
+When a component declares locale resources, the install manifest records which ARB keys were added for that component. Removal uses those records to remove only keys owned by the removed component. Keys that already existed in the app ARB file, or keys also owned by another installed component, are preserved.

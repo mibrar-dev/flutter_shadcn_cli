@@ -1,0 +1,176 @@
+• Installing Button (button)
+
+Post-install notes for Button
+  • Optional: wrap a subtree with Theme(data: ThemeData(...), child: ...) to override defaults.
+• Installing Clickable (clickable)
+• Installing Card (card)
+• Installing CardImage (card_image)
+• Installing Basic (basic)
+• Installing Outlined Container (outlined_container)
+
+Post-install notes for CardImage
+  • Wrap with ComponentTheme<CardImageTheme> when you need custom scales or spacing.
+• Installing Alert (alert)
+
+Post-install notes for Alert
+  • Register ComponentTheme<AlertTheme> when you want custom padding, colors, or borders.
+• Installing Alpha (alpha)
+
+Post-install notes for Alpha
+  • Paint the checkerboard inside a CustomPaint when you need transparency cues.
+• Installing Chat (chat)
+
+Post-install notes for Chat
+  • Wrap with ComponentTheme<ChatTheme> to adjust alignment, spacing, and colors.
+• Installing Async (async)
+• Installing Autocomplete (autocomplete)
+• Installing Collapsible (collapsible)
+
+Post-install notes for Collapsible
+  • Provide a ComponentTheme<CollapsibleTheme> to customize padding, iconography, and alignment.
+• Installing Focus Outline (focus_outline)
+
+Post-install notes for Focus Outline
+  • Add ComponentTheme<FocusOutlineTheme> to adjust outline bias, borders, or shape.
+• Installing Group (group)
+• Installing Hidden (hidden)
+
+Post-install notes for Hidden
+  • Register ComponentTheme<HiddenTheme> to override default curves, duration, or size retention.
+• Installing Accordion (accordion)
+
+Post-install notes for Accordion
+  • Use ComponentTheme<AccordionTheme> when you need custom dividers, icons, or animation curves.
+• Installing Badge (badge)
+• Installing Avatar (avatar)
+• Installing Chip (chip)
+• Installing Color Utils (color)
+• Installing Color History (history)
+
+Post-install notes for Color History
+  • Wrap color pickers with RecentColorsScope to share history.
+• Installing Color Picker (color_picker)
+• Installing Eye Dropper (eye_dropper)
+• Installing Formatter (formatter)
+• Installing Select (select)
+• Installing Command (command)
+• Installing Dialog (dialog)
+• Installing Divider (divider)
+• Installing Text Field (text_field)
+• Installing Hover (hover)
+• Installing Menu (menu)
+• Installing Drawer (drawer)
+
+Post-install notes for Color Picker
+  • Wrap ColorPicker widgets with RecentColorsScope or EyeDropperLayer for full history/sampling.
+• Installing Color Input (color_input)
+• Installing Form Field (form_field)
+• Installing AlertDialog (alert_dialog)
+
+Post-install notes for Color Input
+  • Wrap your tree with RecentColorsScope so ColorInput shares history information with pickers.
+• Installing HSL Color Slider (hsl)
+• Installing HSV Color Slider (hsv)
+• Installing Image (image)
+• Installing Chip Input (chip_input)
+• Installing Checkbox (checkbox)
+• Installing Dot Indicator (dot_indicator)
+• Installing Circular Progress Indicator (circular_progress_indicator)
+• Installing Linear Progress Indicator (linear_progress_indicator)
+• Installing Locale Utils (locale_utils)
+• Installing Number Ticker (number_ticker)
+• Installing Spinner (spinner)
+• Installing Progress (progress)
+• Installing Skeleton (skeleton)
+• Installing Control (control)
+• Installing Debug (debug)
+• Installing Breadcrumb (breadcrumb)
+• Installing Code Snippet (code_snippet)
+• Installing Carousel (carousel)
+• Installing Calendar (calendar)
+• Installing Date Picker (date_picker)
+• Installing File Input (file_input)
+
+Post-install notes for File Input
+  • Wrap file list widgets with FileIconProvider so FileIconProvider.buildIcon can resolve extensions.
+• Installing File Upload (file_picker)
+• Installing Dropzone (dropzone)
+• Installing Scaffold (scaffold)
+• Installing Text (text)
+• Installing Selectable Text (selectable)
+• Installing Keyboard Shortcut (keyboard_shortcut)
+• Installing Fade Scroll (fade_scroll)
+• Installing Input (input)
+• Installing Input OTP (input_otp)
+• Installing Formatted Input (formatted_input)
+• Installing Form (form)
+• Installing Object Input (object_input)
+• Installing Phone Input (phone_input)
+• Installing Radio Group (radio_group)
+• Installing Slider (slider)
+• Installing Multiple Choice (multiple_choice)
+• Installing Item Picker (item_picker)
+• Installing Switch (switch)
+• Installing Text Area (text_area)
+• Installing Scrollbar (scrollbar)
+• Installing Scrollable Client (scrollable_client)
+• Installing Scroll View Interceptor (scrollview)
+• Installing More Dots (triple_dots)
+• Installing Icon Extensions (icon)
+• Installing Popover (popover)
+• Installing Overlay (overlay)
+• Installing Popup (popup)
+• Installing Tooltip (tooltip)
+• Installing Refresh Trigger (refresh_trigger)
+• Installing Tracker (tracker)
+• Installing Hover Card (hover_card)
+• Installing Toast (toast)
+• Installing Menubar (menubar)
+• Installing Media Query Visibility (media_query)
+• Installing Context Menu (context_menu)
+
+Post-install notes for Context Menu
+  • Wrap editable text fields with `ContextMenu` to provide native-like action menus.
+• Installing Dropdown Menu (dropdown_menu)
+• Installing Sortable (sortable)
+• Installing Navigation Bar (navigation_bar)
+• Installing Navigation Menu (navigation_menu)
+• Installing Pagination (pagination)
+• Installing Tabs (tabs)
+• Installing Tab Container (tab_container)
+• Installing Tab List (tab_list)
+• Installing Tab Pane (tab_pane)
+• Installing Switcher (switcher)
+• Installing Table (table)
+• Installing Overflow Marquee (overflow_marquee)
+• Installing Click Detector (patch)
+• Installing Time Picker (time_picker)
+• Installing Validated (validated)
+• Installing Stepper (stepper)
+• Installing Steps (steps)
+• Installing Resizable (resizable)
+• Installing Shadcn Localizations (shadcn_localizations)
+• Installing Shadcn Localizations (EN) (shadcn_localizations_en)
+• Installing Shadcn Localizations Extensions (shadcn_localizations_extensions)
+• Installing Star Rating (star_rating)
+• Installing Subfocus (subfocus)
+• Installing Swiper (swiper)
+• Installing Timeline (timeline)
+• Installing Stage Container (stage_container)
+• Installing Tree (tree)
+• Installing Wrapper (wrapper)
+• Installing Window (window)
+• Installing Timeline Animation (timeline_animation)
+• Installing Repeated Animation Builder (repeated_animation_builder)
+• Installing Feature Carousel (feature_carousel)
+• Installing Empty State (empty_state)
+• Installing Error System (error_system)
+• Installing Flex (flex)
+• Installing Scrollable (scrollable)
+• Installing Border Loading (border_loading)
+• Installing Streaming Text (text_animate)
+• Installing Filter Bar (filter_bar)
+• Installing App (app)
+• Installing Gooey Toast (gooey_toast)
+• Installing Markdown (markdown)
+✓ Added dependencies: animation_kit, country_flags, cross_file, email_validator, expressions, flutter_localizations, intl, phonecodes, skeletonizer, web

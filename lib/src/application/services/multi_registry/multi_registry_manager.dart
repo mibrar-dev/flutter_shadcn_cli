@@ -6,6 +6,7 @@ import 'package:flutter_shadcn_cli/src/application/dto/qualified_component_ref.d
 import 'package:flutter_shadcn_cli/src/application/dto/registry_summary.dart';
 import 'package:flutter_shadcn_cli/src/application/services/registry_source.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/core/utils/component_ref_normalizer.dart';
 import 'package:flutter_shadcn_cli/src/core/utils/path_utils.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_entry.dart';
@@ -42,6 +43,8 @@ class MultiRegistryManager {
   RegistryDirectory? _directoryCache;
   final Map<String, RegistrySource> _sources = {};
   final Map<String, Registry> _registryCache = {};
+  String? _projectRootCache;
+  ShadcnConfig? _configCache;
 
   MultiRegistryManager({
     required this.targetDir,
@@ -71,6 +74,26 @@ class MultiRegistryManager {
 
   static QualifiedComponentRef? parseComponentRef(String token) {
     return AddResolutionService.parseQualifiedComponentRef(token);
+  }
+
+  String get _projectRoot {
+    return _projectRootCache ??= findProjectRootFrom(targetDir);
+  }
+
+  Future<ShadcnConfig> _loadProjectConfig() async {
+    final cached = _configCache;
+    if (cached != null) {
+      return cached;
+    }
+    final config = await ShadcnConfig.load(_projectRoot);
+    _configCache = config;
+    return config;
+  }
+
+  Future<void> _saveProjectConfig(ShadcnConfig config) async {
+    await ShadcnConfig.save(_projectRoot, config);
+    _configCache = config;
+    _sources.clear();
   }
 }
 

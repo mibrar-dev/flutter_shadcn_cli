@@ -86,6 +86,10 @@ class ThemePresetLoader {
   })  : schemaValidator = schemaValidator ?? SchemaValidator(),
         processRunner = processRunner ?? const ProcessRunner();
 
+  void close() {
+    schemaValidator.close();
+  }
+
   Future<RegistryThemePresetData> loadPreset(ThemeIndexEntry entry) async {
     final data = await _loadEntryJson(entry);
     await _validatePresetSchema(data);
@@ -353,7 +357,8 @@ class ThemePresetLoader {
     for (final candidate in candidates) {
       try {
         final uri = ResolverV1.resolveUrl(registryBaseUrl, candidate);
-        final response = await http.get(uri);
+        final response =
+            await http.get(uri).timeout(const Duration(seconds: 20));
         if (response.statusCode >= 200 && response.statusCode < 300) {
           return response.bodyBytes;
         }
@@ -376,7 +381,8 @@ class ThemePresetLoader {
         return file.readAsBytesSync();
       case 'http':
       case 'https':
-        final response = await http.get(uri);
+        final response =
+            await http.get(uri).timeout(const Duration(seconds: 20));
         if (response.statusCode < 200 || response.statusCode >= 300) {
           throw Exception(
             'Failed to fetch $description ${uri.toString()} (${response.statusCode})',
@@ -549,7 +555,8 @@ class ThemePresetLoader {
       logger: logger,
     );
     if (!result.isValid) {
-      logger?.warn(
+      // STDERR only: keep STDOUT parseable for --json runs.
+      logger?.warnToStderr(
         'theme preset schema validation failed (${result.errors.length} issues).',
       );
     }

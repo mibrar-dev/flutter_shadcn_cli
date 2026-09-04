@@ -1,0 +1,23 @@
+{
+  "id": "009_feedback_help",
+  "name": "feedback help",
+  "category": "help",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "feedback",
+    "--help"
+  ],
+  "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.217,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "Usage: flutter_shadcn feedback [options]\n       flutter_shadcn feedback @<namespace> [options]\n\nSubmit feedback or report issues via GitHub.\n\nInteractive mode (default):\n  flutter_shadcn feedback\n\nNon-interactive mode:\n  flutter_shadcn feedback --type bug --title \"Title\" --body \"Description\"\n\nFeedback types:\n  bug, feature, docs, question, performance, other\n\nOptions:\n  --type, -t         Feedback type\n  --title            Issue title\n  --body             Issue description/body\n  @<namespace>       Optional registry context (e.g. @shadcn)\n  --help, -h         Show this message\n",
+  "stderrExcerpt": ""
+}

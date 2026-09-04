@@ -505,6 +505,11 @@
                 "default": true,
                 "description": "Whether this group is pre-checked in the multi-select. Defaults to true."
               },
+              "required": {
+                "type": "boolean",
+                "default": false,
+                "description": "Whether this optional group must still run during non-interactive --yes init."
+              },
               "files": {
                 "type": "array",
                 "minItems": 1,

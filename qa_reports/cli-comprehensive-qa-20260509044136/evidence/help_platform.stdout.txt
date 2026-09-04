@@ -1,0 +1,7 @@
+Usage: flutter_shadcn platform [--list | --set <p.s=path> | --reset <p.s>]
+
+Options:
+  --list             List platform targets
+  --set              Set override (repeatable), e.g. ios.infoPlist=ios/Runner/Info.plist
+  --reset            Remove override (repeatable), e.g. ios.infoPlist
+  --help, -h         Show this message

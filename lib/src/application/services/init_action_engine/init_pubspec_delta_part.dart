@@ -1,8 +1,8 @@
 part of 'init_action_engine.dart';
 
 class InitPubspecDelta {
-  final Map<String, String> dependencies;
-  final Map<String, String> devDependencies;
+  final Map<String, dynamic> dependencies;
+  final Map<String, dynamic> devDependencies;
   final List<String> flutterAssets;
   final List<Map<String, dynamic>> flutterFonts;
 
@@ -14,8 +14,8 @@ class InitPubspecDelta {
   });
 
   static const empty = InitPubspecDelta(
-    dependencies: <String, String>{},
-    devDependencies: <String, String>{},
+    dependencies: <String, dynamic>{},
+    devDependencies: <String, dynamic>{},
     flutterAssets: <String>[],
     flutterFonts: <Map<String, dynamic>>[],
   );
@@ -27,8 +27,11 @@ class InitPubspecDelta {
       flutterFonts.isEmpty;
 
   InitPubspecDelta merge(InitPubspecDelta other) {
-    final mergedDeps = <String, String>{...dependencies, ...other.dependencies};
-    final mergedDev = <String, String>{
+    final mergedDeps = <String, dynamic>{
+      ...dependencies,
+      ...other.dependencies
+    };
+    final mergedDev = <String, dynamic>{
       ...devDependencies,
       ...other.devDependencies
     };
@@ -71,13 +74,13 @@ class InitPubspecDelta {
   factory InitPubspecDelta.fromJson(Map<String, dynamic> json) {
     return InitPubspecDelta(
       dependencies: (json['dependencies'] as Map?)?.map(
-            (key, value) => MapEntry(key.toString(), value.toString()),
+            (key, value) => MapEntry(key.toString(), value),
           ) ??
-          const <String, String>{},
+          const <String, dynamic>{},
       devDependencies: (json['devDependencies'] as Map?)?.map(
-            (key, value) => MapEntry(key.toString(), value.toString()),
+            (key, value) => MapEntry(key.toString(), value),
           ) ??
-          const <String, String>{},
+          const <String, dynamic>{},
       flutterAssets:
           (json['flutterAssets'] as List<dynamic>? ?? const []).cast<String>(),
       flutterFonts: (json['flutterFonts'] as List<dynamic>? ?? const [])

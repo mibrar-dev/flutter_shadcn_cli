@@ -26,14 +26,15 @@ void main() {
       Directory(p.join(cliHome.path, 'crashes')).createSync(recursive: true);
       Directory(p.join(cliHome.path, 'project-resets', 'abc123'))
           .createSync(recursive: true);
-      Directory(p.join(cliHome.path, 'skills')).createSync(recursive: true);
+      Directory(p.join(cliHome.path, 'local-files'))
+          .createSync(recursive: true);
       File(p.join(cliHome.path, 'cache', 'registry', 'index.json'))
           .writeAsStringSync('{}');
       File(p.join(cliHome.path, 'crashes', 'latest.log'))
           .writeAsStringSync('boom');
       File(p.join(cliHome.path, 'project-resets', 'abc123', 'manifest.json'))
           .writeAsStringSync('{}');
-      File(p.join(cliHome.path, 'skills', 'notes.txt'))
+      File(p.join(cliHome.path, 'local-files', 'notes.txt'))
           .writeAsStringSync('keep');
 
       final executable =
@@ -53,7 +54,10 @@ void main() {
       expect(Directory(p.join(cliHome.path, 'crashes')).existsSync(), isFalse);
       expect(Directory(p.join(cliHome.path, 'project-resets')).existsSync(),
           isFalse);
-      expect(Directory(p.join(cliHome.path, 'skills')).existsSync(), isTrue);
+      expect(
+        Directory(p.join(cliHome.path, 'local-files')).existsSync(),
+        isTrue,
+      );
       expect(executable.existsSync(), isTrue);
       expect(projectFile.existsSync(), isTrue);
       expect(

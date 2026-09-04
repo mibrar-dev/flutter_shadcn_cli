@@ -1,0 +1,28 @@
+{
+  "id": "040_deps_all_json",
+  "name": "deps all json",
+  "category": "health",
+  "severity": "normal",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "--advanced",
+    "--registry-path",
+    "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+    "--skip-integrity",
+    "deps",
+    "--all",
+    "--json"
+  ],
+  "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "expectedExitCodes": [
+    0
+  ],
+  "exitCode": 0,
+  "timedOut": false,
+  "durationSeconds": 1.272,
+  "status": "PASS",
+  "notes": "",
+  "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"deps\",\n  \"data\": {\n    \"components\": [\n      \"button\",\n      \"clickable\",\n      \"card\",\n      \"card_image\",\n      \"alert\",\n      \"alpha\",\n      \"chat\",\n      \"async\",\n      \"autocomplete\",\n      \"collapsible\",\n      \"focus_outline\",\n      \"group\",\n      \"hidden\",\n      \"accordion\",\n      \"badge\",\n      \"avatar\",\n      \"basic\",\n      \"chip\",\n      \"color\",\n      \"history\",\n      \"color_picker\",\n      \"color_input\",\n      \"hsl\",\n      \"hsv\",\n      \"image\",\n      \"eye_dropper\",\n      \"chip_input\",\n      \"select\",\n      \"checkbox\",\n      \"divider\",\n      \"dot_indi\n...<truncated>...\nmail_validator\",\n        \"required\": [\n          \"^3.0.0\"\n        ],\n        \"installed\": \"^3.0.0\",\n        \"status\": \"ok\"\n      },\n      {\n        \"package\": \"expressions\",\n        \"required\": [\n          \"^0.2.5+2\"\n        ],\n        \"installed\": \"^0.2.5+2\",\n        \"status\": \"ok\"\n      },\n      {\n        \"package\": \"flutter_localizations\",\n        \"required\": [\n          \"sdk: flutter\"\n        ],\n        \"installed\": \"sdk: flutter\",\n        \"status\": \"ok\"\n      }\n    ]\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:27.579500Z\",\n    \"exitCode\": 0\n  }\n}\n",
+  "stderrExcerpt": ""
+}

@@ -17,6 +17,17 @@ flutter_shadcn add @shadcn/button
 flutter_shadcn list @shadcn
 ```
 
+Registry setup is driven by the registry directory. Each entry defines the namespace, base URL or local path, install root, manifest paths, trust metadata, capabilities, and inline init actions.
+
+During component install, the registry manifest for that namespace is the source of truth. Per-component manifest sources are preferred when a registry publishes them. Registries that do not publish those sources fall back to their configured `components.json` or index metadata without changing behavior for single-registry projects.
+
+Optional assets are separate from required init:
+
+```bash
+flutter_shadcn assets --typography
+flutter_shadcn assets --icons
+```
+
 References:
 
 - [Registries](../user/registries.md)

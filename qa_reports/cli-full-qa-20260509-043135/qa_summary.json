@@ -1,0 +1,1285 @@
+{
+  "startedAt": "2026-05-09T03:32:48.491934+00:00",
+  "finishedAt": "2026-05-09T03:35:39.005262+00:00",
+  "workspace": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl",
+  "appRoot": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+  "cliRepo": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+  "kitRepo": "/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit",
+  "cliBranch": "branch-v1-full-cli-qa-report",
+  "kitBranch": "branch-v1-registry-button-shared-qa-fix",
+  "registryRoot": "/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit/lib/registry",
+  "overlayRegistryRoot": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+  "componentCount": 133,
+  "results": [
+    {
+      "id": "001_dart_version",
+      "name": "dart version",
+      "category": "environment",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "--version"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 0.085,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Dart SDK version: 3.11.0 (stable) (Mon Feb 9 00:38:07 2026 -0800) on \"macos_arm64\"\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "002_flutter_version",
+      "name": "flutter version",
+      "category": "environment",
+      "severity": "normal",
+      "command": [
+        "flutter",
+        "--version"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 0.202,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Flutter 3.41.2 \u2022 channel stable \u2022 https://github.com/flutter/flutter.git\nFramework \u2022 revision 90673a4eef (3 months ago) \u2022 2026-02-18 13:54:59 -0800\nEngine \u2022 hash d96704abcce17ff165bbef9d77123407ef961017 (revision 6c0baaebf7) (2 months ago) \u2022 2026-02-18 19:22:23.000Z\nTools \u2022 Dart 3.11.0 \u2022 DevTools 2.54.1\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "003_cli_version",
+      "name": "cli version",
+      "category": "environment",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "version"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.334,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "flutter_shadcn_cli version 0.2.0\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "004_root_help",
+      "name": "root help",
+      "category": "help",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--help"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.164,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\nflutter_shadcn CLI\nUsage: flutter_shadcn <command> [arguments]\n\nComponents\n  add                     Install one or more components.\n  remove (alias: rm)      Remove one or more installed components.\n  dry-run                 Preview what would be installed.\n  list (alias: ls)        List available components.\n  search                  Search for components.\n  info (alias: i)         Show component details.\n\nProject\n  init                    Initialize shadcn_flutter in the current project.\n  registries              List available and configured registries.\n  default                 Set or sh\n...<truncated>...\noject state.\n  validate                Validate registry integrity.\n  audit                   Audit installed components.\n  deps                    Compare registry dependencies against pubspec.yaml.\n\nTooling\n  feedback                Submit feedback or report issues.\n  version                 Show CLI version.\n  upgrade                 Upgrade the CLI to the latest version.\n\nGlobal flags\n  General:\n    --verbose               Verbose logging\n    --offline               Disable network calls (use cache only)\n\n  Registry Selection:\n    --registry-name         Registry namespace (e.g. shadcn)\n\n\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "005_advanced_help",
+      "name": "advanced help",
+      "category": "help",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--help"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.166,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\nflutter_shadcn CLI\nUsage: flutter_shadcn <command> [arguments]\n\nComponents\n  add                     Install one or more components.\n  remove (alias: rm)      Remove one or more installed components.\n  dry-run                 Preview what would be installed.\n  list (alias: ls)        List available components.\n  search                  Search for components.\n  info (alias: i)         Show component details.\n\nProject\n  init                    Initialize shadcn_flutter in the current project.\n  registries              List available and configured registries.\n  default                 Set or sh\n...<truncated>...\n           Install AI skills for local model workflows.\n\nGlobal flags\n  General:\n    --advanced              Show and enable developer and experimental features\n    --verbose               Verbose logging\n    --offline               Disable network calls (use cache only)\n\n  Registry Selection:\n    --registry-name         Registry namespace (e.g. shadcn)\n\n  Developer:\n    --registry-path         Use a local registry root\n    --registry-url          Use a remote registry URL\n    --registries-path       Use a local registries.json file\n    --skip-integrity        Skip registry integrity checks\n\n\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "006_docs_help_advanced",
+      "name": "docs help advanced",
+      "category": "help",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "docs",
+        "--help"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.186,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Usage: flutter_shadcn docs [--generate]\n\nRegenerate docs/reference/commands from CLI metadata.\nOptions:\n  --generate, -g     Regenerate command reference docs (default)\n  --help, -h         Show this message\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "007_install_skill_help_advanced",
+      "name": "install skill help advanced",
+      "category": "help",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "install-skill",
+        "--help"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.199,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Usage: flutter_shadcn install-skill [--skill <id>] [--model <name>] [options]\n\n\u001b[33m\u26a0\ufe0f  EXPERIMENTAL - This command has not been fully tested yet. Use with caution.\u001b[0m\n\nModes:\n  (no args)              Multi-skill interactive mode (default)\n  --available, -a        List available skills from registry\n  --list                 List installed skills grouped by model\n  --skill <id>           Install one skill (interactive model choice if --model omitted)\n  --skill <id> --model   Install skill to specific model folder\n  --skills-url           Override skills base URL/path\n  --symlink --model      Symlink one installed skill to other models\n  --uninstall <id>       Remove skill from one model (requires --model)\n  --uninstall-interactive Interactive removal mode\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "008_upgrade_help",
+      "name": "upgrade help",
+      "category": "help",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "upgrade",
+        "--help"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.2,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Usage: flutter_shadcn upgrade [--force]\n\nUpgrades flutter_shadcn_cli to the latest version from pub.dev.\n\nOptions:\n  --force, -f        Force upgrade even if already on latest version\n  --help, -h         Show this message\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "009_feedback_help",
+      "name": "feedback help",
+      "category": "help",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "feedback",
+        "--help"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.217,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Usage: flutter_shadcn feedback [options]\n       flutter_shadcn feedback @<namespace> [options]\n\nSubmit feedback or report issues via GitHub.\n\nInteractive mode (default):\n  flutter_shadcn feedback\n\nNon-interactive mode:\n  flutter_shadcn feedback --type bug --title \"Title\" --body \"Description\"\n\nFeedback types:\n  bug, feature, docs, question, performance, other\n\nOptions:\n  --type, -t         Feedback type\n  --title            Issue title\n  --body             Issue description/body\n  @<namespace>       Optional registry context (e.g. @shadcn)\n  --help, -h         Show this message\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "010_legacy_registry_flag_rejected",
+      "name": "legacy registry flag rejected",
+      "category": "negative",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--registry",
+        "local",
+        "list"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        64
+      ],
+      "exitCode": 2,
+      "timedOut": false,
+      "durationSeconds": 1.155,
+      "status": "FAIL",
+      "notes": "Removed public --registry flag must remain rejected.",
+      "stdoutExcerpt": "Error: FormatException: Could not find an option named \"--registry\".\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "011_missing_registry_path_rejected",
+      "name": "missing registry path rejected",
+      "category": "negative",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "list",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/missing_registry"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        41
+      ],
+      "exitCode": 40,
+      "timedOut": false,
+      "durationSeconds": 1.618,
+      "status": "FAIL",
+      "notes": "",
+      "stdoutExcerpt": "\n\ud83d\udce6 Available Components\n\u2717 Failed to load components: baseUrl must be an absolute URL\nTip: Check the configured registry URL and try again.\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "012_flutter_create_app",
+      "name": "flutter create app",
+      "category": "setup",
+      "severity": "normal",
+      "command": [
+        "flutter",
+        "create",
+        "--platforms=ios,android",
+        "app"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.398,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Creating project app...\nResolving dependencies in `app`...\nDownloading packages...\nGot dependencies in `app`.\nWrote 75 files.\n\nAll done!\nYou can find general documentation for Flutter at: https://docs.flutter.dev/\nDetailed API documentation is available at: https://api.flutter.dev/\nIf you prefer video documentation, consider: https://www.youtube.com/c/flutterdev\n\nIn order to run your application, type:\n\n  $ cd app\n  $ flutter run\n\nYour application code is in app/lib/main.dart.\n\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "013_init_yes_local_registry",
+      "name": "init yes local registry",
+      "category": "init",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "init",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "--yes"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.679,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "! components.json validation skipped for init (shadcn).\nshared core: theme, util, color_extensions, form_control, form_value_supplier\npub dependencies: data_widget, gap\n\u2713 Initialized shadcn (48 files, 3 dirs).\n\u2713 Applied theme: Amber Minimal\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "014_registries_json",
+      "name": "registries json",
+      "category": "discovery",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "registries",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.5,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"registries\",\n  \"data\": {\n    \"defaultNamespace\": \"shadcn\",\n    \"items\": [\n      {\n        \"namespace\": \"shadcn\",\n        \"displayName\": \"shadcn_flutter_kit\",\n        \"isDefault\": true,\n        \"enabled\": true,\n        \"source\": \"config+directory\",\n        \"mode\": \"remote\",\n        \"baseUrl\": \"https://github.com/mibrar-dev/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry\",\n        \"registryPath\": null,\n        \"installRoot\": \"lib/ui/shadcn\",\n        \"capabilitySharedGroups\": true,\n        \"capabilityComposites\": true,\n        \"capabilityTheme\": true\n      }\n    ]\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:04.562387Z\"\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "015_list_json",
+      "name": "list json",
+      "category": "discovery",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "list",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.585,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "! index.json schema validation failed (42 issues).\n{\n  \"status\": \"ok\",\n  \"command\": \"list\",\n  \"data\": {\n    \"registry\": {\n      \"id\": \"_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_flutter_shadcn_pdf_qa.784yj_tl_\",\n      \"baseUrl\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\"\n    },\n    \"count\": 133,\n    \"components\": [\n      {\n        \"id\": \"accordion\",\n        \"name\": \"Accordion\",\n        \"category\": \"layout\",\n        \"description\": \"Single-expansion accordion with configurable triggers and theming.\",\n        \"tags\": [\n         \n...<truncated>...\n],\n          \"types\": [\n            \"`Wrapper`\",\n            \"`WrapperBuilder`\"\n          ]\n        },\n        \"examples\": {\n          \"minimal\": \"Wrapper(\\n  wrap: isEnabled,\\n  builder: (context, child) => Padding(\\n    padding: const EdgeInsets.all(8),\\n    child: child,\\n  ),\\n  child: const Text('Wrapped'),\\n)\"\n        },\n        \"dependencies\": {\n          \"pubspec\": {},\n          \"shared\": []\n        },\n        \"related\": [\n          \"debug\"\n        ]\n      }\n    ]\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:06.145372Z\",\n    \"exitCode\": 0\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "016_search_button_json",
+      "name": "search button json",
+      "category": "discovery",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "search",
+        "button",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.52,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "! index.json schema validation failed (42 issues).\n{\n  \"status\": \"ok\",\n  \"command\": \"search\",\n  \"data\": {\n    \"query\": \"button\",\n    \"registry\": {\n      \"id\": \"_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_flutter_shadcn_pdf_qa.784yj_tl_\",\n      \"baseUrl\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\"\n    },\n    \"count\": 13,\n    \"results\": [\n      {\n        \"id\": \"badge\",\n        \"name\": \"Badge\",\n        \"category\": \"display\",\n        \"description\": \"Compact label/status components built on button styles.\",\n        \"tags\": [\n      \n...<truncated>...\nnd label visibility.\"\n          ],\n          \"callbacks\": []\n        },\n        \"examples\": {\n          \"minimal\": \"Pagination(\\n  page: 1,\\n  total: 10,\\n  onChanged: (page) {},\\n)\"\n        },\n        \"dependencies\": {\n          \"pubspec\": {},\n          \"shared\": [\n            \"theme\",\n            \"style_value\",\n            \"localizations\",\n            \"radix_icons\"\n          ]\n        },\n        \"related\": [\n          \"button\"\n        ],\n        \"score\": 0\n      }\n    ]\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:07.665176Z\",\n    \"exitCode\": 0\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "017_info_button_json",
+      "name": "info button json",
+      "category": "discovery",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "info",
+        "button",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.521,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "! index.json schema validation failed (42 issues).\n{\n  \"status\": \"ok\",\n  \"command\": \"info\",\n  \"data\": {\n    \"registry\": {\n      \"id\": \"_var_folders_dt_p77q2g1j7190pw1cc_h07hg80000gn_T_flutter_shadcn_pdf_qa.784yj_tl_\",\n      \"baseUrl\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\"\n    },\n    \"component\": {\n      \"id\": \"button\",\n      \"name\": \"Button\",\n      \"category\": \"control\",\n      \"description\": \"Shadcn-style button system with variants, toggles, and groups.\",\n      \"tags\": [\n        \"controls\",\n        \"forms\",\n        \"buttons\"\n\n...<truncated>...\n{},\\n  child: const Text('Save'),\\n)\"\n      },\n      \"dependencies\": {\n        \"pubspec\": {\n          \"data_widget\": \"^0.0.2\",\n          \"gap\": \"^3.0.1\"\n        },\n        \"shared\": [\n          \"theme\",\n          \"color_extensions\",\n          \"geometry_extensions\",\n          \"clickable\",\n          \"form_control\",\n          \"form_value_supplier\",\n          \"menu_group\"\n        ]\n      },\n      \"related\": [\n        \"clickable\",\n        \"hover\",\n        \"patch\"\n      ]\n    }\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:09.190028Z\",\n    \"exitCode\": 0\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "018_dry_run_button_json",
+      "name": "dry run button json",
+      "category": "planning",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "dry-run",
+        "button",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.382,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"dry-run\",\n  \"data\": {\n    \"requested\": [\n      \"button\"\n    ],\n    \"missing\": [],\n    \"components\": [\n      \"button\"\n    ],\n    \"dependencyGraph\": {\n      \"button\": []\n    },\n    \"shared\": [\n      \"clickable\",\n      \"color_extensions\",\n      \"form_control\",\n      \"form_value_supplier\",\n      \"geometry_extensions\",\n      \"menu_group\",\n      \"theme\"\n    ],\n    \"pubspecDependencies\": {\n      \"data_widget\": \"^0.0.2\",\n      \"gap\": \"^3.0.1\"\n    },\n    \"assets\": [],\n    \"fonts\": [],\n    \"postInstall\": [\n      \"Optional: wrap a subtree with Theme(data: ThemeData(...),\n...<truncated>...\nutton.dart\",\n          \"registry/components/control/button/_impl/variants/selected_button_widget.dart\",\n          \"registry/components/control/button/_impl/variants/tab_button.dart\",\n          \"registry/components/control/button/_impl/variants/text_button.dart\",\n          \"registry/components/control/button/button.dart\"\n        ],\n        \"registryRoot\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\"\n      }\n    }\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:10.585184Z\",\n    \"exitCode\": 0\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "019_dry_run_all_json",
+      "name": "dry run all json",
+      "category": "planning",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "dry-run",
+        "--all",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 30,
+      "timedOut": false,
+      "durationSeconds": 1.489,
+      "status": "FAIL",
+      "notes": "",
+      "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"dry-run\",\n  \"data\": {\n    \"requested\": [\n      \"icon_fonts\",\n      \"typography_fonts\",\n      \"button\",\n      \"clickable\",\n      \"card\",\n      \"card_image\",\n      \"alert\",\n      \"alpha\",\n      \"chat\",\n      \"async\",\n      \"autocomplete\",\n      \"collapsible\",\n      \"focus_outline\",\n      \"group\",\n      \"hidden\",\n      \"accordion\",\n      \"badge\",\n      \"avatar\",\n      \"basic\",\n      \"chip\",\n      \"color\",\n      \"history\",\n      \"color_picker\",\n      \"color_input\",\n      \"hsl\",\n      \"hsv\",\n      \"image\",\n      \"eye_dropper\",\n      \"chip_input\",\n      \"select\",\n  \n...<truncated>...\ntils/markdown_parser_streaming.dart\",\n          \"registry/components/display/markdown/markdown.dart\"\n        ],\n        \"registryRoot\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\"\n      }\n    }\n  },\n  \"errors\": [],\n  \"warnings\": [\n    {\n      \"code\": \"component_missing\",\n      \"message\": \"One or more components were not found.\",\n      \"details\": {\n        \"missing\": [\n          \"icon_fonts\",\n          \"typography_fonts\"\n        ]\n      }\n    }\n  ],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:12.055087Z\",\n    \"exitCode\": 30\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "020_theme_list",
+      "name": "theme list",
+      "category": "theme",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "theme",
+        "--list"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 17.329,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Installed theme presets:\n  1) Amber Minimal (amber-minimal) (current)\n  2) Amethyst Haze (amethyst-haze)\n  3) Bold Tech (bold-tech)\n  4) Bubblegum (bubblegum)\n  5) Caffeine (caffeine)\n  6) Candyland (candyland)\n  7) Catppuccin (catppuccin)\n  8) Claude (claude)\n  9) Claymorphism (claymorphism)\n  10) Clean Slate (clean-slate)\n  11) Cosmic Night (cosmic-night)\n  12) Cyberpunk (cyberpunk)\n  13) Darkmatter (darkmatter)\n  14) Doom 64 (doom-64)\n  15) Elegant Luxury (elegant-luxury)\n  16) Graphite (graphite)\n  17) Kodama Grove (kodama-grove)\n  18) Midnight Bloom (midnight-bloom)\n  19) Mocha Mousse (mo\n...<truncated>...\n-brutalism)\n  24) Northern Lights (northern-lights)\n  25) Notebook (notebook)\n  26) Ocean Breeze (ocean-breeze)\n  27) Pastel Dreams (pastel-dreams)\n  28) Perpetuity (perpetuity)\n  29) Quantum Rose (quantum-rose)\n  30) Retro Arcade (retro-arcade)\n  31) Sage Garden (sage-garden)\n  32) Soft Pop (soft-pop)\n  33) Solar Dusk (solar-dusk)\n  34) Starry Night (starry-night)\n  35) Sunset Horizon (sunset-horizon)\n  36) Supabase (supabase)\n  37) T3 Chat (t3-chat)\n  38) Tangerine (tangerine)\n  39) Twitter (twitter)\n  40) Vercel (vercel)\n  41) Vintage Paper (vintage-paper)\n  42) Violet Bloom (violet-bloom)\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "021_theme_apply_amber_minimal",
+      "name": "theme apply amber minimal",
+      "category": "theme",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "theme",
+        "--apply",
+        "amber-minimal"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 17.58,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\u2713 Applied theme: Amber Minimal\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "022_assets_list",
+      "name": "assets list",
+      "category": "assets",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "assets",
+        "--list"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.223,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Available assets are defined by inline registry actions.\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "023_assets_icons",
+      "name": "assets icons",
+      "category": "assets",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "assets",
+        "--icons"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.503,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\u2713 Installed assets via inline registry actions.\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "024_platform_list",
+      "name": "platform list",
+      "category": "platform",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "platform",
+        "--list"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.23,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\nPlatform targets\n  android:\n    permissions: android/app/src/main/AndroidManifest.xml\n    gradle: android/app/build.gradle\n    notes: .shadcn/platform/android.md\n  ios:\n    infoPlist: ios/Runner/Info.plist\n    podfile: ios/Podfile\n    notes: .shadcn/platform/ios.md\n  macos:\n    entitlements: macos/Runner/DebugProfile.entitlements\n    notes: .shadcn/platform/macos.md\n  desktop:\n    config: .shadcn/platform/desktop.md\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "025_platform_set_android_permission",
+      "name": "platform set android permission",
+      "category": "platform",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "platform",
+        "--set",
+        "android.permissions=android/app/src/main/AndroidManifest.xml"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.226,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\nPlatform targets\n  android:\n    permissions: android/app/src/main/AndroidManifest.xml\n    gradle: android/app/build.gradle\n    notes: .shadcn/platform/android.md\n  ios:\n    infoPlist: ios/Runner/Info.plist\n    podfile: ios/Podfile\n    notes: .shadcn/platform/ios.md\n  macos:\n    entitlements: macos/Runner/DebugProfile.entitlements\n    notes: .shadcn/platform/macos.md\n  desktop:\n    config: .shadcn/platform/desktop.md\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "026_platform_reset_android_permission",
+      "name": "platform reset android permission",
+      "category": "platform",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "platform",
+        "--reset",
+        "android.permissions"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.222,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\nPlatform targets\n  android:\n    permissions: android/app/src/main/AndroidManifest.xml\n    gradle: android/app/build.gradle\n    notes: .shadcn/platform/android.md\n  ios:\n    infoPlist: ios/Runner/Info.plist\n    podfile: ios/Podfile\n    notes: .shadcn/platform/ios.md\n  macos:\n    entitlements: macos/Runner/DebugProfile.entitlements\n    notes: .shadcn/platform/macos.md\n  desktop:\n    config: .shadcn/platform/desktop.md\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "027_doctor_json",
+      "name": "doctor json",
+      "category": "health",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "doctor",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 20,
+      "timedOut": false,
+      "durationSeconds": 1.221,
+      "status": "FAIL",
+      "notes": "",
+      "stdoutExcerpt": "{\n  \"status\": \"error\",\n  \"command\": \"doctor\",\n  \"data\": {\n    \"environment\": {\n      \"script\": \"/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart\",\n      \"cwd\": \"/private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app\",\n      \"pubCache\": \"/Users/ibrar/.pub-cache\"\n    },\n    \"registry\": {\n      \"mode\": \"local\",\n      \"root\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry\",\n      \"componentsJson\": \"/var/folders/dt/p77q2g1j7190pw1cc_h07hg8000\n...<truncated>...\n1,\n      \"registryCount\": 0,\n      \"componentCount\": 0,\n      \"missingFiles\": [],\n      \"error\": null\n    }\n  },\n  \"errors\": [\n    {\n      \"code\": \"schema_invalid\",\n      \"message\": \"Schema validation failed.\",\n      \"details\": {\n        \"errorCount\": 1,\n        \"errors\": [\n          \"Failed to validate schema: Exception: File not found: /var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry/components.schema.json\"\n        ]\n      }\n    }\n  ],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:33:54.607599Z\",\n    \"exitCode\": 20\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "028_locale_init",
+      "name": "locale init",
+      "category": "locale",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "locale",
+        "init"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.234,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Created l10n.yaml and lib/l10n/.\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "029_locale_init_duplicate_rejected",
+      "name": "locale init duplicate rejected",
+      "category": "negative",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "locale",
+        "init"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        60
+      ],
+      "exitCode": 60,
+      "timedOut": false,
+      "durationSeconds": 1.206,
+      "status": "PASS",
+      "notes": "Duplicate l10n initialization must fail clearly.",
+      "stdoutExcerpt": "",
+      "stderrExcerpt": "Error: l10n.yaml already exists.\n"
+    },
+    {
+      "id": "030_add_button",
+      "name": "add button",
+      "category": "install",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "add",
+        "button",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.673,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\u2022 Installing Button (button)\n\nPost-install notes for Button\n  \u2022 Optional: wrap a subtree with Theme(data: ThemeData(...), child: ...) to override defaults.\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "031_add_card_alert",
+      "name": "add card alert",
+      "category": "install",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "add",
+        "card",
+        "alert",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.677,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\u2022 Installing Card (card)\n\u2022 Installing Alert (alert)\n\nPost-install notes for Alert\n  \u2022 Register ComponentTheme<AlertTheme> when you want custom padding, colors, or borders.\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "032_deps_json_installed",
+      "name": "deps json installed",
+      "category": "health",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "deps",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.252,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"deps\",\n  \"data\": {\n    \"components\": [\n      \"alert\",\n      \"card\"\n    ],\n    \"dependencies\": [\n      {\n        \"package\": \"data_widget\",\n        \"required\": [\n          \"^0.0.2\"\n        ],\n        \"installed\": \"^0.0.2\",\n        \"status\": \"ok\"\n      }\n    ]\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:01.653289Z\",\n    \"exitCode\": 0\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "033_audit_json_installed",
+      "name": "audit json installed",
+      "category": "health",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "audit",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.242,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"audit\",\n  \"data\": {\n    \"installed\": [\n      \"alert\",\n      \"button\",\n      \"card\"\n    ],\n    \"missingRegistry\": [],\n    \"versionMismatches\": [],\n    \"tagMismatches\": [],\n    \"missingFiles\": [],\n    \"missingManifests\": []\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:02.895648Z\",\n    \"exitCode\": 0\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "034_sync_installed",
+      "name": "sync installed",
+      "category": "install",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "sync"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.267,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\u2713 Sync complete\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "035_project_refresh_repairs_missing_scaffold_file",
+      "name": "project refresh repairs missing scaffold file",
+      "category": "project",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "project",
+        "refresh"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 8.219,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Install font assets?\nCopies selected font families to assets/fonts/.\nSelect groups (comma-separated numbers, Enter for defaults):\n  1) Geist Sans [default]\n     18 weight/style variants - ~3.2 MB\n  2) Geist Mono [default]\n     17 weight/style variants - ~2.8 MB\n  3) Bootstrap icon font [default]\n     Bootstrap icon font asset.\n  4) Lucide icon font [default]\n     Lucide icon font asset.\n  5) Radix icon font [default]\n     Radix icon font asset.\nGroups: Regenerated 38 missing scaffolding files.\n  - assets/fonts/bootstrap.otf\n  - assets/fonts/geist/Geist-Black.otf\n  - assets/fonts/geist/Geist-Bl\n...<truncated>...\nonts/geist/GeistMono-Light.otf\n  - assets/fonts/geist/GeistMono-LightItalic.otf\n  - assets/fonts/geist/GeistMono-Medium.otf\n  - assets/fonts/geist/GeistMono-MediumItalic.otf\n  - assets/fonts/geist/GeistMono-Regular.otf\n  - assets/fonts/geist/GeistMono-SemiBold.otf\n  - assets/fonts/geist/GeistMono-SemiBoldItalic.otf\n  - assets/fonts/geist/GeistMono-Thin.otf\n  - assets/fonts/geist/GeistMono-ThinItalic.otf\n  - assets/fonts/geist/GeistMono-UltraBlack.otf\n  - assets/fonts/geist/GeistMono-UltraLight.otf\n  - assets/fonts/lucide.ttf\n  - assets/fonts/radix.otf\n  - lib/ui/shadcn/shared/theme/theme.dart\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "036_remove_alert",
+      "name": "remove alert",
+      "category": "remove",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "remove",
+        "alert"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.292,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\u2022 Removing Alert (alert)\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "037_project_reset",
+      "name": "project reset",
+      "category": "project",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "project",
+        "reset"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.56,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Removed CLI-managed project files:\n  - .shadcn\n  - lib/ui/shadcn\nUndo available until 2026-05-10T03:34:15.097242Z via `flutter_shadcn project reset --undo`.\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "038_project_reset_undo",
+      "name": "project reset undo",
+      "category": "project",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "project",
+        "reset",
+        "--undo"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.617,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Restored project reset snapshot from 2026-05-09T03:34:15.097242Z.\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "039_add_all_components_by_id",
+      "name": "add all components by id",
+      "category": "install-all",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "add",
+        "button",
+        "clickable",
+        "card",
+        "card_image",
+        "alert",
+        "alpha",
+        "chat",
+        "async",
+        "autocomplete",
+        "collapsible",
+        "focus_outline",
+        "group",
+        "hidden",
+        "accordion",
+        "badge",
+        "avatar",
+        "basic",
+        "chip",
+        "color",
+        "history",
+        "color_picker",
+        "color_input",
+        "hsl",
+        "hsv",
+        "image",
+        "eye_dropper",
+        "chip_input",
+        "select",
+        "checkbox",
+        "divider",
+        "dot_indicator",
+        "circular_progress_indicator",
+        "linear_progress_indicator",
+        "locale_utils",
+        "number_ticker",
+        "spinner",
+        "progress",
+        "skeleton",
+        "command",
+        "control",
+        "debug",
+        "breadcrumb",
+        "code_snippet",
+        "carousel",
+        "calendar",
+        "date_picker",
+        "file_input",
+        "file_picker",
+        "keyboard_shortcut",
+        "fade_scroll",
+        "text_field",
+        "input",
+        "input_otp",
+        "form_field",
+        "formatted_input",
+        "form",
+        "object_input",
+        "outlined_container",
+        "phone_input",
+        "radio_group",
+        "slider",
+        "multiple_choice",
+        "item_picker",
+        "formatter",
+        "switch",
+        "text_area",
+        "text",
+        "selectable",
+        "scrollbar",
+        "scrollable_client",
+        "scrollview",
+        "triple_dots",
+        "icon",
+        "alert_dialog",
+        "dialog",
+        "popover",
+        "overlay",
+        "popup",
+        "tooltip",
+        "refresh_trigger",
+        "tracker",
+        "hover",
+        "hover_card",
+        "toast",
+        "drawer",
+        "menu",
+        "menubar",
+        "media_query",
+        "context_menu",
+        "dropdown_menu",
+        "sortable",
+        "navigation_bar",
+        "navigation_menu",
+        "pagination",
+        "tabs",
+        "tab_container",
+        "tab_list",
+        "tab_pane",
+        "switcher",
+        "table",
+        "overflow_marquee",
+        "patch",
+        "time_picker",
+        "validated",
+        "stepper",
+        "steps",
+        "resizable",
+        "shadcn_localizations",
+        "shadcn_localizations_en",
+        "shadcn_localizations_extensions",
+        "star_rating",
+        "subfocus",
+        "swiper",
+        "timeline",
+        "scaffold",
+        "stage_container",
+        "tree",
+        "wrapper",
+        "window",
+        "timeline_animation",
+        "repeated_animation_builder",
+        "feature_carousel",
+        "dropzone",
+        "empty_state",
+        "error_system",
+        "flex",
+        "scrollable",
+        "border_loading",
+        "text_animate",
+        "filter_bar",
+        "app",
+        "gooey_toast",
+        "markdown",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 9.451,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\u2022 Installing Button (button)\n\nPost-install notes for Button\n  \u2022 Optional: wrap a subtree with Theme(data: ThemeData(...), child: ...) to override defaults.\n\u2022 Installing Clickable (clickable)\n\u2022 Installing Card (card)\n\u2022 Installing CardImage (card_image)\n\u2022 Installing Basic (basic)\n\u2022 Installing Outlined Container (outlined_container)\n\nPost-install notes for CardImage\n  \u2022 Wrap with ComponentTheme<CardImageTheme> when you need custom scales or spacing.\n\u2022 Installing Alert (alert)\n\nPost-install notes for Alert\n  \u2022 Register ComponentTheme<AlertTheme> when you want custom padding, colors, or borders.\n\u2022 \n...<truncated>...\nuilder (repeated_animation_builder)\n\u2022 Installing Feature Carousel (feature_carousel)\n\u2022 Installing Empty State (empty_state)\n\u2022 Installing Error System (error_system)\n\u2022 Installing Flex (flex)\n\u2022 Installing Scrollable (scrollable)\n\u2022 Installing Border Loading (border_loading)\n\u2022 Installing Streaming Text (text_animate)\n\u2022 Installing Filter Bar (filter_bar)\n\u2022 Installing App (app)\n\u2022 Installing Gooey Toast (gooey_toast)\n\u2022 Installing Markdown (markdown)\n\u2713 Added dependencies: animation_kit, country_flags, cross_file, email_validator, expressions, flutter_localizations, intl, phonecodes, skeletonizer, web\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "040_deps_all_json",
+      "name": "deps all json",
+      "category": "health",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "deps",
+        "--all",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.272,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"deps\",\n  \"data\": {\n    \"components\": [\n      \"button\",\n      \"clickable\",\n      \"card\",\n      \"card_image\",\n      \"alert\",\n      \"alpha\",\n      \"chat\",\n      \"async\",\n      \"autocomplete\",\n      \"collapsible\",\n      \"focus_outline\",\n      \"group\",\n      \"hidden\",\n      \"accordion\",\n      \"badge\",\n      \"avatar\",\n      \"basic\",\n      \"chip\",\n      \"color\",\n      \"history\",\n      \"color_picker\",\n      \"color_input\",\n      \"hsl\",\n      \"hsv\",\n      \"image\",\n      \"eye_dropper\",\n      \"chip_input\",\n      \"select\",\n      \"checkbox\",\n      \"divider\",\n      \"dot_indi\n...<truncated>...\nmail_validator\",\n        \"required\": [\n          \"^3.0.0\"\n        ],\n        \"installed\": \"^3.0.0\",\n        \"status\": \"ok\"\n      },\n      {\n        \"package\": \"expressions\",\n        \"required\": [\n          \"^0.2.5+2\"\n        ],\n        \"installed\": \"^0.2.5+2\",\n        \"status\": \"ok\"\n      },\n      {\n        \"package\": \"flutter_localizations\",\n        \"required\": [\n          \"sdk: flutter\"\n        ],\n        \"installed\": \"sdk: flutter\",\n        \"status\": \"ok\"\n      }\n    ]\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:27.579500Z\",\n    \"exitCode\": 0\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "041_validate_json_local_v1_registry",
+      "name": "validate json local v1 registry",
+      "category": "health",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "validate",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.432,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "{\n  \"status\": \"ok\",\n  \"command\": \"validate\",\n  \"data\": {\n    \"schema\": {\n      \"found\": true,\n      \"valid\": true,\n      \"errorCount\": 0,\n      \"errors\": []\n    },\n    \"components\": {\n      \"total\": 133,\n      \"missingDependencies\": []\n    },\n    \"files\": {\n      \"checked\": 1833,\n      \"skipped\": 0,\n      \"missing\": []\n    },\n    \"fileDependencies\": {\n      \"missing\": [],\n      \"missingOptional\": []\n    }\n  },\n  \"errors\": [],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:29.006094Z\",\n    \"exitCode\": 0\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "042_audit_json_full_install",
+      "name": "audit json full install",
+      "category": "health",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+        "--advanced",
+        "--registry-path",
+        "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/source_overlay/registry",
+        "--skip-integrity",
+        "audit",
+        "--json"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 50,
+      "timedOut": false,
+      "durationSeconds": 1.286,
+      "status": "FAIL",
+      "notes": "",
+      "stdoutExcerpt": "{\n  \"status\": \"error\",\n  \"command\": \"audit\",\n  \"data\": {\n    \"installed\": [\n      \"accordion\",\n      \"alert\",\n      \"alert_dialog\",\n      \"alpha\",\n      \"app\",\n      \"async\",\n      \"autocomplete\",\n      \"avatar\",\n      \"badge\",\n      \"basic\",\n      \"border_loading\",\n      \"breadcrumb\",\n      \"button\",\n      \"calendar\",\n      \"card\",\n      \"card_image\",\n      \"carousel\",\n      \"chat\",\n      \"checkbox\",\n      \"chip\",\n      \"chip_input\",\n      \"circular_progress_indicator\",\n      \"clickable\",\n      \"code_snippet\",\n      \"collapsible\",\n      \"color\",\n      \"color_input\",\n      \"color_picker\",\n    \n...<truncated>...\nnts/display/text_animate/_impl/state/_text_animate_preview_state.dart\",\n          \"time_picker -> /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/form/time_picker/_impl/state/_time_picker_preview_state.dart\",\n          \"toast -> /private/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app/lib/ui/shadcn/components/overlay/toast/_impl/state/_toast_preview_state.dart\"\n        ]\n      }\n    }\n  ],\n  \"warnings\": [],\n  \"meta\": {\n    \"timestamp\": \"2026-05-09T03:34:30.307221Z\",\n    \"exitCode\": 50\n  }\n}\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "043_flutter_analyze_full_installed_app",
+      "name": "flutter analyze full installed app",
+      "category": "quality",
+      "severity": "warning",
+      "command": [
+        "flutter",
+        "analyze"
+      ],
+      "cwd": "/var/folders/dt/p77q2g1j7190pw1cc_h07hg80000gn/T/flutter_shadcn_pdf_qa.784yj_tl/app",
+      "expectedExitCodes": [
+        0,
+        1
+      ],
+      "exitCode": 1,
+      "timedOut": false,
+      "durationSeconds": 14.749,
+      "status": "PASS",
+      "notes": "Exit 1 is accepted here only to capture registry-source analyzer warnings/errors separately.",
+      "stdoutExcerpt": "Resolving dependencies...\nDownloading packages...\n+ animation_kit 0.0.2\n+ args 2.7.0\n+ convert 3.1.2\n+ country_flags 4.1.2\n+ cross_file 0.3.5+2\n+ data_widget 0.0.3\n+ email_validator 3.0.0\n+ expressions 0.2.5+3\n+ flutter_localizations 0.0.0 from sdk flutter\n+ gap 3.0.1\n+ http 1.6.0\n+ http_parser 4.1.2\n+ intl 0.20.2\n+ jovial_misc 0.10.0\n+ jovial_svg 1.1.29\n  matcher 0.12.18 (0.12.20 available)\n  meta 1.17.0 (1.18.2 available)\n+ petitparser 7.0.2\n+ phonecodes 0.0.4\n+ quiver 3.2.2\n+ rxdart 0.28.0\n+ skeletonizer 2.1.3\n  test_api 0.7.9 (0.7.12 available)\n+ typed_data 1.4.0\n  vector_math 2.2.0 (2.3.0\n...<truncated>...\n70:9 \u2022 use_null_aware_elements\n   info \u2022 The import of 'dart:ui' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/rendering.dart' \u2022 lib/ui/shadcn/shared/utils/color_extensions.dart:2:8 \u2022 unnecessary_import\n   info \u2022 The import of 'package:flutter/services.dart' is unnecessary because all of the used elements are also provided by the import of 'package:flutter/widgets.dart' \u2022 lib/ui/shadcn/shared/utils/text_input_utils.dart:1:8 \u2022 unnecessary_import\nwarning \u2022 Unused import: 'dart:math' \u2022 lib/ui/shadcn/shared/utils/util.dart:2:8 \u2022 unused_import\n\n",
+      "stderrExcerpt": "238 issues found. (ran in 12.7s)\n"
+    },
+    {
+      "id": "044_cli_dart_analyze",
+      "name": "cli dart analyze",
+      "category": "repo-gate",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 1.038,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Analyzing branch-v1-installer-shared-service...\nNo issues found!\n",
+      "stderrExcerpt": ""
+    },
+    {
+      "id": "045_cli_dart_test_full_suite",
+      "name": "cli dart test full suite",
+      "category": "repo-gate",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "test",
+        "--reporter=compact"
+      ],
+      "cwd": "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 48.55,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "\n00:00 +0: loading test/config_test.dart                                                                                                                                                                \n00:00 +0: test/config_test.dart: config roundtrip preserves settings                                                                                                                                   \n00:00 +1: test/config_test.dart: config roundtrip preserves settings                                                                                                                                   \n...<truncated>...\n00:47 +286: test/cli_integration_test.dart: CLI integration theme widget commands fail explicitly without runtime execution                                                                            \n00:47 +287: test/cli_integration_test.dart: CLI integration theme widget commands fail explicitly without runtime execution                                                                            \n00:47 +287: All tests passed!                                                                                                                                                                          \n",
+      "stderrExcerpt": "Error: Invalid component address \"@shadcn/button/extra\". Use @namespace/component\nError: Invalid component address \"shadcn:\". Use @namespace/component\nError: Invalid component address \"@shadcn\". Use @namespace/component\nError: l10n.yaml already exists.\n"
+    },
+    {
+      "id": "046_kit_dart_analyze",
+      "name": "kit dart analyze",
+      "category": "repo-gate",
+      "severity": "normal",
+      "command": [
+        "dart",
+        "analyze"
+      ],
+      "cwd": "/Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit",
+      "expectedExitCodes": [
+        0
+      ],
+      "exitCode": 0,
+      "timedOut": false,
+      "durationSeconds": 4.326,
+      "status": "PASS",
+      "notes": "",
+      "stdoutExcerpt": "Analyzing flutter_shadcn_kit...\nNo issues found!\n",
+      "stderrExcerpt": ""
+    }
+  ]
+}

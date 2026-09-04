@@ -1,5 +1,5 @@
 blank_issues_enabled: false
 contact_links:
   - name: CLI Documentation (v0.2.0)
-    url: https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/shadcn_flutter_cli/doc/site/v0.2.0
+    url: https://github.com/mibrar-dev/shadcn_flutter_kit/tree/main/shadcn_flutter_cli/doc/site/v0.2.0
     about: Check command usage, registry behavior, and migration guides before opening an issue.

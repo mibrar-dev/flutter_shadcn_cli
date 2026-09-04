@@ -1,0 +1,5 @@
+• Installing Card (card)
+• Installing Alert (alert)
+
+Post-install notes for Alert
+  • Register ComponentTheme<AlertTheme> when you want custom padding, colors, or borders.

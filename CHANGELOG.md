@@ -1,8 +1,76 @@
 # Changelog
 
-## Unreleased
+## 0.2.7
 
-- (empty)
+### CLI Reliability
+- `dry-run` now accepts `@namespace/component` refs just like `add` and `info`.
+- `info` with multiple component ids fails loudly (exit 2 + JSON envelope) instead of silently returning only the first.
+- `info --json` `importPath` now includes the `components/` segment and resolves to files that actually exist (e.g. `tab_list` points at its real core impl).
+- Added `--version` flag (the `version` subcommand still works).
+- Schema/index warnings go to stderr so `--json` stdout stays parseable.
+- Unknown-namespace `search`/`info` return a clean `registry_not_found` envelope (exit 10) instead of crashing.
+- `validate --json --offline` emits a proper JSON error envelope.
+- Remote manifest/schema/theme fetches fall back to the v1 `manifests/` + `registry/` layouts with timeouts (fixes `doctor` schema 404s and `init` theme-skip warnings).
+- `validate` uses bounded concurrency, per-file timeouts, and stderr progress instead of hanging on remote registries.
+- `add` no longer removes `flutter_localizations`/`intl` required by installed files.
+
+## 0.2.6
+
+### Registry Fixes
+- Refreshed directory-managed remote registry URLs from the registry directory so existing projects stop reusing stale official registry `main` URLs after the registry source is updated.
+- Kept explicit local registry paths untouched while refreshing remote registry manifest, index, and theme paths.
+
+## 0.2.5
+
+### CLI Performance
+- Skipped already-installed component IDs before registry manifest resolution, including when those components are reached as dependencies during multi-component installs.
+
+## 0.2.4
+
+### CLI UX
+- Restored visible per-file install progress so long component/shared installs do not look stuck.
+- Installed shared module files concurrently to reduce large dependency install time.
+
+### Registry Compatibility
+- Updated the kit registry manifest generation so font binaries are not installed as shared Dart-library files under `lib`.
+
+## 0.2.3
+
+### CLI UX
+- Reduced install/init/theme progress output to operation-level loading lines instead of one line per copied file.
+- Closed theme index and preset loader resources after use so init/theme commands exit promptly after finishing.
+
+### Registry Init
+- Updated the official registry init metadata to install the app wrapper and base shadcn localization components by default.
+
+## 0.2.2
+
+### Packaging Fixes
+- Fixed `.pubignore` root path rules so internal Dart source folders named `docs` are included in the published package.
+- Verified the package executable build through `dart pub global activate flutter_shadcn_cli 0.2.2 --overwrite`.
+
+## 0.2.1
+
+### Release Readiness
+- Bumped the CLI package version for the minimal fixture release.
+- Verified installer and init copy flows expose visible progress/loading feedback through `CliLogger.progress`.
+- Added release QA artifacts for the default app init and registry bootstrap changes.
+
+### Registry Bootstrap
+- Aligned the default interactive init path with the lean app bootstrap policy.
+- Kept scaffold, divider, localization extension helpers, and font/icon assets out of default init unless explicitly selected or installed.
+
+### Internal Refactors
+- Extracted installer pubspec mutation, dry-run planning, and platform instruction writes into dedicated services.
+- Added direct service tests for pubspec preservation, dry-run dependency projection, and platform marker idempotency.
+
+### Safety & Errors
+- Replaced service/helper `exit()` paths in registry selection, file-kind parsing, version upgrade, and studio management with typed exceptions or command-level exit-code returns.
+- Added typed exceptions for component resolution failures, filesystem root escapes, and missing Flutter project roots.
+- Tightened explicit `--registry-path` handling so a bad explicit local path fails instead of falling back to auto-discovery.
+
+### QA
+- Added final optional-refactor QA and changelog reporting artifacts under `qa_reports/`.
 
 ## 0.2.0
 
@@ -74,44 +142,6 @@
   - Local index.json support with remote fallback
   - Use `--refresh` flag to force cache update from remote
 
-### 🤖 AI Skills Management
-- **NEW**: Interactive multi-skill, multi-model AI skills manager with `install-skill` command.
-  - **Default multi-skill interactive mode** - just run `flutter_shadcn install-skill` (no flags needed, see what's already installed)
-  - Auto-discovers 28+ AI model folders (`.claude`, `.cursor`, `.gemini`, `.gpt4`, `.codex`, `.deepseek`, `.ollama`, etc.)
-  - **Shows human-readable model names** (e.g., "Cursor", "Claude (Anthropic)", "OpenAI (Codex)", "Google Gemini")
-  - **Intelligent duplicate detection**: Checks which models already have selected skills
-    - Offers 3 options when skills exist: skip installed, overwrite all, or cancel
-    - Only installs to models without the skill (smart selection)
-  - **Context-aware installation modes**:
-    - Detects existing installations automatically
-    - When 2+ models selected: offers copy-per-model or install+symlink (saves disk space)
-    - Detects existing installations and offers them as symlink sources
-    - Only shows relevant options based on what's already installed
-  - **Multi-model selection**: Pick individual models or "all models" option
-  - **Only creates selected model folders** on demand (no template clutter)
-  - Smart default selection: primary model + symlinks to others when space-saving makes sense
-- **NEW**: skills.json discovery index (mirrors components.json pattern).
-  - List available skills: `flutter_shadcn install-skill --available`
-  - Install single skill: `flutter_shadcn install-skill --skill <id>`
-  - Install to specific model: `flutter_shadcn install-skill --skill <id> --model <name>`
-  - **Multi-location skill discovery**: Local kit registry → parent directories → project root (auto-fallback)
-  - Custom registry: `--skills-url /path/or/url`
-  - **Requires `skill.json` or `skill.yaml` manifest** for installation (throws helpful error if missing)
-  - Copies AI-focused docs: SKILL.md, INSTALLATION.md, references/{commands,examples}.md
-  - Management files (skill.json, skill.yaml, schemas.md) stay in registry (CLI-only)
-- **NEW**: Interactive skill removal with `--uninstall-interactive`.
-  - Menu-driven selection: choose which skills to remove
-  - Model selection: remove from specific models or all models
-  - Shows installation count per skill
-  - Confirmation before removal
-  - Graceful error handling for missing/already-deleted folders
-- **IMPROVED**: Symlink handling for safe removal.
-  - Auto-detects symlinks vs real directories
-  - Removes only the symlink, preserves source files
-  - Resolves symlink targets before deletion (prevents corruption)
-  - Handles broken symlinks gracefully
-  - Batch removal: safely removes from multiple models even if some don't have the skill
-
 ### 🔧 Project Management Commands
 - **NEW**: Dry-run command to preview component installs (deps, shared, assets, fonts, platform changes).
 - **NEW**: Doctor validates components.json against components.schema.json and reports cache paths.
@@ -138,15 +168,7 @@
   - Cross-platform browser opening (macOS, Linux, Windows)
 
 ### 🧪 Testing & Quality
-- **NEW**: Comprehensive test coverage for skill manager and version manager.
-  - Skill discovery tests (local kit registry, parent directories, manifest requirement, YAML support)
-  - File copying tests (AI-focused files, manifest exclusion, directory structure)
-  - Skill management tests (install, uninstall, list, symlinks)
-  - Model discovery tests (auto-detection, lazy folder creation)
-  - Version comparison tests (semver logic, pre-release handling)
-  - Cache management tests (24-hour policy, timestamp handling)
-  - Error handling tests (network failures, malformed responses, missing manifests)
-  - **Total: 38 tests** (13 skill manager + 11 version manager + 14 existing)
+- **NEW**: Comprehensive test coverage for version management, registry validation, install workflows, and command behavior.
 
 ### 🐛 Bug Fixes
 - **FIX**: Graceful error handling for component discovery failures.

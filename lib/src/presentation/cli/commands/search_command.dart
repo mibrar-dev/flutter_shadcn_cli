@@ -3,6 +3,7 @@ import 'dart:io';
 import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/discovery_commands.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
+import 'package:flutter_shadcn_cli/src/json_output.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
 
@@ -36,9 +37,31 @@ Future<int> runSearchCommand({
   }
 
   final searchQuery = searchTokens.join(' ');
-  final target = await multiRegistry.resolveDiscoveryTarget(
-    namespace: searchNamespaceOverride,
-  );
+  late final DiscoveryRegistryTarget target;
+  try {
+    target = await multiRegistry.resolveDiscoveryTarget(
+      namespace: searchNamespaceOverride,
+    );
+  } on MultiRegistryException catch (e) {
+    // Mirror list_command: clean registry_not_found envelope, never crash,
+    // never prompt (especially in --json mode).
+    if (searchCommand['json'] == true) {
+      printJson(jsonEnvelope(
+        command: 'search',
+        data: const {},
+        errors: [
+          jsonError(
+            code: ExitCodeLabels.registryNotFound,
+            message: e.message,
+          ),
+        ],
+        meta: {'exitCode': ExitCodes.registryNotFound},
+      ));
+    } else {
+      stderr.writeln('Error: ${e.message}');
+    }
+    return ExitCodes.registryNotFound;
+  }
 
   if (searchQuery.isEmpty) {
     final listExit = await handleListCommand(

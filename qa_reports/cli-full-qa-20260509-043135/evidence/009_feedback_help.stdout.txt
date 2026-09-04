@@ -1,0 +1,20 @@
+Usage: flutter_shadcn feedback [options]
+       flutter_shadcn feedback @<namespace> [options]
+
+Submit feedback or report issues via GitHub.
+
+Interactive mode (default):
+  flutter_shadcn feedback
+
+Non-interactive mode:
+  flutter_shadcn feedback --type bug --title "Title" --body "Description"
+
+Feedback types:
+  bug, feature, docs, question, performance, other
+
+Options:
+  --type, -t         Feedback type
+  --title            Issue title
+  --body             Issue description/body
+  @<namespace>       Optional registry context (e.g. @shadcn)
+  --help, -h         Show this message

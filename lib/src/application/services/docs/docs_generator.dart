@@ -91,7 +91,7 @@ Future<void> generateDocsSite({
   required CliLogger logger,
 }) async {
   final commandsRoot = Directory(
-    p.join(cliRoot, 'docs', 'reference', 'commands'),
+    p.join(cliRoot, 'doc', 'reference', 'commands'),
   );
   if (commandsRoot.existsSync()) {
     commandsRoot.deleteSync(recursive: true);

@@ -9,26 +9,26 @@ ArgParser buildCliParser() {
     )
     ..addFlag('verbose', abbr: 'v', negatable: false)
     ..addFlag('help', abbr: 'h', negatable: false)
+    ..addFlag(
+      'version',
+      negatable: false,
+      help: 'Show the CLI version',
+    )
     ..addFlag('wip', negatable: false, hide: true)
     ..addFlag('experimental', negatable: false, hide: true)
-    ..addFlag('offline',
-        negatable: false,
-        help: 'Disable network calls and use cached registry data only')
+    ..addFlag(
+      'offline',
+      negatable: false,
+      help: 'Disable network calls and use cached registry data only',
+    )
     ..addOption(
       'registry-name',
       help: 'Registry namespace selection (e.g. shadcn, orient)',
     )
     ..addOption('registry-path', hide: true)
     ..addOption('registry-url', hide: true)
-    ..addFlag(
-      'skip-integrity',
-      negatable: false,
-      hide: true,
-    )
-    ..addOption(
-      'registries-path',
-      hide: true,
-    )
+    ..addFlag('skip-integrity', negatable: false, hide: true)
+    ..addOption('registries-path', hide: true)
     ..addCommand(
       'init',
       ArgParser()
@@ -37,6 +37,15 @@ ArgParser buildCliParser() {
           abbr: 'y',
           negatable: false,
           help: 'Run non-interactively and use defaults',
+        )
+        ..addFlag('help', abbr: 'h', negatable: false),
+    )
+    ..addCommand(
+      'locale',
+      ArgParser()
+        ..addCommand(
+          'init',
+          ArgParser()..addFlag('help', abbr: 'h', negatable: false),
         )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
@@ -57,14 +66,8 @@ ArgParser buildCliParser() {
               negatable: false,
               help: 'List theme targets for the selected component',
             )
-            ..addOption(
-              'apply-file',
-              hide: true,
-            )
-            ..addOption(
-              'apply-url',
-              hide: true,
-            )
+            ..addOption('apply-file', hide: true)
+            ..addOption('apply-url', hide: true)
             ..addFlag(
               'reset',
               negatable: false,
@@ -94,8 +97,11 @@ ArgParser buildCliParser() {
       'dry-run',
       ArgParser()
         ..addFlag('all', abbr: 'a', negatable: false)
-        ..addFlag('json',
-            negatable: false, help: 'Output machine-readable JSON')
+        ..addFlag(
+          'json',
+          negatable: false,
+          help: 'Output machine-readable JSON',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
@@ -131,42 +137,58 @@ ArgParser buildCliParser() {
     ..addCommand(
       'doctor',
       ArgParser()
-        ..addFlag('json',
-            negatable: false, help: 'Output machine-readable JSON')
+        ..addFlag(
+          'json',
+          negatable: false,
+          help: 'Output machine-readable JSON',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
       'validate',
       ArgParser()
-        ..addFlag('json',
-            negatable: false, help: 'Output machine-readable JSON')
+        ..addFlag(
+          'json',
+          negatable: false,
+          help: 'Output machine-readable JSON',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
       'audit',
       ArgParser()
-        ..addFlag('json',
-            negatable: false, help: 'Output machine-readable JSON')
+        ..addFlag(
+          'json',
+          negatable: false,
+          help: 'Output machine-readable JSON',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
       'deps',
       ArgParser()
-        ..addFlag('all',
-            abbr: 'a',
-            negatable: false,
-            help: 'Compare dependencies for all registry components')
-        ..addFlag('json',
-            negatable: false, help: 'Output machine-readable JSON')
+        ..addFlag(
+          'all',
+          abbr: 'a',
+          negatable: false,
+          help: 'Compare dependencies for all registry components',
+        )
+        ..addFlag(
+          'json',
+          negatable: false,
+          help: 'Output machine-readable JSON',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
       'docs',
       ArgParser()
-        ..addFlag('generate',
-            abbr: 'g',
-            negatable: false,
-            help: 'Regenerate docs/reference/commands documentation')
+        ..addFlag(
+          'generate',
+          abbr: 'g',
+          negatable: false,
+          help: 'Regenerate docs/reference/commands documentation',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
@@ -226,48 +248,33 @@ ArgParser buildCliParser() {
       'list',
       ArgParser()
         ..addFlag('refresh', negatable: false, help: 'Refresh cache')
-        ..addFlag('json',
-            negatable: false, help: 'Output machine-readable JSON')
+        ..addFlag(
+          'json',
+          negatable: false,
+          help: 'Output machine-readable JSON',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
       'search',
       ArgParser()
         ..addFlag('refresh', negatable: false, help: 'Refresh cache')
-        ..addFlag('json',
-            negatable: false, help: 'Output machine-readable JSON')
+        ..addFlag(
+          'json',
+          negatable: false,
+          help: 'Output machine-readable JSON',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
       'info',
       ArgParser()
         ..addFlag('refresh', negatable: false, help: 'Refresh cache')
-        ..addFlag('json',
-            negatable: false, help: 'Output machine-readable JSON')
-        ..addFlag('help', abbr: 'h', negatable: false),
-    )
-    ..addCommand(
-      'install-skill',
-      ArgParser()
-        ..addOption('skill', abbr: 's', help: 'Skill id to install')
-        ..addOption('model', abbr: 'm', help: 'Model name (e.g., gpt-4)')
-        ..addOption('skills-url', help: 'Override skills base URL/path')
-        ..addFlag('symlink',
-            negatable: false, help: 'Symlink shared skill to model')
-        ..addFlag('list', negatable: false, help: 'List installed skills')
-        ..addFlag('available',
-            abbr: 'a',
-            negatable: false,
-            help: 'List available skills from registry')
-        ..addFlag('interactive',
-            abbr: 'i',
-            negatable: false,
-            help: 'Interactive multi-skill installation')
-        ..addOption('uninstall',
-            help: 'Uninstall skill (specify --model for single removal)')
-        ..addFlag('uninstall-interactive',
-            negatable: false,
-            help: 'Interactive removal (choose skills and models)')
+        ..addFlag(
+          'json',
+          negatable: false,
+          help: 'Output machine-readable JSON',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
@@ -279,20 +286,24 @@ ArgParser buildCliParser() {
     ..addCommand(
       'upgrade',
       ArgParser()
-        ..addFlag('force',
-            abbr: 'f',
-            negatable: false,
-            help: 'Force upgrade even if already latest')
+        ..addFlag(
+          'force',
+          abbr: 'f',
+          negatable: false,
+          help: 'Force upgrade even if already latest',
+        )
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
       'feedback',
       ArgParser()
         ..addFlag('help', abbr: 'h', negatable: false)
-        ..addOption('type',
-            abbr: 't',
-            help:
-                'Feedback type: bug, feature, docs, question, performance, other')
+        ..addOption(
+          'type',
+          abbr: 't',
+          help:
+              'Feedback type: bug, feature, docs, question, performance, other',
+        )
         ..addOption('title', help: 'Issue title')
         ..addOption('body', help: 'Issue description/body'),
     );
@@ -325,7 +336,8 @@ List<String> _hoistGlobalAdvancedFlag(List<String> args) {
 
 List<String> _hoistGlobalJsonFlag(List<String> args) {
   final commandIndex = _findCommandIndex(args);
-  if (commandIndex == null || !_jsonEnabledCommands.contains(args[commandIndex])) {
+  if (commandIndex == null ||
+      !_jsonEnabledCommands.contains(args[commandIndex])) {
     return args;
   }
 
@@ -379,11 +391,7 @@ List<String> _normalizeCommandAlias(List<String> args) {
   if (commandIndex == null) {
     return args;
   }
-  final aliasMap = <String, String>{
-    'ls': 'list',
-    'rm': 'remove',
-    'i': 'info',
-  };
+  final aliasMap = <String, String>{'ls': 'list', 'rm': 'remove', 'i': 'info'};
   final mapped = aliasMap[args[commandIndex]];
   if (mapped == null) {
     return args;
@@ -445,8 +453,9 @@ bool _isHiddenDeveloperFlagToken(String token) {
       _hiddenDeveloperValueOptions.contains(token)) {
     return true;
   }
-  return _hiddenDeveloperValueOptions
-      .any((option) => token.startsWith('$option='));
+  return _hiddenDeveloperValueOptions.any(
+    (option) => token.startsWith('$option='),
+  );
 }
 
 const _hiddenDeveloperValueOptions = <String>{
@@ -455,9 +464,7 @@ const _hiddenDeveloperValueOptions = <String>{
   '--registry-url',
 };
 
-const _hiddenDeveloperFlagOptions = <String>{
-  '--skip-integrity',
-};
+const _hiddenDeveloperFlagOptions = <String>{'--skip-integrity'};
 
 const _rootValueOptions = <String>{
   '--registry-name',

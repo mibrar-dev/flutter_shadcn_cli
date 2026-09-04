@@ -24,22 +24,45 @@ class RegistryLocation {
       if (offline) {
         throw Exception('Offline mode: remote access disabled.');
       }
-      final uri = _resolveRemote(relativePath);
-      final response = await _client.get(uri);
-      if (response.statusCode >= 200 && response.statusCode < 300) {
-        return response.bodyBytes;
+      // Try v1 layout fallbacks: `manifests/` prefix and `registry/`
+      // prefix. Remote layout is `registry/manifests/` under the source
+      // root, but legacy callers resolve `components.json` against the
+      // registry root (`.../lib/registry`) or `shared/...` against the
+      // source root (`.../lib`). Without fallbacks those 404 as
+      // `.../lib/registry/components.json` or `.../lib/shared/...`
+      // instead of `.../lib/registry/manifests/components.json` and
+      // `.../lib/registry/shared/...`.
+      Object? lastError;
+      for (final candidate in _remotePathCandidates(relativePath)) {
+        final uri = _resolveRemote(candidate);
+        try {
+          final response =
+              await _client.get(uri).timeout(const Duration(seconds: 15));
+          if (response.statusCode >= 200 && response.statusCode < 300) {
+            return response.bodyBytes;
+          }
+          lastError = Exception(
+            'Failed to fetch $uri (${response.statusCode})',
+          );
+        } catch (e) {
+          lastError = e;
+        }
+        final apiBytes = await _readViaGithubApi(candidate);
+        if (apiBytes != null) {
+          return apiBytes;
+        }
       }
-      final apiBytes = await _readViaGithubApi(relativePath);
-      if (apiBytes != null) {
-        return apiBytes;
+      final attempted = _resolveRemote(relativePath).toString();
+      if (lastError != null) {
+        throw Exception('Failed to fetch $attempted ($lastError)');
       }
-      throw Exception('Failed to fetch $uri (${response.statusCode})');
+      throw Exception('Failed to fetch $attempted (404)');
     }
     final candidates = _localPathCandidates(relativePath);
     for (final path in candidates) {
       final file = File(p.join(root, path));
       if (await file.exists()) {
-        return file.readAsBytes();
+        return await file.readAsBytes();
       }
     }
 
@@ -99,14 +122,71 @@ class RegistryLocation {
   }
 
   List<String> _localPathCandidates(String relativePath) {
-    final candidates = <String>[relativePath];
     final normalized = relativePath.replaceAll('\\', '/');
+    final candidates = <String>[normalized];
+    void add(String value) {
+      if (value.isNotEmpty && !candidates.contains(value)) {
+        candidates.add(value);
+      }
+    }
+
     final rootName = p.basename(root);
     if (rootName == 'registry' && normalized.startsWith('registry/')) {
       final stripped = normalized.substring('registry/'.length);
-      if (stripped.isNotEmpty && stripped != relativePath) {
-        candidates.add(stripped);
+      if (stripped.isNotEmpty) {
+        add(stripped);
       }
+    }
+    // v1 layout: manifests live under `manifests/`. Legacy callers ask for
+    // `components.json` / `index.json` / `*.schema.json` at the registry
+    // root, but the file is at `manifests/<name>`.
+    if (!normalized.startsWith('manifests/') &&
+        !normalized.startsWith('registry/manifests/')) {
+      add('manifests/$normalized');
+    }
+    if (!normalized.startsWith('registry/')) {
+      add('registry/$normalized');
+      if (!normalized.startsWith('manifests/')) {
+        add('registry/manifests/$normalized');
+      }
+    }
+    return candidates;
+  }
+
+  List<String> _remotePathCandidates(String relativePath) {
+    final normalized = relativePath.replaceAll('\\', '/');
+    final candidates = <String>[normalized];
+    void add(String value) {
+      if (value.isNotEmpty && !candidates.contains(value)) {
+        candidates.add(value);
+      }
+    }
+
+    // Strip a duplicated `registry/` prefix when the root already ends
+    // with `/registry` (directory entries use `registry/manifests/...`
+    // relative to the source root `.../lib`).
+    if (normalized.startsWith('registry/')) {
+      final stripped = normalized.substring('registry/'.length);
+      if (stripped.isNotEmpty) {
+        add(stripped);
+      }
+    }
+    if (!normalized.startsWith('manifests/') &&
+        !normalized.startsWith('registry/manifests/')) {
+      add('manifests/$normalized');
+    }
+    if (!normalized.startsWith('registry/')) {
+      add('registry/$normalized');
+      if (!normalized.startsWith('manifests/')) {
+        add('registry/manifests/$normalized');
+      }
+    }
+    // Theme artifacts (`shared/theme/generated/...`) resolved against the
+    // source root (`.../lib`) need the `registry/` prefix.
+    if ((normalized.startsWith('shared/') ||
+            normalized.startsWith('registry/shared/')) &&
+        !candidates.any((c) => c == 'registry/$normalized')) {
+      // Already covered above; kept for clarity.
     }
     return candidates;
   }

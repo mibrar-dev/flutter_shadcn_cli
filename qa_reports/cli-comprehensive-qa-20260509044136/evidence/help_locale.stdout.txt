@@ -1,0 +1,4 @@
+Usage: flutter_shadcn locale <command>
+
+Commands:
+  init              Create l10n.yaml and lib/l10n/

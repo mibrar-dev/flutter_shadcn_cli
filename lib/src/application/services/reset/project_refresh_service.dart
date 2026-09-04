@@ -387,11 +387,7 @@ class ProjectRefreshService {
                   .map((entry) => entry.key);
               return outputs.any(selectedDestinations.contains);
             }).toList();
-            next['files'] = from == null
-                ? groupFiles
-                : groupFiles
-                    .map((file) => p.posix.relative(file, from: from))
-                    .toList();
+            next['files'] = groupFiles;
             return next;
           })
           .where((group) => (group['files'] as List<dynamic>).isNotEmpty)

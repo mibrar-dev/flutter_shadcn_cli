@@ -1,0 +1,4 @@
+Usage: flutter_shadcn project reset [--undo]
+
+Remove CLI-managed project files and folders.
+Use --undo within 24 hours to restore the latest reset snapshot.

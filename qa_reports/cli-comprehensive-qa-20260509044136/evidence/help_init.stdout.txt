@@ -1,0 +1,6 @@
+Usage: flutter_shadcn init [@namespace|namespace]
+
+Runs inline bootstrap actions for the selected namespace.
+Defaults to current default namespace (shadcn by default).
+Options:
+  --yes, -y          Non-interactive init (apply defaults)

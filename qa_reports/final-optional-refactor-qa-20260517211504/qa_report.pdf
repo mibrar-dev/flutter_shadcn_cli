@@ -1,0 +1,227 @@
+%PDF-1.4
+1 0 obj
+<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>
+endobj
+2 0 obj
+<< /Length 2789 >>
+stream
+BT
+/F1 10 Tf
+50 770 Td
+14 TL
+(# Final Optional Refactor QA Report) Tj
+T*
+() Tj
+T*
+(Field Value) Tj
+T*
+(--- ---) Tj
+T*
+(Branch branch-v1-final-optional-refactor-qa) Tj
+T*
+(Base commit 8f90105) Tj
+T*
+(Generated 2026-05-17T21:15:04Z) Tj
+T*
+(Scope Remaining optional installer refactor, exit-path hardening, typed error contracts) Tj
+T*
+(Score 100/100) Tj
+T*
+(Pass rate 4/4 automated gates) Tj
+T*
+() Tj
+T*
+(## Result Matrix) Tj
+T*
+() Tj
+T*
+(Gate Command Result Evidence) Tj
+T*
+(--- --- --- ---) Tj
+T*
+(Static analysis dart analyze PASS evidence/dart_analyze.txt) Tj
+T*
+(Full repository tests dart test --concurrency=1 --reporter=expanded PASS, 318 tests) Tj
+T*
+(evidence/dart_test.txt) Tj
+T*
+(Targeted refactor regression tests installer service, argument, registry, path, and) Tj
+T*
+(resolution tests PASS, 49 tests evidence/targeted_refactor_tests.txt) Tj
+T*
+(CLI integration tests dart test test/cli_integration_test.dart --concurrency=1) Tj
+T*
+(--reporter=expanded PASS, 38 tests evidence/cli_integration_test.txt) Tj
+T*
+() Tj
+T*
+(## Issues Resolved) Tj
+T*
+() Tj
+T*
+(Issue Before After) Tj
+T*
+(--- --- ---) Tj
+T*
+(Remaining installer part surface Pubspec mutation, dry-run planning, and platform) Tj
+T*
+(instruction writes lived inside installer part extensions. Added InstallerPubspecService,) Tj
+T*
+(InstallerDryRunService, and InstallerPlatformService; part files now delegate to these) Tj
+T*
+(services.) Tj
+T*
+(Pubspec mutation coupling Installer owned dependency, asset, and font writes directly.) Tj
+T*
+(Pubspec edits are handled by InstallerPubspecService while preserving comments and) Tj
+T*
+(formatting through PubspecEditor.) Tj
+T*
+(Dry-run logic coupling Dry-run plan construction and rendering were embedded in an installer) Tj
+T*
+(part. InstallerDryRunService owns dependency-aware plan construction and dry-run output) Tj
+T*
+(rendering.) Tj
+T*
+(Platform instruction coupling Platform marker writes and post-install note reporting were) Tj
+T*
+(embedded beside alias generation. InstallerPlatformService owns platform targets, marker) Tj
+T*
+(idempotency, and post-install note output. Alias generation remains isolated in the alias) Tj
+T*
+(part.) Tj
+T*
+(Generic component resolution errors AddResolutionService threw generic Exception values and) Tj
+T*
+(tests matched message text. Added ComponentResolutionException with message and token, and) Tj
+T*
+(updated tests to assert the typed contract.) Tj
+T*
+(Path guard error typing Filesystem root escape and missing project root errors used generic) Tj
+T*
+(exceptions. Added PathEscapeException and ProjectRootNotFoundException; root containment now) Tj
+T*
+(uses canonical path boundary checks instead of prefix matching.) Tj
+T*
+(Library/service process exits Registry selection, file-kind parsing, version upgrade, and) Tj
+T*
+ET
+endstream
+endobj
+3 0 obj
+<< /Length 2220 >>
+stream
+BT
+/F1 10 Tf
+50 770 Td
+14 TL
+(studio service paths could call exit\(\) directly. These paths now throw typed exceptions or) Tj
+T*
+(return command-level exit codes; upgrade preserves the same numeric exit behavior through) Tj
+T*
+(runUpgradeCommand.) Tj
+T*
+(Explicit local registry fallback A bad explicit --registry-path could fall through to auto-) Tj
+T*
+(discovery. Explicit bad local paths now fail with RegistryBootstrapException and) Tj
+T*
+(ExitCodes.registryNotFound.) Tj
+T*
+() Tj
+T*
+(## OpenCode Agent Work) Tj
+T*
+() Tj
+T*
+(Three OpenCode agents were run in read-only mode:) Tj
+T*
+() Tj
+T*
+(Agent Focus Applied Result) Tj
+T*
+(--- --- ---) Tj
+T*
+(Refactor audit Remaining installer part extraction candidates Implemented the low-risk dry-) Tj
+T*
+(run and platform extraction recommendations; also extracted pubspec mutation with direct) Tj
+T*
+(tests.) Tj
+T*
+(Hygiene audit Generic exceptions, exit\(\) usage, logger/print risks Fixed production-relevant) Tj
+T*
+(exit paths and typed core/component/path errors. Broader logger-print normalization remains) Tj
+T*
+(cleanup, not a functional blocker.) Tj
+T*
+(QA/report audit Final report and changelog structure Used the proposed evidence matrix and) Tj
+T*
+(before/after inventory for this report and changelog_report.md.) Tj
+T*
+() Tj
+T*
+(## Residual Risk) Tj
+T*
+() Tj
+T*
+(No production-blocking CLI issue remains in this branch based on the verified gates.) Tj
+T*
+(Remaining cleanup opportunities are architectural only:) Tj
+T*
+() Tj
+T*
+(- Further split high-coupling installer parts such as theme, remove, locale, and manifest) Tj
+T*
+(logic after path resolution is extracted into a shared resolver abstraction.) Tj
+T*
+(- Standardize all application-layer print\(\) output behind CliLogger or a dedicated output) Tj
+T*
+(abstraction.) Tj
+T*
+(- Continue replacing generic exceptions in theme/schema/registry loaders with typed domain) Tj
+T*
+(exceptions over future cleanup branches.) Tj
+T*
+() Tj
+T*
+(## Evidence Summary) Tj
+T*
+() Tj
+T*
+(- dart analyze: No issues found!) Tj
+T*
+(- Full suite: All tests passed! with 318 tests.) Tj
+T*
+(- Targeted refactor suite: All tests passed! with 49 tests.) Tj
+T*
+(- CLI integration suite: All tests passed! with 38 tests.) Tj
+T*
+ET
+endstream
+endobj
+4 0 obj
+<< /Type /Page /Parent 6 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 2 0 R >>
+endobj
+5 0 obj
+<< /Type /Page /Parent 6 0 R /MediaBox [0 0 612 792] /Resources << /Font << /F1 1 0 R >> >> /Contents 3 0 R >>
+endobj
+6 0 obj
+<< /Type /Pages /Kids [4 0 R 5 0 R] /Count 2 >>
+endobj
+7 0 obj
+<< /Type /Catalog /Pages 6 0 R >>
+endobj
+xref
+0 8
+0000000000 65535 f 
+0000000009 00000 n 
+0000000079 00000 n 
+0000002920 00000 n 
+0000005192 00000 n 
+0000005318 00000 n 
+0000005444 00000 n 
+0000005507 00000 n 
+trailer
+<< /Size 8 /Root 7 0 R >>
+startxref
+5556
+%%EOF

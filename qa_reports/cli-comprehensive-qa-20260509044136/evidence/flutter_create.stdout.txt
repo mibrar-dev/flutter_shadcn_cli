@@ -1,0 +1,18 @@
+Creating project ../../../../../../../tmp/shadcn_cli-comprehensive-qa-20260509044136/app...
+Resolving dependencies in `../../../../../../../tmp/shadcn_cli-comprehensive-qa-20260509044136/app`...
+Downloading packages...
+Got dependencies in `../../../../../../../tmp/shadcn_cli-comprehensive-qa-20260509044136/app`.
+Wrote 82 files.
+
+All done!
+You can find general documentation for Flutter at: https://docs.flutter.dev/
+Detailed API documentation is available at: https://api.flutter.dev/
+If you prefer video documentation, consider: https://www.youtube.com/c/flutterdev
+
+In order to run your application, type:
+
+  $ cd ../../../../../../../tmp/shadcn_cli-comprehensive-qa-20260509044136/app
+  $ flutter run
+
+Your application code is in ../../../../../../../tmp/shadcn_cli-comprehensive-qa-20260509044136/app/lib/main.dart.
+

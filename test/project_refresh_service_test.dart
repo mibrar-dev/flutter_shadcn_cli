@@ -215,6 +215,84 @@ void main() {
       expect(alreadyComplete.executionResult.filesWritten, 0);
       expect(promptCount, 0);
     });
+
+    test('repairs grouped directory-mapped files without path escape',
+        () async {
+      await _writeLegacyProjectConfig(
+        projectRoot: projectRoot.path,
+        registryBaseUrl: registryRoot.path,
+      );
+      await _writeInlineJournal(
+        projectRoot: projectRoot.path,
+        namespace: 'shadcn',
+        filesWritten: [
+          'lib/ui/shadcn/shared/localization/app_localizations.dart',
+        ],
+      );
+      await File(
+        p.join(
+          registryRoot.path,
+          'registry',
+          'shared',
+          'localization',
+          'app_localizations.dart',
+        ),
+      ).create(recursive: true);
+      await File(
+        p.join(
+          registryRoot.path,
+          'registry',
+          'shared',
+          'localization',
+          'app_localizations.dart',
+        ),
+      ).writeAsString('registry localization');
+
+      final engine = InitActionEngine();
+      final service = ProjectRefreshService(
+        projectRoot: projectRoot.path,
+        executeActions: engine.executeActions,
+      );
+
+      final result = await service.refresh(
+        registry: _entry(
+          baseUrl: registryRoot.path,
+          actions: [
+            {
+              'type': 'copyFiles',
+              'from': 'registry/shared',
+              'to': 'lib/ui/shadcn/shared',
+              'groups': [
+                {
+                  'id': 'localization',
+                  'files': ['localization/app_localizations.dart'],
+                },
+              ],
+            },
+          ],
+        ),
+      );
+
+      expect(result.executionResult.filesWritten, 1);
+      expect(
+        result.missingFiles,
+        ['lib/ui/shadcn/shared/localization/app_localizations.dart'],
+      );
+      expect(
+        File(
+          p.join(
+            projectRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'shared',
+            'localization',
+            'app_localizations.dart',
+          ),
+        ).readAsStringSync(),
+        'registry localization',
+      );
+    });
   });
 }
 

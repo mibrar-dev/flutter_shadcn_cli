@@ -105,7 +105,7 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           'flutter_shadcn add @shadcn/button',
         ],
         notes:
-            'Use namespaced addresses when multiple registries provide the same component.',
+            'Use namespaced addresses when multiple registries provide the same component. The installer uses resolved registry manifest data as the source of truth and merges only the installed component locale resources into app ARB files.',
         seeAlso: ['list', 'search', 'info', 'remove'],
       ),
       CliCommandMeta(
@@ -284,6 +284,8 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           'flutter_shadcn init',
           'flutter_shadcn init shadcn --yes',
         ],
+        notes:
+            '`init` runs inline registry bootstrap actions from `registries.json`. Non-interactive `init --yes` installs the required project surface only; optional fonts, icons, and asset packs are installed with `assets`.',
         seeAlso: ['registries', 'default', 'sync'],
       ),
       CliCommandMeta(
@@ -306,7 +308,8 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
       ),
       CliCommandMeta(
         id: 'default',
-        description: 'Set or show the default registry namespace and source mode.',
+        description:
+            'Set or show the default registry namespace and source mode.',
         sortOrder: 30,
         usage: 'flutter_shadcn default [namespace] [--local | --remote]',
         arguments: [
@@ -390,7 +393,28 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           'flutter_shadcn assets --list',
           'flutter_shadcn assets --icons --typography',
         ],
+        notes:
+            'Assets are registry-provided inline actions. Use this command for optional fonts, icons, and asset packs after `init`.',
         seeAlso: ['init', 'theme'],
+      ),
+      CliCommandMeta(
+        id: 'locale',
+        description: 'Create local Flutter localization files.',
+        sortOrder: 55,
+        usage: 'flutter_shadcn locale <command>',
+        arguments: [
+          CliArgumentMeta(
+            '<command>',
+            true,
+            'Locale command to run. Currently supported: init.',
+          ),
+        ],
+        examples: [
+          'flutter_shadcn locale init',
+        ],
+        notes:
+            '`locale init` creates `l10n.yaml` and `lib/l10n/app_en.arb` so installed components can merge their component-local locale resources into app-local ARB files.',
+        seeAlso: ['init', 'add'],
       ),
       CliCommandMeta(
         id: 'theme',
@@ -653,69 +677,6 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
         ],
         examples: ['flutter_shadcn --advanced docs --generate'],
         notes: 'This command requires --advanced.',
-        seeAlso: ['install-skill'],
-      ),
-      CliCommandMeta(
-        id: 'install-skill',
-        description: 'Install AI skills for local model workflows.',
-        sortOrder: 20,
-        advanced: true,
-        usage: 'flutter_shadcn --advanced install-skill [flags]',
-        flags: [
-          CliFlagMeta(
-            name: '--skill <id>',
-            short: '-s',
-            description: 'Skill id to install.',
-          ),
-          CliFlagMeta(
-            name: '--model <name>',
-            short: '-m',
-            description: 'Model name to install for.',
-          ),
-          CliFlagMeta(
-            name: '--skills-url <url-or-path>',
-            description: 'Override the skills base URL or local path.',
-          ),
-          CliFlagMeta(
-            name: '--symlink',
-            defaultValue: 'false',
-            description: 'Symlink a shared skill to the model.',
-          ),
-          CliFlagMeta(
-            name: '--list',
-            defaultValue: 'false',
-            description: 'List installed skills.',
-          ),
-          CliFlagMeta(
-            name: '--available',
-            short: '-a',
-            defaultValue: 'false',
-            description: 'List available skills from the registry.',
-          ),
-          CliFlagMeta(
-            name: '--interactive',
-            short: '-i',
-            defaultValue: 'false',
-            description: 'Run interactive multi-skill installation.',
-          ),
-          CliFlagMeta(
-            name: '--uninstall <id>',
-            description: 'Uninstall a skill.',
-          ),
-          CliFlagMeta(
-            name: '--uninstall-interactive',
-            defaultValue: 'false',
-            description: 'Run interactive removal.',
-          ),
-        ],
-        examples: [
-          'flutter_shadcn --advanced install-skill --available',
-          'flutter_shadcn --advanced install-skill --skill flutter-shadcn-cli --model .codex',
-          'flutter_shadcn --advanced install-skill --skill flutter-shadcn-ui --model .codex',
-          'flutter_shadcn --advanced install-skill --skills-url https://raw.githubusercontent.com/ibrar-x/shadcn_flutter_kit/main/flutter_shadcn_kit/skills --skill flutter-shadcn-ui --model .codex',
-        ],
-        notes: 'This command requires --advanced.',
-        seeAlso: ['docs'],
       ),
     ],
   ),

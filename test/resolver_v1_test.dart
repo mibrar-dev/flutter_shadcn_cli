@@ -30,22 +30,22 @@ void main() {
 
     test('normalizes github tree base URL to raw base URL', () {
       final normalized = ResolverV1.normalizeBaseUrl(
-        'https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry',
+        'https://github.com/mibrar-dev/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry',
       );
       expect(
         normalized,
-        'https://raw.githubusercontent.com/ibrar-x/shadcn_flutter_kit/main/flutter_shadcn_kit/lib/registry/',
+        'https://raw.githubusercontent.com/mibrar-dev/shadcn_flutter_kit/main/flutter_shadcn_kit/lib/registry/',
       );
     });
 
     test('builds github contents API URL for file lookup', () {
       final apiUrl = ResolverV1.githubApiContentsUrl(
-        'https://github.com/ibrar-x/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry',
+        'https://github.com/mibrar-dev/shadcn_flutter_kit/tree/main/flutter_shadcn_kit/lib/registry',
         'manifests/components.json',
       );
       expect(
         apiUrl,
-        'https://api.github.com/repos/ibrar-x/shadcn_flutter_kit/contents/flutter_shadcn_kit/lib/registry/manifests/components.json?ref=main',
+        'https://api.github.com/repos/mibrar-dev/shadcn_flutter_kit/contents/flutter_shadcn_kit/lib/registry/manifests/components.json?ref=main',
       );
     });
 

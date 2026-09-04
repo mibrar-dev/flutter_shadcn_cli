@@ -3,6 +3,8 @@ import 'package:flutter_shadcn_cli/src/index/index_component.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
+import 'package:flutter_shadcn_cli/src/registry/component.dart';
+import 'package:flutter_shadcn_cli/src/registry/registry_file.dart';
 
 /// Handles `flutter_shadcn list` command.
 ///
@@ -306,6 +308,7 @@ Future<int> handleInfoCommand({
   required CliLogger logger,
   String indexPath = 'index.json',
   String? indexSchemaPath,
+  Component? registryComponent,
 }) async {
   if (componentId.isEmpty) {
     if (jsonOutput) {
@@ -351,10 +354,15 @@ Future<int> handleInfoCommand({
             .toList() ??
         [];
 
-    final comp = components.firstWhere(
+    final found = components.firstWhere(
       (c) => c.id == componentId,
       orElse: () => throw Exception('Component "$componentId" not found'),
     );
+
+    // Advertise an import path that points at a file which is actually
+    // installed: prefer the real barrel, otherwise the core impl path
+    // from the component manifest files list.
+    final comp = _withManifestImportPath(found, registryComponent);
 
     if (jsonOutput) {
       final payload = jsonEnvelope(
@@ -489,6 +497,133 @@ Future<int> handleInfoCommand({
     logger.info('Tip: Check the configured registry URL and try again.');
     return offline ? ExitCodes.offlineUnavailable : ExitCodes.networkError;
   }
+}
+
+/// Rewrites the advertised `import`/`importPath` to a file that is actually
+/// installed, using the component manifest files list.
+///
+/// When [manifest] is unavailable the index entry is returned unchanged
+/// (its paths are still normalized to include `components/` by
+/// [IndexComponent.fromJson]). When the conventional `<id>/<id>.dart`
+/// barrel exists in the manifest, the entry is also returned unchanged.
+/// Otherwise the barrel filename is replaced with the best real file:
+/// a `<id>.dart` core impl first, then the first deterministic `.dart`
+/// file that is not a preview.
+IndexComponent _withManifestImportPath(
+  IndexComponent comp,
+  Component? manifest,
+) {
+  if (manifest == null || comp.importPath.isEmpty) {
+    return comp;
+  }
+  final relative = _selectManifestImportRelativePath(
+    componentId: comp.id,
+    files: manifest.files,
+  );
+  if (relative == null) {
+    return comp;
+  }
+  final base = comp.importPath;
+  final dirEnd = base.lastIndexOf('/');
+  final dir = dirEnd == -1 ? '' : base.substring(0, dirEnd + 1);
+  final importPath = '$dir$relative';
+  if (importPath == base) {
+    return comp;
+  }
+  return comp.copyWith(
+    importPath: importPath,
+    import_: _replaceImportStatementPath(comp.import_, importPath),
+  );
+}
+
+/// Picks the manifest-relative file to advertise, or `null` when the
+/// conventional barrel `<id>.dart` really exists at the component root
+/// (meaning the index path is already correct).
+String? _selectManifestImportRelativePath({
+  required String componentId,
+  required List<RegistryFile> files,
+}) {
+  final barrelName = '$componentId.dart';
+  final relatives = <String>[];
+  for (final file in files) {
+    final relative = _relativeToComponentRoot(
+      componentId: componentId,
+      source: file.source,
+      destination: file.destination,
+    );
+    if (relative != null &&
+        relative.endsWith('.dart') &&
+        !relatives.contains(relative)) {
+      relatives.add(relative);
+    }
+  }
+  if (relatives.isEmpty) {
+    return null;
+  }
+  if (relatives.contains(barrelName)) {
+    return null;
+  }
+  final sameName = relatives
+      .where((path) => path.split('/').last == barrelName)
+      .toList()
+    ..sort((a, b) => a.length.compareTo(b.length));
+  if (sameName.isNotEmpty) {
+    return sameName.first;
+  }
+  final candidates =
+      relatives.where((path) => !path.endsWith('preview.dart')).toList();
+  if (candidates.isEmpty) {
+    return null;
+  }
+  candidates.sort((a, b) {
+    final aPrivate = a.split('/').last.startsWith('_') ? 1 : 0;
+    final bPrivate = b.split('/').last.startsWith('_') ? 1 : 0;
+    if (aPrivate != bPrivate) {
+      return aPrivate.compareTo(bPrivate);
+    }
+    return a.compareTo(b);
+  });
+  return candidates.first;
+}
+
+/// Resolves a manifest file entry to its path relative to the component
+/// root (e.g. `_impl/core/tab_list.dart`), or `null` when neither the
+/// source nor the destination sits under a `<componentId>/` directory.
+String? _relativeToComponentRoot({
+  required String componentId,
+  required String source,
+  required String destination,
+}) {
+  for (final raw in [source, destination]) {
+    final normalized = raw.replaceAll('\\', '/');
+    final marker = '/$componentId/';
+    final index = normalized.lastIndexOf(marker);
+    if (index == -1) {
+      continue;
+    }
+    final relative = normalized.substring(index + marker.length).trim();
+    if (relative.isEmpty ||
+        relative.contains('..') ||
+        relative.startsWith('{')) {
+      continue;
+    }
+    return relative;
+  }
+  return null;
+}
+
+/// Rewrites the embedded path of a Dart import statement to [importPath].
+/// Statements without a recognizable embedded path are returned unchanged.
+String _replaceImportStatementPath(String statement, String importPath) {
+  if (statement.isEmpty) {
+    return statement;
+  }
+  final pattern = RegExp(r"^(import\s+'package:[^'/]+/)([^']+)(';\s*)$");
+  final match = pattern.firstMatch(statement.trim());
+  if (match == null) {
+    return statement;
+  }
+  return '${match.group(1)}$importPath${match.group(3)}';
 }
 
 /// Returns an emoji for each category

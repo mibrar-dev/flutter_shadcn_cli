@@ -114,12 +114,79 @@ void main() {
       );
       expect(aliasFile.existsSync(), isTrue);
       final aliasContents = aliasFile.readAsStringSync();
+      // Fixture button declares only `Button` (not a Material export), so
+      // the intersection filter emits no material hide-export.
       expect(aliasContents,
-          contains("export 'package:flutter/material.dart' hide"));
-      expect(aliasContents, contains('    Button;'));
+          isNot(contains("export 'package:flutter/material.dart' hide")));
       expect(
           aliasContents, contains("export 'components/button/button.dart';"));
       expect(aliasContents, contains('typedef AppButton = Button;'));
+    });
+
+    test('add skips already installed requested components before resolving',
+        () async {
+      final installedButtonDir = Directory(
+        p.join(
+          appRoot.path,
+          'lib',
+          'ui',
+          'shadcn',
+          'components',
+          'button',
+        ),
+      )..createSync(recursive: true);
+      File(p.join(installedButtonDir.path, 'meta.json'))
+          .writeAsStringSync('{"id":"button"}');
+
+      final result = await _runCli(
+        cwd: appRoot.path,
+        args: [
+          '--advanced',
+          '--offline',
+          'add',
+          'button',
+          'dialog',
+          '--registry-path',
+          registryRoot.path,
+        ],
+      );
+
+      expect(result.exitCode, ExitCodes.success);
+      expect(
+        result.stdout,
+        contains('Skipping Button (button): already installed'),
+      );
+      expect(result.stdout, isNot(contains('Resolving component: button')));
+      expect(result.stdout, contains('Resolving component: dialog'));
+      expect(
+        File(
+          p.join(
+            appRoot.path,
+            'lib',
+            'ui',
+            'shadcn',
+            'components',
+            'dialog',
+            'dialog.dart',
+          ),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('locale init creates l10n.yaml and local ARB folder', () async {
+      await cli.main(['locale', 'init']);
+
+      final l10nFile = File(p.join(appRoot.path, 'l10n.yaml'));
+      expect(l10nFile.existsSync(), isTrue);
+      expect(l10nFile.readAsStringSync(), contains('arb-dir: lib/l10n'));
+      expect(
+        File(p.join(appRoot.path, 'lib', 'l10n', 'app_en.arb')).existsSync(),
+        isTrue,
+      );
+
+      await cli.main(['locale', 'init']);
+      expect(exitCode, ExitCodes.configInvalid);
     });
 
     test('doctor runs without crashing', () async {
@@ -565,16 +632,27 @@ void main() {
         ).existsSync(),
         isTrue,
       );
-      final appComponents = File(
-        p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'app_components.dart'),
+      // NOTE: installing into @alt does not create lib/ui/shadcn aliases;
+      // alias files are generated per install path that has components.
+      final altComponents = File(
+        p.join(
+          appRoot.path,
+          'lib',
+          'ui',
+          'alt',
+          'app_components.dart',
+        ),
       );
-      expect(appComponents.existsSync(), isTrue);
-      final appComponentsSource = appComponents.readAsStringSync();
-      expect(appComponentsSource,
-          contains("export 'package:flutter/material.dart' hide"));
-      expect(
-          appComponentsSource, contains("export 'components/app/app.dart';"));
-      expect(appComponentsSource, isNot(contains('typedef AppShadcnApp')));
+      expect(altComponents.existsSync(), isTrue);
+      final altComponentsSource = altComponents.readAsStringSync();
+      // Fixture button declares only `Button` (not a Material export).
+      expect(altComponentsSource,
+          isNot(contains("export 'package:flutter/material.dart' hide")));
+      expect(altComponentsSource,
+          contains("export 'components/button/button.dart';"));
+      // No class prefix is configured for the alt namespace, so no
+      // typedef aliases are emitted.
+      expect(altComponentsSource, isNot(contains('typedef App')));
     });
 
     test(
@@ -1315,7 +1393,7 @@ void main() {
       expect(
         File(p.join(appRoot.path, 'assets', 'fonts', 'typography_fonts.otf'))
             .existsSync(),
-        isTrue,
+        isFalse,
       );
       expect(
         File(p.join(appRoot.path, 'assets', 'theme', 'typography_fonts.dart'))
@@ -1324,7 +1402,7 @@ void main() {
       );
       final pubspec =
           File(p.join(appRoot.path, 'pubspec.yaml')).readAsStringSync();
-      expect(pubspec, contains('assets/fonts/typography_fonts.otf'));
+      expect(pubspec, isNot(contains('assets/fonts/typography_fonts.otf')));
       expect(pubspec, isNot(contains('assets/theme/typography_fonts.dart')));
     });
 
@@ -1773,7 +1851,11 @@ void main() {
       ]);
 
       await cli.main([
+        '--advanced',
+        '--offline',
         'sync',
+        '--registry-path',
+        registryRoot.path,
       ]);
 
       final manifestFile = File(
@@ -1940,6 +2022,85 @@ void main() {
         contains("const buttonThemeTarget = '__BUTTON_THEME_TARGET__';"),
       );
     });
+
+    test('init without --yes still completes with default config', () async {
+      final registriesPath = _writeRegistriesFile(appRoot, [
+        {
+          'id': 'shadcn_entry',
+          'displayName': 'Shadcn',
+          'maintainers': ['team'],
+          'repo': 'https://example.com/repo',
+          'license': 'MIT',
+          'minCliVersion': '0.1.0',
+          'baseUrl': 'https://example.com/registry/',
+          'paths': {
+            'componentsJson': 'components.json',
+            'componentsSchemaJson': 'components.schema.json',
+          },
+          'install': {'namespace': 'shadcn', 'root': 'lib/ui/shadcn'},
+          'init': {
+            'version': 1,
+            'actions': [
+              {
+                'type': 'message',
+                'lines': ['Init done'],
+              }
+            ],
+          },
+        },
+      ]);
+
+      File(p.join(appRoot.path, '.shadcn', 'config.json')).deleteSync();
+
+      await cli.main([
+        '--advanced',
+        '--offline',
+        'init',
+        '--registries-path',
+        registriesPath,
+        '--registry-path',
+        registryRoot.path,
+      ]);
+
+      final config = File(p.join(appRoot.path, '.shadcn', 'config.json'));
+      expect(config.existsSync(), isTrue);
+      expect(
+        config.readAsStringSync(),
+        contains('"installPath":"lib/ui/shadcn"'),
+      );
+    });
+
+    test(
+      'app components hides material Stepper and Step when registry stepper is installed',
+      () async {
+        await cli.main([
+          '--advanced',
+          '--offline',
+          'add',
+          'stepper',
+          '--registry-path',
+          registryRoot.path,
+        ]);
+
+        final aliasFile = File(
+          p.join(appRoot.path, 'lib', 'ui', 'shadcn', 'app_components.dart'),
+        );
+        expect(aliasFile.existsSync(), isTrue);
+        final aliasContents = aliasFile.readAsStringSync();
+        expect(
+          aliasContents,
+          contains("export 'package:flutter/material.dart' hide"),
+        );
+        expect(aliasContents, contains('    Step,'));
+        expect(aliasContents, contains('    Stepper;'));
+        expect(
+          aliasContents,
+          contains("export 'components/stepper/stepper.dart';"),
+        );
+        expect(aliasContents, contains('typedef AppStepper = Stepper;'));
+        expect(aliasContents, contains('typedef AppStep = Step;'));
+      },
+    );
   });
 }
 
@@ -1970,6 +2131,9 @@ void _writeRegistryFixtures(Directory registryRoot) {
         ..createSync(recursive: true);
   final iconDir =
       Directory(p.join(root, 'registry', 'components', 'icon_fonts'))
+        ..createSync(recursive: true);
+  final stepperDir =
+      Directory(p.join(root, 'registry', 'components', 'stepper'))
         ..createSync(recursive: true);
 
   File(p.join(componentsDir.path, 'button.dart'))
@@ -2009,6 +2173,10 @@ void _writeRegistryFixtures(Directory registryRoot) {
       .writeAsStringSync('class IconFonts {}');
   File(p.join(iconDir.path, 'meta.json'))
       .writeAsStringSync('{"id":"icon_fonts"}');
+  File(p.join(stepperDir.path, 'stepper.dart'))
+      .writeAsStringSync('class Stepper {}\nclass Step {}');
+  File(p.join(stepperDir.path, 'meta.json'))
+      .writeAsStringSync('{"id":"stepper"}');
 
   final registryJson = {
     'schemaVersion': 1,
@@ -2197,9 +2365,41 @@ void _writeRegistryFixtures(Directory registryRoot) {
         'pubspec': {'dependencies': {}},
         'assets': [],
         'postInstall': []
+      },
+      {
+        'id': 'stepper',
+        'name': 'Stepper',
+        'description': 'Stepper component',
+        'category': 'control',
+        'version': '1.0.0',
+        'tags': ['control'],
+        'files': [
+          {
+            'source': 'registry/components/stepper/stepper.dart',
+            'destination': '{installPath}/components/stepper/stepper.dart'
+          },
+          {
+            'source': 'registry/components/stepper/meta.json',
+            'destination': '{installPath}/components/stepper/meta.json'
+          }
+        ],
+        'shared': [],
+        'dependsOn': [],
+        'pubspec': {'dependencies': {}},
+        'assets': [],
+        'postInstall': []
       }
     ]
   };
+
+  for (final component
+      in (registryJson['components'] as List).cast<Map<String, dynamic>>()) {
+    final id = component['id'] as String;
+    File(p.join(root, 'registry', 'components', id, 'meta.json'))
+        .writeAsStringSync(
+      const JsonEncoder.withIndent('  ').convert(component),
+    );
+  }
 
   File(p.join(registryRoot.path, 'components.json')).writeAsStringSync(
       const JsonEncoder.withIndent('  ').convert(registryJson));

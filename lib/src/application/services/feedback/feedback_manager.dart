@@ -6,7 +6,7 @@ import 'package:flutter_shadcn_cli/src/application/services/version/version_mana
 class FeedbackManager {
   final CliLogger logger;
 
-  static const String repoOwner = 'ibrar-x';
+  static const String repoOwner = 'mibrar-dev';
   static const String repoName = 'shadcn_flutter_kit';
 
   FeedbackManager({required this.logger});
@@ -513,7 +513,7 @@ enum FeedbackType {
 
 ## Environment Details
 <!-- Additional context that might be relevant -->
-- **Component/Feature**: <!-- e.g., init, add, theme, install-skill -->
+- **Component/Feature**: <!-- e.g., init, add, theme -->
 - **Project Type**: <!-- e.g., new project, existing project -->
 - **Error Messages**: 
 ```

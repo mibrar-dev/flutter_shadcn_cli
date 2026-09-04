@@ -1,0 +1,5 @@
+Usage: flutter_shadcn validate [--json]
+
+Validates components.json and registry file dependencies.
+Options:
+  --json             Output machine-readable JSON

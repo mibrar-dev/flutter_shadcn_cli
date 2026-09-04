@@ -1,0 +1,4 @@
+Removed CLI-managed project files:
+  - .shadcn
+  - lib/ui/shadcn
+Undo available until 2026-05-10T03:34:15.097242Z via `flutter_shadcn project reset --undo`.

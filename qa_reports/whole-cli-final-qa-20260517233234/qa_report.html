@@ -1,0 +1,92 @@
+<!DOCTYPE html PUBLIC "-//W3C//DTD HTML 4.01//EN" "http://www.w3.org/TR/html4/strict.dtd">
+<html>
+<head>
+  <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+  <meta http-equiv="Content-Style-Type" content="text/css">
+  <title></title>
+  <meta name="Generator" content="Cocoa HTML Writer">
+  <meta name="CocoaVersion" content="2685.1">
+  <style type="text/css">
+    p.p1 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'}
+    p.p2 {margin: 0.0px 0.0px 0.0px 0.0px; font: 12.0px 'Helvetica Light'; min-height: 14.0px}
+  </style>
+</head>
+<body>
+<p class="p1"># Whole CLI Final QA Report</p>
+<p class="p2"><br></p>
+<p class="p1">Date: 2026-05-17</p>
+<p class="p1">Branch: `branch-v1-whole-cli-final-qa`</p>
+<p class="p1">Scope: final whole-CLI pass covering the remaining future-cleanup work, manifest-first installs, loading feedback, typed install errors, real-registry smoke behavior, and regression evidence.</p>
+<p class="p2"><br></p>
+<p class="p1">## Executive Summary</p>
+<p class="p2"><br></p>
+<p class="p1">QA score: 100/100</p>
+<p class="p1">Automated pass rate: 328/328 tests passed</p>
+<p class="p1">Fresh real-registry smoke: passed</p>
+<p class="p1">Static analysis: clean</p>
+<p class="p2"><br></p>
+<p class="p1">This pass found and fixed one remaining production issue during a disposable Flutter app smoke run against the real kit registry. `flutter_shadcn add button` failed because the CLI treated `button.meta.json` documentation metadata as the component install manifest before reading the real install `meta.json`. The resolver now prefers install `meta.json`, skips docs-only `*.meta.json` files that use `readme_meta.schema.json`, and normalizes the kit registry's relative file list plus grouped dependency metadata into the CLI's internal component model.</p>
+<p class="p2"><br></p>
+<p class="p1">## Issue Found In This Pass</p>
+<p class="p2"><br></p>
+<p class="p1">| ID | Before | Root cause | Resolution | Now |</p>
+<p class="p1">| --- | --- | --- | --- | --- |</p>
+<p class="p1">| FINAL-01 | Fresh-app smoke failed on `add button` with `type 'Null' is not a subtype of type 'List&lt;dynamic&gt;'` | `button.meta.json` is docs metadata, while `meta.json` is install metadata. The resolver tried the docs file first and parsed it as a component manifest. | `ComponentManifestResolver` now tries `meta.json` before `{id}.meta.json`, skips docs-only metadata, and normalizes kit-style manifest fields. | Fresh smoke passes `init`, `add button`, `add card`, `add alert`, and expected file checks. |</p>
+<p class="p2"><br></p>
+<p class="p1">## What Changed</p>
+<p class="p2"><br></p>
+<p class="p1">| Area | Before | Now |</p>
+<p class="p1">| --- | --- | --- |</p>
+<p class="p1">| Component-local source of truth | Required component-local manifest files to already match the internal `Component.fromJson` shape. | Accepts the real kit registry install metadata shape from `meta.json` and maps it to internal install data. |</p>
+<p class="p1">| Docs metadata handling | `{component}.meta.json` could be mistaken for install metadata. | Docs metadata with `readme_meta.schema.json` or docs-only fields is skipped for install resolution. |</p>
+<p class="p1">| File entries | Relative strings in per-component `meta.json` were not accepted by the resolver. | Relative file strings are expanded to `registry/components/&lt;category&gt;/&lt;id&gt;/...` and `{installPath}/components/&lt;category&gt;/&lt;id&gt;/...`. |</p>
+<p class="p1">| Dependency entries | Kit metadata grouped dependencies under `dependencies.shared`, `dependencies.components`, and `dependencies.pubspec`. | These are normalized to `shared`, `dependsOn`, and `pubspec.dependencies`. |</p>
+<p class="p1">| Regression coverage | Existing tests covered strict internal manifest shape only. | Added regression coverage for kit-style metadata plus docs metadata skip behavior. |</p>
+<p class="p2"><br></p>
+<p class="p1">## Verification Evidence</p>
+<p class="p2"><br></p>
+<p class="p1">| Gate | Command | Result |</p>
+<p class="p1">| --- | --- | --- |</p>
+<p class="p1">| Static analysis | `dart analyze` | PASS, no issues found |</p>
+<p class="p1">| Focused regression | `dart test test/component_manifest_resolver_test.dart --reporter=expanded` | PASS, 4/4 |</p>
+<p class="p1">| Full test suite | `dart test --concurrency=1 --reporter=compact` | PASS, 328/328 |</p>
+<p class="p1">| Whitespace diff | `git diff --check` | PASS |</p>
+<p class="p1">| Code graph refresh | `graphify update .` | PASS, 1471 nodes and 1919 edges |</p>
+<p class="p1">| Real kit smoke | `bash tool/cli_manual_smoke.sh --registry-root /Users/ibrar/Desktop/infinora.noworkspace/shadcn_copy_paste/shadcn_flutter_kit/flutter_shadcn_kit/lib/registry` | PASS |</p>
+<p class="p2"><br></p>
+<p class="p1">Smoke evidence:</p>
+<p class="p2"><br></p>
+<p class="p1">- Initial failing command: `dart bin/shadcn.dart --advanced add button --registry-path &lt;overlay&gt;/registry`</p>
+<p class="p1">- Failure before fix: malformed component manifest from `registry/components/control/button/button.meta.json`</p>
+<p class="p1">- Passing rerun: `Smoke passed init/add/file checks.`</p>
+<p class="p1">- Smoke log directory: `/tmp/flutter_shadcn_manual_smoke.0r7ydj/logs`</p>
+<p class="p2"><br></p>
+<p class="p1">## Command And Feature Coverage</p>
+<p class="p2"><br></p>
+<p class="p1">| Feature family | Evidence |</p>
+<p class="p1">| --- | --- |</p>
+<p class="p1">| Init engine | Integration tests and real smoke verify `init --yes`, inline init actions, progress output, pubspec merge, and path restrictions. |</p>
+<p class="p1">| Add/install | Full suite and real smoke verify component add, shared dependency installation, manifest-first resolution, file writes, pubspec updates, and state updates. |</p>
+<p class="p1">| Registry source of truth | Component manifest resolver tests verify local manifest preference, fallback to `components.json`, malformed install manifest errors, and kit-style manifest normalization. |</p>
+<p class="p1">| Locale | Full suite verifies per-component locale merge behavior, typed locale install failures, `l10n.yaml` handling, and locale resource ownership. |</p>
+<p class="p1">| Theme | Full suite verifies theme preset loading, progress output, typed theme artifact failures, and theme artifact application. |</p>
+<p class="p1">| Pubspec | Full suite verifies comment-preserving dependency/assets/fonts edits, conflict detection, rollback, and structured SDK dependency handling. |</p>
+<p class="p1">| Safety | Full suite verifies path traversal rejection, symlink escape rejection, lib/assets init boundaries, install target boundaries, and namespace collision checks. |</p>
+<p class="p1">| CLI output | OpenCode read-only audit found zero production mutation risks from remaining direct terminal output calls. Remaining `print`/`stdout` usage is help text, prompts, dry-run rendering, discovery output, studio/status output, and interactive selections. |</p>
+<p class="p2"><br></p>
+<p class="p1">## Current State</p>
+<p class="p2"><br></p>
+<p class="p1">The CLI is production-ready for the tested scope in this branch:</p>
+<p class="p2"><br></p>
+<p class="p1">- Analysis is clean.</p>
+<p class="p1">- Full automated suite passes at 328/328.</p>
+<p class="p1">- Real-registry disposable Flutter smoke passes.</p>
+<p class="p1">- Manifest-first install resolution works with the real kit registry's per-component metadata format.</p>
+<p class="p1">- Existing loading feedback and typed install error contracts remain intact.</p>
+<p class="p1">- No production mutation risk was found in remaining direct terminal output usage.</p>
+<p class="p2"><br></p>
+<p class="p1">## Residual Risk</p>
+<p class="p2"><br></p>
+<p class="p1">No blocking issues remain from this pass. Cross-platform CI and hosted pub.dev scoring are outside this local QA run, but the Dart analysis/test/smoke evidence is clean on this machine.</p>
+</body>
+</html>

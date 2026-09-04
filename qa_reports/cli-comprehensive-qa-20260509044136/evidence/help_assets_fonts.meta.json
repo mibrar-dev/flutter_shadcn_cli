@@ -1,0 +1,14 @@
+{
+  "id": "help_assets_fonts",
+  "exitCode": 0,
+  "startedAt": "2026-05-09T04:42:07Z",
+  "endedAt": "2026-05-09T04:42:08Z",
+  "cwd": "/tmp/shadcn_cli-comprehensive-qa-20260509044136/app",
+  "command": [
+    "dart",
+    "/Users/ibrar/.config/superpowers/worktrees/shadcn_flutter_cli/branch-v1-installer-shared-service/bin/shadcn.dart",
+    "assets",
+    "fonts",
+    "--help"
+  ]
+}
