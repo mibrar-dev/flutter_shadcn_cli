@@ -101,10 +101,26 @@ extension InstallerFileInstallPart on Installer {
       }
 
       if (owner != null && owner.isComponent && owner.id != component.id) {
-        if (!dep.optional) {
-          logger.warn(
-              'File dependency ${dep.source} belongs to component ${owner.id}.');
+        // Safety net: a file owned by another component means the manifest
+        // missed a component edge. Install the owning component instead of
+        // only warning, otherwise the target project ends up with broken
+        // imports (e.g. navigation_bar without overflow_marquee on disk).
+        if (_installingComponentIds.contains(owner.id) ||
+            _componentInstallTasks.containsKey(owner.id)) {
+          if (!dep.optional) {
+            logger.warn(
+              'File dependency ${dep.source} belongs to component '
+              '${owner.id} which is already installing.',
+            );
+          }
+          continue;
         }
+        if (!dep.optional) {
+          logger.progress(
+            'Installing component ${owner.id} required by ${file.source}',
+          );
+        }
+        await addComponent(owner.id);
         continue;
       }
 
@@ -146,11 +162,24 @@ extension InstallerFileInstallPart on Installer {
       }
 
       if (owner != null && owner.isComponent) {
+        // Same safety net as component files: install the owning component
+        // instead of leaving a dangling reference behind.
+        if (_installingComponentIds.contains(owner.id) ||
+            _componentInstallTasks.containsKey(owner.id)) {
+          if (!dep.optional) {
+            logger.warn(
+              'Shared file dependency ${dep.source} belongs to component '
+              '${owner.id} which is already installing.',
+            );
+          }
+          continue;
+        }
         if (!dep.optional) {
-          logger.warn(
-            'Shared file dependency ${dep.source} belongs to component ${owner.id}.',
+          logger.progress(
+            'Installing component ${owner.id} required by ${file.source}',
           );
         }
+        await addComponent(owner.id);
         continue;
       }
 

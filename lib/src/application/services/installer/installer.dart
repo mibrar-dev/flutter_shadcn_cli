@@ -431,21 +431,68 @@ class Installer {
       return;
     }
     logger.progress('Installing all components (${ids.length} total)');
-    await RegistryDependencyGraph(registry).validateComponentInstall(ids);
+    final dependencyGraph = RegistryDependencyGraph(registry);
+    await dependencyGraph.validateComponentInstall(ids);
+    // Install dependency levels in order (dependencies before dependents)
+    // so cross-component file references resolve without spurious warnings.
+    // Components within one level are independent and may install
+    // concurrently. The whole bulk run defers alias/manifest/pubspec writes
+    // until the end instead of interleaving them per component.
+    final depGraph = await dependencyGraph.componentDependencyGraph(ids);
+    final levels = _topologicalLevels(depGraph, ids);
 
-    var index = 0;
-    Future<void> worker() async {
-      while (true) {
-        if (index >= ids.length) {
-          break;
+    await runBulkInstall(() async {
+      for (final level in levels) {
+        var index = 0;
+        Future<void> worker() async {
+          while (true) {
+            if (index >= level.length) {
+              break;
+            }
+            final id = level[index++];
+            await addComponent(id, installDependencies: false);
+          }
         }
-        final id = ids[index++];
-        await addComponent(id, installDependencies: false);
+
+        final workerCount = concurrency.clamp(1, level.length);
+        await Future.wait(List.generate(workerCount, (_) => worker()));
+      }
+    });
+  }
+
+  /// Groups component ids into install levels using Kahn's algorithm: every
+  /// component appears in a later level than all of its dependencies, and
+  /// components sharing a level are mutually independent.
+  List<List<String>> _topologicalLevels(
+    Map<String, List<String>> depGraph,
+    List<String> allIds,
+  ) {
+    final remaining = <String, Set<String>>{
+      for (final id in allIds) id: depGraph[id]?.toSet() ?? <String>{},
+    };
+    final levels = <List<String>>[];
+    while (remaining.isNotEmpty) {
+      final ready = remaining.entries
+          .where((entry) => entry.value.isEmpty)
+          .map((entry) => entry.key)
+          .toList()
+        ..sort();
+      if (ready.isEmpty) {
+        // Unresolvable remainder (should have been rejected by validation):
+        // install alphabetically rather than hanging.
+        final rest = remaining.keys.toList()..sort();
+        levels.add(rest);
+        break;
+      }
+      levels.add(ready);
+      for (final id in ready) {
+        remaining.remove(id);
+      }
+      for (final deps in remaining.values) {
+        deps.removeAll(ready);
       }
     }
-
-    final workerCount = concurrency.clamp(1, ids.length);
-    await Future.wait(List.generate(workerCount, (_) => worker()));
+    return levels;
   }
 }
 
