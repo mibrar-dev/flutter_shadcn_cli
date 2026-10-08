@@ -154,40 +154,132 @@ class ComponentManifestResolver {
     if (category != null) {
       normalized['category'] = category;
     }
+    normalized['version'] =
+        normalized['version']?.toString() ?? baseComponent.version;
 
+    // Merge dependency declarations from components.json (base) with the
+    // local meta.json instead of letting the local file clobber the base.
+    // A local manifest that omits shared/dependsOn must NOT wipe the base
+    // entries, otherwise installs silently drop transitive components
+    // (e.g. navigation_bar losing overflow_marquee) and produce broken
+    // imports in the target project.
     final dependencies = normalized['dependencies'];
+    List<String>? localShared;
+    List<String>? localComponents;
+    Map<String, dynamic> localPubspecDeps = const {};
     if (dependencies is Map) {
-      normalized.putIfAbsent(
-          'shared', () => _stringList(dependencies['shared']));
-      normalized.putIfAbsent(
-        'dependsOn',
-        () => _stringList(dependencies['components']),
-      );
+      if (dependencies.containsKey('shared')) {
+        localShared = _stringList(dependencies['shared']);
+      }
+      if (dependencies.containsKey('components')) {
+        localComponents = _stringList(dependencies['components']);
+      }
       final pubspec = dependencies['pubspec'];
-      if (pubspec is Map && !normalized.containsKey('pubspec')) {
-        normalized['pubspec'] = {
-          'dependencies': pubspec.map(
-            (key, value) => MapEntry(key.toString(), value),
-          ),
+      if (pubspec is Map) {
+        localPubspecDeps = pubspec.map(
+          (key, value) => MapEntry(key.toString(), value),
+        );
+      }
+    }
+    // Top-level keys win over the nested `dependencies` block when both
+    // are present.
+    if (normalized.containsKey('shared')) {
+      localShared = _stringList(normalized['shared']);
+    }
+    if (normalized.containsKey('dependsOn')) {
+      localComponents = _stringList(normalized['dependsOn']);
+    }
+    if (normalized['pubspec'] is Map) {
+      final raw = normalized['pubspec'] as Map;
+      final nested = raw['dependencies'];
+      if (nested is Map) {
+        localPubspecDeps = {
+          ...localPubspecDeps,
+          ...nested.map((key, value) => MapEntry(key.toString(), value)),
+        };
+      } else {
+        localPubspecDeps = {
+          ...localPubspecDeps,
+          ...raw.map((key, value) => MapEntry(key.toString(), value))
+            ..remove('dependencies')
+            ..remove('dev_dependencies'),
         };
       }
     }
 
-    normalized['tags'] = _stringList(normalized['tags']);
-    normalized['shared'] = _stringList(normalized['shared']);
-    normalized['dependsOn'] = _stringList(normalized['dependsOn']);
-    normalized['assets'] = _stringList(normalized['assets']);
-    normalized['postInstall'] = _stringList(normalized['postInstall']);
-    normalized['files'] = _normalizeFiles(
-      normalized['files'],
-      category: category,
-      id: id,
+    normalized['tags'] = _unionBase(
+      base: baseComponent.tags,
+      local: normalized.containsKey('tags')
+          ? _stringList(normalized['tags'])
+          : null,
     );
-    normalized['fonts'] =
-        normalized['fonts'] is List ? normalized['fonts'] : const <dynamic>[];
-    normalized['pubspec'] = normalized['pubspec'] is Map
-        ? normalized['pubspec']
-        : const <String, dynamic>{};
+    normalized['shared'] = _unionBase(
+      base: baseComponent.shared,
+      local: localShared,
+    );
+    normalized['dependsOn'] = _unionBase(
+      base: baseComponent.dependsOn,
+      local: localComponents,
+    );
+    normalized['assets'] = _unionBase(
+      base: baseComponent.assets,
+      local: normalized.containsKey('assets')
+          ? _stringList(normalized['assets'])
+          : null,
+    );
+    normalized['postInstall'] = _unionBase(
+      base: baseComponent.postInstall,
+      local: normalized.containsKey('postInstall')
+          ? _stringList(normalized['postInstall'])
+          : null,
+    );
+    if (normalized.containsKey('files')) {
+      normalized['files'] = _normalizeFiles(
+        normalized['files'],
+        category: category,
+        id: id,
+      );
+    } else {
+      // No local file list: keep the components.json file mappings so the
+      // install does not lose files (or fail as malformed) just because the
+      // local meta only carries metadata.
+      normalized['files'] = baseComponent.files
+          .map(
+            (file) => {
+              'source': file.source,
+              'destination': file.destination,
+              if (file.dependsOn.isNotEmpty)
+                'dependsOn': [
+                  for (final dep in file.dependsOn)
+                    {'source': dep.source, 'optional': dep.optional},
+                ],
+            },
+          )
+          .toList();
+    }
+    if (normalized['fonts'] is! List) {
+      normalized['fonts'] = [
+        for (final font in baseComponent.fonts)
+          {
+            'family': font.family,
+            'fonts': [
+              for (final asset in font.fonts)
+                {
+                  'asset': asset.asset,
+                  if (asset.weight != null) 'weight': asset.weight,
+                  if (asset.style != null) 'style': asset.style,
+                },
+            ],
+          },
+      ];
+    }
+    final mergedPubspecDeps = <String, dynamic>{
+      ..._pubspecDepsOf(baseComponent.pubspec),
+      ...localPubspecDeps,
+    };
+    normalized['pubspec'] = {
+      'dependencies': mergedPubspecDeps,
+    };
     return normalized;
   }
 
@@ -227,4 +319,29 @@ List<String> _stringList(Object? value) {
     return const [];
   }
   return value.map((entry) => entry.toString()).toList();
+}
+
+/// Unions base (components.json) entries with local (meta.json) entries,
+/// preserving base order first. A `null` local list means "not declared" and
+/// keeps the base entries untouched; an explicitly declared local list is
+/// merged with the base so installs never silently drop dependencies.
+List<String> _unionBase({required List<String> base, List<String>? local}) {
+  if (local == null) {
+    return List<String>.from(base);
+  }
+  final merged = List<String>.from(base);
+  for (final entry in local) {
+    if (!merged.contains(entry)) {
+      merged.add(entry);
+    }
+  }
+  return merged;
+}
+
+Map<String, dynamic> _pubspecDepsOf(Map<String, dynamic> pubspec) {
+  final nested = pubspec['dependencies'];
+  if (nested is Map) {
+    return nested.map((key, value) => MapEntry(key.toString(), value));
+  }
+  return const {};
 }

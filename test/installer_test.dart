@@ -1118,6 +1118,133 @@ output-localization-file: app_localizations.dart
       );
     });
 
+    test(
+        'installs owning component for undeclared file-level dependency '
+        '(navigation_bar -> overflow_marquee safety net)', () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+      // card declares NO top-level dependsOn edge, but its file depends on a
+      // file owned by dialog (which itself depends on button).
+      _mutateRegistryJson(registryRoot, (json) {
+        final components = json['components'] as List<dynamic>;
+        components.add({
+          'id': 'card',
+          'name': 'Card',
+          'files': [
+            {
+              'source': 'registry/components/card/card.dart',
+              'destination': '{installPath}/components/card/card.dart',
+              'dependsOn': [
+                {'source': 'registry/components/dialog/dialog.dart'},
+              ],
+            },
+          ],
+          'shared': [],
+          'dependsOn': [],
+          'pubspec': {'dependencies': {}},
+        });
+      });
+      final cardDir =
+          Directory(p.join(p.dirname(registryRoot.path), 'registry',
+              'components', 'card'))
+            ..createSync(recursive: true);
+      File(p.join(cardDir.path, 'card.dart'))
+          .writeAsStringSync('class Card {}');
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+        skipIntegrity: true,
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await installer.addComponent('card');
+
+      expect(
+        File(
+          p.join(
+            targetRoot.path, 'lib', 'ui', 'shadcn', 'components', 'card',
+            'card.dart'),
+        ).existsSync(),
+        isTrue,
+      );
+      // dialog was auto-installed via the file-level edge even though card
+      // never declared it in dependsOn ...
+      expect(
+        File(
+          p.join(
+            targetRoot.path, 'lib', 'ui', 'shadcn', 'components', 'dialog',
+            'dialog.dart'),
+        ).existsSync(),
+        isTrue,
+      );
+      // ... and dialog's own transitive dependency (button) came along too.
+      expect(
+        File(
+          p.join(
+            targetRoot.path, 'lib', 'ui', 'shadcn', 'components', 'button',
+            'button.dart'),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
+    test('installAllComponents installs dependents after dependencies',
+        () async {
+      await _writeConfig(
+        targetRoot,
+        const ShadcnConfig(
+          installPath: 'lib/ui/shadcn',
+          sharedPath: 'lib/ui/shadcn/shared',
+          includeMeta: false,
+        ),
+      );
+      _writePubspec(targetRoot);
+
+      final registry = await Registry.load(
+        registryRoot: RegistryLocation.local(registryRoot.path),
+        sourceRoot: RegistryLocation.local(p.dirname(registryRoot.path)),
+        skipIntegrity: true,
+      );
+
+      final installer = Installer(
+        registry: registry,
+        targetDir: targetRoot.path,
+        logger: CliLogger(),
+      );
+
+      await installer.installAllComponents();
+
+      expect(
+        File(
+          p.join(
+            targetRoot.path, 'lib', 'ui', 'shadcn', 'components', 'button',
+            'button.dart'),
+        ).existsSync(),
+        isTrue,
+      );
+      expect(
+        File(
+          p.join(
+            targetRoot.path, 'lib', 'ui', 'shadcn', 'components', 'dialog',
+            'dialog.dart'),
+        ).existsSync(),
+        isTrue,
+      );
+    });
+
     test('dry-run fails when component dependency graph has a cycle', () async {
       await _writeConfig(
         targetRoot,

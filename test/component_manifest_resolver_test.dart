@@ -167,7 +167,7 @@ void main() {
           p.join(registryRoot.path, 'components', 'control', 'button'))
         ..createSync(recursive: true);
       File(p.join(metaDir.path, 'meta.json')).writeAsStringSync(
-        jsonEncode({'id': 'button'}),
+        jsonEncode({'id': 'button', 'files': 'not-a-list'}),
       );
 
       final registry = await _loadRegistry(registryRoot);
@@ -177,6 +177,95 @@ void main() {
         () => resolver.resolve('button'),
         throwsA(isA<ManifestMalformedException>()),
       );
+    });
+
+    test(
+        'merges local meta with components.json instead of clobbering '
+        'dependsOn/shared', () async {
+      _writeComponentsJson(
+        registryRoot,
+        component: _componentJson(
+          id: 'navigation_bar',
+          name: 'Navigation Bar From Components Json',
+          category: 'navigation',
+          shared: const ['theme', 'util'],
+          dependencies: const {'gap': '^3.0.1'},
+          dependsOn: const ['button', 'hidden', 'overflow_marquee', 'tooltip'],
+        ),
+      );
+      final metaDir = Directory(
+          p.join(registryRoot.path, 'components', 'navigation', 'navigation_bar'))
+        ..createSync(recursive: true);
+      // Local meta declares only metadata + files: base deps must survive.
+      File(p.join(metaDir.path, 'meta.json')).writeAsStringSync(
+        jsonEncode({
+          'id': 'navigation_bar',
+          'name': 'Navigation Bar From Local Meta',
+          'description': 'Local metadata.',
+          'category': 'navigation',
+          'tags': ['navigation'],
+          'files': ['navigation_bar.dart'],
+        }),
+      );
+
+      final registry = await _loadRegistry(registryRoot);
+      final resolver = ComponentManifestResolver(registry: registry);
+
+      final resolved = await resolver.resolve('navigation_bar');
+
+      expect(resolved, isNotNull);
+      expect(resolved!.name, 'Navigation Bar From Local Meta');
+      expect(
+        resolved.dependsOn,
+        containsAll(['button', 'hidden', 'overflow_marquee', 'tooltip']),
+      );
+      expect(resolved.shared, containsAll(['theme', 'util']));
+      expect(resolved.pubspec['dependencies']['gap'], '^3.0.1');
+      expect(resolved.files, isNotEmpty);
+    });
+
+    test('unions local and base component dependencies', () async {
+      _writeComponentsJson(
+        registryRoot,
+        component: _componentJson(
+          id: 'navigation_bar',
+          name: 'Navigation Bar From Components Json',
+          category: 'navigation',
+          shared: const ['theme'],
+          dependencies: const {},
+          dependsOn: const ['button', 'overflow_marquee'],
+        ),
+      );
+      final metaDir = Directory(
+          p.join(registryRoot.path, 'components', 'navigation', 'navigation_bar'))
+        ..createSync(recursive: true);
+      File(p.join(metaDir.path, 'meta.json')).writeAsStringSync(
+        jsonEncode({
+          'id': 'navigation_bar',
+          'name': 'Navigation Bar From Local Meta',
+          'description': 'Local metadata.',
+          'category': 'navigation',
+          'dependencies': {
+            'shared': ['util'],
+            'components': ['tooltip'],
+            'pubspec': {'data_widget': '^0.0.2'},
+          },
+          'files': ['navigation_bar.dart'],
+        }),
+      );
+
+      final registry = await _loadRegistry(registryRoot);
+      final resolver = ComponentManifestResolver(registry: registry);
+
+      final resolved = await resolver.resolve('navigation_bar');
+
+      expect(resolved, isNotNull);
+      expect(
+        resolved!.dependsOn,
+        containsAll(['button', 'overflow_marquee', 'tooltip']),
+      );
+      expect(resolved.shared, containsAll(['theme', 'util']));
+      expect(resolved.pubspec['dependencies']['data_widget'], '^0.0.2');
     });
   });
 }
@@ -213,6 +302,7 @@ Map<String, dynamic> _componentJson({
   required String category,
   required List<String> shared,
   required Map<String, String> dependencies,
+  List<String> dependsOn = const [],
 }) {
   return {
     'id': id,
@@ -225,7 +315,7 @@ Map<String, dynamic> _componentJson({
       }
     ],
     'shared': shared,
-    'dependsOn': [],
+    'dependsOn': dependsOn,
     'pubspec': {'dependencies': dependencies},
     'assets': [],
     'fonts': [],
