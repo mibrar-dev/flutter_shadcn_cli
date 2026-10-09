@@ -5,24 +5,16 @@ Experimental features must be documented as advanced workflows until they are st
 Current advanced-only surfaces:
 
 - `flutter_shadcn --advanced docs --generate`
-- `flutter_shadcn --advanced theme --apply-file <path>`
-- `flutter_shadcn --advanced theme --apply-url <url>`
-- `flutter_shadcn --advanced theme widget <target> --apply-file <path>`
-- `flutter_shadcn --advanced theme widget <target> --apply-url <url>`
 
-Theme file and URL inputs are experimental manifest flows only. They accept generated theme artifact manifests, not raw theme JSON, and they do not perform theme conversion at apply time.
+Registry source overrides are public:
 
-Developer-only registry overrides also require `--advanced`:
+- `--registry <path|url>`
 
-- `--registry-path <path>`
-- `--registry-url <url>`
-- `--registries-path <path>`
-- `--skip-integrity`
+Theme preset inputs are public (`theme list` / `theme apply <preset>`); the v1 widget-theme artifact flows (`--apply-file` / `--apply-url`) were retired in the v2 rewrite.
 
 When promoting an experimental feature, update parser gating, command metadata, generated reference docs, and these developer docs in the same change.
 
 References:
 
 - [Advanced mode](advanced-mode.md)
-- [Advanced workflows](../guides/advanced-workflows.md)
 - [Generated command reference](../reference/commands/index.md)

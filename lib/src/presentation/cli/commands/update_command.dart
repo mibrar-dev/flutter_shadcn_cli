@@ -1,6 +1,7 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/pub_package_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/application/services/registry_source.dart';
 import 'package:flutter_shadcn_cli/src/application/services/update/update_service.dart';
@@ -58,6 +59,8 @@ Future<int> runUpdateCommand({
       projectRoot: projectRoot,
       installRoot: context.installRoot,
       manifestSha256: context.loadedManifest.sha256,
+      pubRunner: const ProcessPubCommandRunner(),
+      logger: logger,
       themeRegenerator: (presetId) =>
           context.themeService.apply(presetId, refresh: true),
     );

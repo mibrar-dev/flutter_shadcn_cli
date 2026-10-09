@@ -2,7 +2,7 @@
 
 This guide is written for people who are not working inside the CLI codebase. Send this file to anyone who needs to test the CLI or learn the basic workflow.
 
-Use a disposable Flutter project while testing. Do not run remove or reset commands inside a real app unless you are sure you want to change it.
+Use a disposable Flutter project while testing. Do not run `remove` or `reset` commands inside a real app unless you are sure you want to change it.
 
 ## What You Need
 
@@ -31,7 +31,7 @@ export PATH="$PATH:$HOME/.pub-cache/bin"
 Create a fresh app for testing:
 
 ```bash
-flutter create shadcn_cli_test_app
+flutter create --empty shadcn_cli_test_app
 cd shadcn_cli_test_app
 flutter pub get
 ```
@@ -49,10 +49,9 @@ flutter_shadcn init --yes
 Expected result:
 
 - `.shadcn/config.json` exists.
-- `.shadcn/state.json` exists.
-- `lib/ui/shadcn/shared/` exists.
-- `pubspec.yaml` has CLI-managed dependencies.
-- Shared app/theme/localization files are installed by default when the registry provides them.
+- `shadcn.lock` exists (`lockfileVersion: 2`).
+- `lib/ui/shadcn/foundation/` and `lib/ui/shadcn/theme/` exist.
+- `lib/ui/shadcn/theme/app_theme.dart` and `lib/ui/shadcn/analysis_options.yaml` exist.
 
 List components:
 
@@ -80,25 +79,25 @@ flutter_shadcn add button
 
 Expected result:
 
-- Button files are created under `lib/ui/shadcn/components/`.
-- `.shadcn/components/button.json` exists.
-- `shadcn.lock` exists or is updated.
+- Button files are created under `lib/ui/shadcn/components/button/`.
+- The layer closure (primitives, foundation, theme) is present.
+- `shadcn.lock` records the component and its files.
 
 Check project health:
 
 ```bash
 flutter_shadcn doctor
 flutter_shadcn audit
-flutter_shadcn deps
+flutter_shadcn update --check
 flutter analyze
 ```
 
 Expected result:
 
-- `doctor` completes successfully.
+- `doctor` completes with exit `0`.
 - `audit` reports installed files are present.
-- `deps` reports dependency state.
-- `flutter analyze` finishes without errors.
+- `update --check` reports nothing to do.
+- `flutter analyze` finishes with `No issues found!`.
 
 ## Test Init In Detail
 
@@ -112,29 +111,17 @@ Check the files created by init:
 
 ```bash
 find .shadcn -maxdepth 4 -type f | sort
-find lib/ui/shadcn/shared -maxdepth 5 -type f | sort
+find lib/ui/shadcn/foundation lib/ui/shadcn/theme -type f | sort
 ```
 
 The important files/folders are:
 
 ```text
 .shadcn/config.json
-.shadcn/state.json
-lib/ui/shadcn/shared/
-```
-
-If the official registry is being tested, also check that shared app/theme/localization files exist:
-
-```bash
-find lib/ui/shadcn/shared -type f | grep -E "app_theme|localizations"
-```
-
-Expected result: the command prints files such as:
-
-```text
-lib/ui/shadcn/shared/theme/app_theme.dart
-lib/ui/shadcn/shared/localizations/shadcn_localizations.dart
-lib/ui/shadcn/shared/localizations/shadcn_localizations_extensions.dart
+shadcn.lock
+lib/ui/shadcn/foundation/
+lib/ui/shadcn/theme/
+lib/ui/shadcn/analysis_options.yaml
 ```
 
 Run init again:
@@ -147,7 +134,7 @@ Expected result:
 
 - It should not corrupt `.shadcn/config.json`.
 - It should not duplicate dependencies in `pubspec.yaml`.
-- It should not delete installed shared files.
+- It should not delete installed files.
 
 ## Test Every Main Command
 
@@ -161,7 +148,7 @@ flutter_shadcn version
 flutter_shadcn init --help
 flutter_shadcn add --help
 flutter_shadcn remove --help
-flutter_shadcn dry-run --help
+flutter_shadcn update --help
 flutter_shadcn doctor --help
 ```
 
@@ -175,15 +162,14 @@ flutter_shadcn default
 flutter_shadcn list
 flutter_shadcn search button
 flutter_shadcn info button
-flutter_shadcn info @shadcn/button
 ```
 
 Expected result:
 
-- `registries` shows available registries.
+- `registries` shows the configured registry source.
 - `list` shows available components.
 - `search button` includes `button`.
-- `info button` shows component details and install/import information.
+- `info button` shows the closure, files and import path.
 
 ### Dry Run
 
@@ -195,8 +181,7 @@ flutter_shadcn dry-run --all
 Expected result:
 
 - No component files are written by `dry-run`.
-- `dry-run button` shows files/dependencies that would be installed.
-- `dry-run --all` includes real registry components only.
+- `dry-run button` shows the files and packages that would be installed.
 
 ### Add Components
 
@@ -204,20 +189,18 @@ Install a small set first:
 
 ```bash
 flutter_shadcn add button
-flutter_shadcn add card alert
+flutter_shadcn add dialog input select calendar
 ```
 
 Check generated files:
 
 ```bash
 find lib/ui/shadcn/components -maxdepth 5 -type f | sort
-find .shadcn/components -type f | sort
 ```
 
 Expected result:
 
 - Component Dart files exist.
-- Component manifest files exist under `.shadcn/components/`.
 - Existing files are not duplicated if you run the same `add` again.
 
 Install all components when doing a full QA pass:
@@ -225,7 +208,7 @@ Install all components when doing a full QA pass:
 ```bash
 flutter_shadcn add --all
 flutter_shadcn audit
-flutter_shadcn deps
+flutter_shadcn update --check
 flutter analyze
 ```
 
@@ -233,8 +216,20 @@ Expected result:
 
 - All components install successfully.
 - `audit` succeeds.
-- `deps` succeeds.
+- `update --check` reports nothing to do.
 - `flutter analyze` succeeds.
+
+### Update Components
+
+```bash
+flutter_shadcn update --check
+flutter_shadcn update
+```
+
+Expected result:
+
+- `--check` reports whether anything is behind or modified and exits `1` when it is.
+- `update` overwrites files whose bytes still match `shadcn.lock` and leaves locally modified files alone.
 
 ### Remove Components
 
@@ -247,68 +242,32 @@ flutter_shadcn audit
 
 Expected result:
 
-- `remove button` removes the button files recorded by the button manifest.
+- `remove button` removes the registry-owned button files and keeps `button_theme.dart`.
 - `audit` should still work.
 - Re-adding `button` should restore it.
-
-### Locale
-
-```bash
-flutter_shadcn locale init
-```
-
-Expected result:
-
-- `l10n.yaml` is created.
-- `lib/l10n/app_en.arb` is created.
-
-Run it a second time:
-
-```bash
-flutter_shadcn locale init
-```
-
-Expected result: it should fail cleanly or explain that localization files already exist. It should not overwrite existing app translations.
-
-### Assets
-
-```bash
-flutter_shadcn assets --list
-flutter_shadcn assets --typography
-flutter_shadcn assets --icons
-```
-
-Expected result:
-
-- `--list` shows available asset groups.
-- `--typography` installs font assets if the registry provides them.
-- `--icons` installs icon assets if the registry provides them.
-- `pubspec.yaml` is updated when assets are installed.
 
 ### Theme
 
 ```bash
-flutter_shadcn theme --list
-flutter_shadcn theme --apply amber-minimal
+flutter_shadcn theme list
+flutter_shadcn theme apply amber-minimal
+flutter_shadcn theme apply amber-minimal --refresh
 ```
 
 Expected result:
 
 - Theme list loads.
-- Applying a theme writes the registry-declared theme files.
-- `.shadcn/config.json` records the selected theme.
+- Applying a theme writes `<installRoot>/theme/app_theme.dart`.
+- `.shadcn/config.json` and `shadcn.lock` record the selected theme.
+- Without `--refresh`, an edited `app_theme.dart` is reported as drift (`theme_drift`, exit `80`).
 
-### Platform And Sync
+### Sync
 
 ```bash
-flutter_shadcn platform --list
 flutter_shadcn sync
 ```
 
-Expected result:
-
-- `platform --list` prints platform target paths.
-- `sync` completes without deleting installed components.
+Expected result: `sync` re-applies the installed closure and the locked theme without deleting installed components.
 
 ## Test Error Cases
 
@@ -320,52 +279,28 @@ Missing component:
 flutter_shadcn add component_that_does_not_exist
 ```
 
-Expected result: the CLI says the component was not found.
+Expected result: the CLI exits `30` and says the component was not found.
 
 Missing registry path:
 
 ```bash
-flutter_shadcn --advanced list --registry-path /tmp/does-not-exist
+flutter_shadcn --registry /tmp/does-not-exist list
 ```
 
-Expected result: the CLI says the local registry was not found.
-
-Diagnostics before components are installed:
-
-```bash
-flutter_shadcn deps --json
-```
-
-Expected result: it may report missing dependencies before components are installed, but it should not crash.
+Expected result: the CLI exits `10` and says the local registry was not found.
 
 ## Test With A Local Registry Checkout
 
 Use this when testing changes before publishing the registry.
 
-Set the registry path:
-
 ```bash
 REGISTRY_ROOT=/absolute/path/to/shadcn_flutter_kit/flutter_shadcn_kit/lib/registry
-QA_ROOT=$(mktemp -d /tmp/flutter_shadcn_manual.XXXXXX)
-mkdir -p "$QA_ROOT/source_overlay"
-ln -s "$REGISTRY_ROOT" "$QA_ROOT/source_overlay/registry"
-ln -s "$REGISTRY_ROOT/shared" "$QA_ROOT/source_overlay/shared"
-ln -s "$REGISTRY_ROOT/manifests" "$QA_ROOT/source_overlay/manifests"
+flutter_shadcn --registry "$REGISTRY_ROOT" init --yes
+flutter_shadcn --registry "$REGISTRY_ROOT" add button
+flutter_shadcn --registry "$REGISTRY_ROOT" doctor
 ```
 
-Run CLI commands like this:
-
-```bash
-flutter_shadcn --advanced init --yes \
-  --registry-path "$QA_ROOT/source_overlay/registry" \
-  --skip-integrity
-
-flutter_shadcn --advanced add button \
-  --registry-path "$QA_ROOT/source_overlay/registry" \
-  --skip-integrity
-```
-
-The overlay lets the CLI read registry manifests from `registry/` and inline init files from `shared/`.
+The `--registry` override points the CLI at the checkout instead of the remote registry.
 
 ## What To Record While Testing
 
@@ -375,7 +310,7 @@ For each failed command, record:
 - The full output.
 - The exit code if available.
 - The files that changed.
-- Whether this was a published registry or local registry test.
+- Whether this was a published registry or a local registry test.
 
 Useful evidence commands:
 
@@ -385,7 +320,7 @@ find lib/ui/shadcn -type f | sort
 cat pubspec.yaml
 flutter_shadcn doctor --json
 flutter_shadcn audit --json
-flutter_shadcn deps --json
+flutter_shadcn update --check --json
 flutter analyze
 ```
 
@@ -395,19 +330,15 @@ Use this checklist for a release test:
 
 - [ ] `flutter_shadcn version` works.
 - [ ] `flutter_shadcn --help` works.
-- [ ] `flutter_shadcn init --yes` creates `.shadcn` config/state.
-- [ ] Init installs shared app/theme/localization files when provided by the registry.
+- [ ] `flutter_shadcn init --yes` creates `.shadcn/config.json`, `shadcn.lock` and the theme.
 - [ ] `list`, `search`, `info`, and `dry-run` work.
-- [ ] `add button` installs files and manifest.
+- [ ] `add button` installs files and updates the lock.
 - [ ] `add --all` installs all registry components.
 - [ ] `doctor` passes after install.
 - [ ] `audit` passes after install.
-- [ ] `deps` passes after install.
+- [ ] `update --check` reports nothing to do after a fresh install.
 - [ ] `flutter analyze` passes after install.
-- [ ] `remove button` and re-add works.
-- [ ] `locale init` creates localization files.
-- [ ] Asset commands behave clearly.
+- [ ] `remove button` and re-add works, keeping `button_theme.dart`.
 - [ ] Theme commands behave clearly.
 - [ ] Missing component errors are clear.
 - [ ] Missing local registry errors are clear.
-

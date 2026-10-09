@@ -1,1 +1,13 @@
 concurrency: 1
+
+# End-to-end tests need the Flutter SDK, the flutter_shadcn_kit checkout and a
+# warm pub cache, so they are opt-in. A plain `dart test` reports the tagged
+# suites as skipped (fast, offline); run them with:
+#
+#   dart test -t e2e --run-skipped
+#
+# package:test needs `--run-skipped` because the tag is configured to skip by
+# default, and a tag-level skip cannot be cleared by `-t` alone.
+tags:
+  e2e:
+    skip: "e2e needs the Flutter SDK + kit registry; run: dart test -t e2e --run-skipped"

@@ -6,14 +6,14 @@ Start with the public diagnostics commands:
 flutter_shadcn doctor
 flutter_shadcn validate
 flutter_shadcn audit
-flutter_shadcn deps
+flutter_shadcn update --check
 ```
 
-For registry-specific issues, qualify the namespace when supported:
+For registry-specific issues, point the CLI at a registry explicitly:
 
 ```bash
-flutter_shadcn validate @shadcn
-flutter_shadcn audit @shadcn
+flutter_shadcn --registry <path|url> validate
+flutter_shadcn --registry <path|url> doctor
 ```
 
 More help:

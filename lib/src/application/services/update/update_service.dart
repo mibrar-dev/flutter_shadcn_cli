@@ -1,87 +1,21 @@
 import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_install_part.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/pub_package_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
+import 'package:flutter_shadcn_cli/src/application/services/manifest_closure.dart';
+import 'package:flutter_shadcn_cli/src/application/services/update/update_lock_builder.dart';
+import 'package:flutter_shadcn_cli/src/application/services/update/update_report.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry/manifest/registry_manifest.dart';
 import 'package:path/path.dart' as p;
 
-/// Outcome of `update` (P5_CLI_PLAN.md §2.3).
-class UpdateReport {
-  const UpdateReport({
-    this.updated = const [],
-    this.modified = const [],
-    this.removedUpstream = const [],
-    this.missing = const [],
-    this.unchanged = const [],
-    this.themeRegenerated = false,
-    this.applied = true,
-  });
-
-  /// Registry-owned files overwritten with the manifest's current bytes.
-  final List<String> updated;
-
-  /// Files edited on disk: reported and skipped, never overwritten.
-  final List<String> modified;
-
-  /// Files the lock tracks that the manifest no longer declares.
-  final List<String> removedUpstream;
-
-  /// Files the lock tracks that are missing from disk and were restored.
-  final List<String> missing;
-
-  /// Files already identical to the manifest.
-  final List<String> unchanged;
-
-  final bool themeRegenerated;
-
-  final bool applied;
-
-  /// True when the install is behind, drifted or incomplete.
-  bool get needsAttention =>
-      updated.isNotEmpty || modified.isNotEmpty || removedUpstream.isNotEmpty;
-
-  Map<String, dynamic> toJson() => {
-        'applied': applied,
-        'themeRegenerated': themeRegenerated,
-        'updated': updated,
-        'modified': modified,
-        'removedUpstream': removedUpstream,
-        'missing': missing,
-        'unchangedCount': unchanged.length,
-        'needsAttention': needsAttention,
-      };
-
-  void writeHuman(CliLogger logger) {
-    if (!needsAttention) {
-      logger.success('Everything is up to date.');
-    }
-    if (updated.isNotEmpty) {
-      logger.success('Updated ${updated.length} file(s).');
-    }
-    if (missing.isNotEmpty) {
-      logger.warn('Restored ${missing.length} missing file(s).');
-    }
-    if (modified.isNotEmpty) {
-      logger.warn(
-        'Skipped ${modified.length} locally modified file(s): '
-        '${modified.take(5).join(', ')}'
-        '${modified.length > 5 ? ' …' : ''}',
-      );
-    }
-    if (removedUpstream.isNotEmpty) {
-      logger.warn(
-        '${removedUpstream.length} file(s) were removed upstream and left '
-        'in place: ${removedUpstream.take(5).join(', ')}'
-        '${removedUpstream.length > 5 ? ' …' : ''}',
-      );
-    }
-  }
-}
+export 'package:flutter_shadcn_cli/src/application/services/update/update_report.dart';
 
 /// Hash-driven `update`: overwrite unchanged registry files with the manifest's
-/// current content, report locally modified files, and never touch user-owned
-/// `<name>_theme.dart` files (plan §2.3).
+/// current content, install files the manifest has added since the install,
+/// report locally modified files, and never touch user-owned `<name>_theme.dart`
+/// files (plan §2.3).
 class UpdateService {
   const UpdateService({
     required this.manifest,
@@ -90,6 +24,9 @@ class UpdateService {
     required this.installRoot,
     this.manifestSha256 = '',
     this.themeRegenerator,
+    this.pubRunner,
+    this.logger,
+    this.runPubGet = true,
   });
 
   final RegistryManifest manifest;
@@ -107,6 +44,14 @@ class UpdateService {
   /// (B6's theme service) so this service stays independent of the theme flow.
   final Future<void> Function(String presetId)? themeRegenerator;
 
+  /// Runs `flutter pub`; when null, package drift is not checked or applied.
+  final PubCommandRunner? pubRunner;
+
+  final CliLogger? logger;
+
+  /// Whether an applied update runs `pub get` after a pubspec change.
+  final bool runPubGet;
+
   ShadcnLockRepository get _lockRepo => ShadcnLockRepository(projectRoot);
 
   Future<UpdateReport> run({
@@ -116,14 +61,24 @@ class UpdateService {
     final lock = await _lockRepo.load();
     final root = lock.installRoot.isEmpty ? installRoot : lock.installRoot;
     final themePath = lock.theme?.path;
+    final files = InstallerFileInstaller(
+      projectRoot: projectRoot,
+      installRoot: root,
+      reader: reader,
+    );
 
+    final added = <String>[];
     final updated = <String>[];
     final modified = <String>[];
     final removedUpstream = <String>[];
     final missing = <String>[];
     final unchanged = <String>[];
     final newHashes = <String, String>{};
+    final newLayerFiles = <LockLayer, Map<String, String>>{};
+    final newComponentFiles = <String, Map<String, String>>{};
+    final newUserOwned = <String, Map<String, String>>{};
 
+    // Pass 1: files the lock already tracks.
     final tracked = _trackedRegistryFiles(lock, componentIds);
     for (final entry in tracked.entries) {
       final target = entry.key;
@@ -167,20 +122,116 @@ class UpdateService {
       }
     }
 
-    var themeRegenerated = false;
-    if (!check && newHashes.isNotEmpty) {
-      await _lockRepo.save(_applyHashes(lock, newHashes));
+    // Pass 2: files the manifest added to the installed closure.
+    final closure = ManifestClosureResolver(manifest).resolve(
+      _targetComponentIds(lock, componentIds),
+      includeCore: false,
+    );
+    final known = tracked.keys.toSet();
+    for (final source in closure.files) {
+      if (!manifest.declaredFiles.contains(source)) {
+        continue;
+      }
+      final target = files.targetPathFor(source);
+      if (known.contains(target) ||
+          (themePath != null && target == themePath)) {
+        continue;
+      }
+      final bytes = await reader.readBytes(source);
+      if (bytes == null) {
+        continue;
+      }
+      final newSha = FileHashing.ofBytes(bytes);
+      final disk = File(p.join(projectRoot, target));
+      final diskSha = await FileHashing.ofFileIfExists(disk);
+      if (diskSha == null) {
+        added.add(target);
+        _recordNewFile(
+            source, target, newSha, newLayerFiles, newComponentFiles);
+        if (!check) {
+          await _write(disk, bytes);
+        }
+      } else if (FileHashing.matches(newSha, diskSha)) {
+        unchanged.add(target);
+        _recordNewFile(
+            source, target, newSha, newLayerFiles, newComponentFiles);
+      } else {
+        // An untracked local file at a registry path: never clobber it.
+        modified.add(target);
+      }
     }
+
+    // Pass 3: user-owned files the manifest added (install only if absent).
+    for (final id in closure.components) {
+      final component = manifest.components[id];
+      if (component == null) {
+        continue;
+      }
+      for (final source in component.userOwned) {
+        final target = files.targetPathFor(source);
+        if (known.contains(target)) {
+          continue;
+        }
+        final bytes = await reader.readBytes(source);
+        if (bytes == null) {
+          continue;
+        }
+        final disk = File(p.join(projectRoot, target));
+        if (!await disk.exists()) {
+          added.add(target);
+          if (!check) {
+            await _write(disk, bytes);
+          }
+        }
+        newUserOwned.putIfAbsent(id, () => {})[target] =
+            FileHashing.ofBytes(bytes);
+      }
+    }
+
+    // Pass 4: pub packages the closure needs.
+    var packagesAdded = <String>[];
+    final runner = pubRunner;
+    if (runner != null) {
+      final resolver = PubPackageResolver(
+        projectRoot: projectRoot,
+        runner: runner,
+        logger: logger,
+      );
+      final plan = await resolver.plan(
+        closure.packages.map(PubPackageRequirement.fromPackageRef),
+      );
+      if (check) {
+        packagesAdded = plan.missing.map((package) => package.name).toList();
+      } else {
+        final applied = await resolver.apply(plan, runPubGet: runPubGet);
+        packagesAdded = applied.missing.map((package) => package.name).toList();
+      }
+    }
+
+    var themeRegenerated = false;
     if (!check) {
+      await _lockRepo.save(
+        UpdateLockBuilder(manifest: manifest, manifestSha256: manifestSha256)
+            .build(
+          lock,
+          newHashes: newHashes,
+          newLayerFiles: newLayerFiles,
+          newComponentFiles: newComponentFiles,
+          newUserOwned: newUserOwned,
+          closure: closure,
+        ),
+      );
       themeRegenerated = await _regenerateTheme(lock);
     }
 
     return UpdateReport(
+      added: _sorted(added),
       updated: _sorted(updated),
       modified: _sorted(modified),
       removedUpstream: _sorted(removedUpstream),
       missing: _sorted(missing),
       unchanged: _sorted(unchanged),
+      packagesAdded: packagesAdded..sort(),
       themeRegenerated: themeRegenerated,
       applied: !check,
     );
@@ -198,6 +249,15 @@ class UpdateService {
     }
     await regenerate(themeId);
     return true;
+  }
+
+  /// Installed component ids that still exist in the manifest.
+  List<String> _targetComponentIds(ShadcnLock lock, Set<String>? componentIds) {
+    final ids = componentIds ?? lock.componentIds.toSet();
+    return [
+      for (final id in ids)
+        if (manifest.components.containsKey(id)) id,
+    ]..sort();
   }
 
   Map<String, String> _trackedRegistryFiles(
@@ -227,44 +287,24 @@ class UpdateService {
     return null;
   }
 
-  ShadcnLock _applyHashes(ShadcnLock lock, Map<String, String> newHashes) {
-    var next = lock;
-    for (final layer in LockLayer.values) {
-      final state = lock.layerState(layer);
-      final files = {...state.files};
-      var changed = false;
-      for (final entry in newHashes.entries) {
-        if (files.containsKey(entry.key)) {
-          files[entry.key] = entry.value;
-          changed = true;
-        }
-      }
-      if (changed) {
-        next = next.putLayer(
-          layer,
-          LockLayerState(units: state.units, files: files),
-        );
-      }
+  /// Records a newly installed registry file against its layer or component.
+  void _recordNewFile(
+    String source,
+    String target,
+    String sha256,
+    Map<LockLayer, Map<String, String>> layerFiles,
+    Map<String, Map<String, String>> componentFiles,
+  ) {
+    final segments = source.split('/');
+    final head = segments.first;
+    final layer = LockLayer.fromKey(head);
+    if (layer != null) {
+      layerFiles.putIfAbsent(layer, () => {})[target] = sha256;
+      return;
     }
-    for (final component in lock.components) {
-      final files = {...component.files};
-      var changed = false;
-      for (final entry in newHashes.entries) {
-        if (files.containsKey(entry.key)) {
-          files[entry.key] = entry.value;
-          changed = true;
-        }
-      }
-      if (changed) {
-        next = next.upsertComponent(component.copyWith(files: files));
-      }
+    if (head == InstallerFileInstaller.componentsDir && segments.length > 1) {
+      componentFiles.putIfAbsent(segments[1], () => {})[target] = sha256;
     }
-    if (manifestSha256.isNotEmpty) {
-      next = next.withRegistry(
-        lock.registry.copyWith(manifestSha256: manifestSha256),
-      );
-    }
-    return next;
   }
 
   Future<void> _write(File file, List<int> bytes) async {

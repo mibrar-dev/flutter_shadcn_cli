@@ -143,4 +143,27 @@ void main() {
       expect(installed.sha256, FileHashing.ofBytes(bytes));
     });
   });
+
+  group('ensureAnalysisOptions', () {
+    test('writes the install-root options once and never overwrites', () async {
+      final temp = Directory.systemTemp.createTempSync('file_options_');
+      addTearDown(() => temp.delete(recursive: true));
+      final files = InstallerFileInstaller(
+        projectRoot: temp.path,
+        installRoot: installRoot,
+        reader: reader,
+      );
+
+      final path = await files.ensureAnalysisOptions();
+      final target =
+          File(p.join(temp.path, installRoot, 'analysis_options.yaml'));
+      expect(path, target.path);
+      expect(await target.readAsString(), kInstallRootAnalysisOptions);
+      expect(kInstallRootAnalysisOptions, contains('unused_import: ignore'));
+
+      await target.writeAsString('# user edited\n');
+      expect(await files.ensureAnalysisOptions(), isNull);
+      expect(await target.readAsString(), '# user edited\n');
+    });
+  });
 }

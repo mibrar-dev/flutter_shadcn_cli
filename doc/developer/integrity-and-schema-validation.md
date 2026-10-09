@@ -1,71 +1,41 @@
 # Integrity and Schema Validation
 
-The CLI validates registry metadata before installing from it. Public commands treat invalid schema and integrity failures as fatal. Developer bypasses exist only for unpublished local work.
+The CLI validates the registry manifest before installing from it. Invalid schema or missing files are fatal.
 
-## Validation Layers
+## Manifest Schema
 
-There are three separate validation layers:
+The registry manifest (`manifests/registry.json`, schemaVersion 2) is validated against the v2 rules before any file is copied:
 
-1. Registry directory schema validation
-2. Component manifest schema validation
-3. `components.json` integrity pinning
+- `schemaVersion` must be `2`; required top-level keys present, no unknown keys.
+- Every `deps` reference resolves to a unit in the corresponding map (primitive cycles are legal).
+- `files` / `userOwned` / preset `file` are valid relPaths under the directory their owner implies.
+- `fileHashes` covers every copyable file (theme presets are consumed, never copied, so they are exempt).
+- When a registry root is given, every declared file exists on disk.
 
-## Registry Directory Schema
-
-`registries.json` is validated against the registry directory schema when loaded. This applies to remote directory URLs and local `--registries-path` files.
-
-If the directory is invalid, discovery and namespace init should fail before install actions run.
-
-## Component Manifest Schema
-
-Registry component data is loaded from `paths.componentsJson`, usually `components.json`.
-
-Schema behavior:
-
-- Explicit schema path missing or invalid: fatal.
-- `$schema` in `components.json` missing or invalid: fatal.
-- Implicit `components.schema.json` missing: fatal.
-- Invalid `components.json`: fatal.
-- `--skip-integrity`: bypasses component schema validation.
-
-## Integrity Pinning
-
-Registry directory entries may declare trust metadata. When `trust.mode` is `sha256`, the fetched `components.json` body is hashed and compared against the configured digest.
-
-Use a lowercase hex SHA-256 digest:
-
-```json
-{
-  "trust": {
-    "mode": "sha256",
-    "sha256": "0123456789abcdef..."
-  }
-}
-```
-
-`--skip-integrity` bypasses integrity checks and schema validation. Do not use it in public documentation or production install instructions.
-
-## Developer Bypass
-
-For unpublished local work:
+Run it explicitly with:
 
 ```bash
-flutter_shadcn --skip-integrity --registry-path ../registry/registry add @shadcn/button
+flutter_shadcn validate
+flutter_shadcn --registry ../my-registry validate
 ```
 
-Use this only while authoring registry files. Before publishing, remove the bypass and verify:
+## File Integrity
+
+Every installed file is hashed with sha256 and recorded in `shadcn.lock`. `audit` compares the lock's hashes against disk; `doctor` combines that with closure, layout and pubspec checks:
 
 ```bash
-flutter_shadcn --registry-path ../registry/registry validate
-flutter_shadcn --registry-path ../registry/registry add @shadcn/button
+flutter_shadcn audit
+flutter_shadcn doctor
 ```
+
+`update` overwrites a file only when its bytes still match the lock; a locally modified file is reported and left untouched.
 
 ## Cache Behavior
 
-Remote directory and component fetches can use `.shadcn/cache`. Offline mode uses cached files only:
+Remote registry reads are cached under `.shadcn/cache/registry`. Offline mode uses the cache only:
 
 ```bash
 flutter_shadcn --offline list
 ```
 
-If cache is absent or stale data is unusable, offline commands fail. Run the same command online first to populate cache.
+If the cache is absent, offline commands fail. Run the same command online first to populate the cache.

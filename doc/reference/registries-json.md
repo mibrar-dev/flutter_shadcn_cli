@@ -1,145 +1,16 @@
-# `registries.json` Reference
+# `registries.json` (legacy registry directory)
 
-`registries.json` is the registry directory. It tells the CLI which registries exist, where their component manifests live, what namespace they install under, and which bootstrap actions run during `init`.
+`registries.json` was the v1 registry directory: it told the CLI where a registry's `components.json`, `index.json` and theme catalog lived, and which inline init actions ran during `init`.
 
-Published registries are validated against the registry directory schema before public install, init, and add flows continue.
+The v2 CLI resolves a single registry manifest (`manifests/registry.json`, schemaVersion 2) per source instead. The manifest declares the components, layer units, theme presets and file hashes directly; there is no `components.json`/`index.json` fallback and no inline init actions.
 
-## Top-Level Shape
+## Registry Source
 
-```json
-{
-  "schemaVersion": 1,
-  "registries": []
-}
-```
+The registry source is resolved from, in order:
 
-Fields:
+1. `--registry <path|url>`
+2. `SHADCN_REGISTRY_ROOT` / `SHADCN_REGISTRY_URL`
+3. `registryPath` / `registryUrl` in `.shadcn/config.json`
+4. The default remote registry
 
-- `schemaVersion`: registry directory schema version
-- `registries`: list of registry entries
-
-## Registry Entry
-
-Required identity fields:
-
-- `id`: stable registry identifier
-- `displayName`: human-readable registry name
-- `maintainers`: list of maintainers
-- `repo`: source repository URL
-- `license`: registry license
-- `minCliVersion`: minimum CLI version required by the registry
-
-Required resolution fields:
-
-- `baseUrl`: base URL used to fetch registry files
-- `paths.componentsJson`: component manifest path, usually `components.json`
-- `install.namespace`: namespace used in component addresses
-- `install.root`: project-relative install root, usually under `lib/`
-
-Recommended path fields:
-
-- `paths.componentsSchemaJson`: schema for `components.json`
-- `paths.indexJson`: list/search index
-- `paths.indexSchemaJson`: schema for the index
-- `paths.themesJson`: theme catalog
-- `paths.themesSchemaJson`: schema for themes
-- `paths.themeConverterDart`: deprecated legacy field. Current CLI builds do not use it.
-- `paths.folderStructureJson`: optional folder structure metadata
-- `paths.metaJson`: optional registry metadata
-
-Capability fields:
-
-- `capabilities.sharedGroups`: registry can publish reusable shared groups
-- `capabilities.composites`: registry can publish composite components
-- `capabilities.theme`: registry supports theme commands
-
-Trust fields:
-
-- `trust.mode`: `none` or `sha256`
-- `trust.sha256`: expected SHA-256 hex digest when `mode` is `sha256`
-
-Example:
-
-```json
-{
-  "id": "official",
-  "displayName": "Official",
-  "maintainers": ["shadcn_flutter"],
-  "repo": "https://github.com/example/registry",
-  "license": "MIT",
-  "minCliVersion": "0.2.0",
-  "baseUrl": "https://example.com/registry/",
-  "paths": {
-    "componentsJson": "components.json",
-    "componentsSchemaJson": "components.schema.json",
-    "indexJson": "index.json",
-    "indexSchemaJson": "index.schema.json",
-    "themesJson": "themes.json",
-    "themesSchemaJson": "themes.schema.json"
-  },
-  "install": {
-    "namespace": "shadcn",
-    "root": "lib/ui/shadcn"
-  },
-  "capabilities": {
-    "sharedGroups": true,
-    "composites": true,
-    "theme": true
-  },
-  "trust": {
-    "mode": "sha256",
-    "sha256": "0123456789abcdef0123456789abcdef0123456789abcdef0123456789abcdef"
-  },
-  "init": {
-    "version": 1,
-    "defaultComponents": ["app"],
-    "actions": []
-  }
-}
-```
-
-## Path Rules
-
-Registry paths are relative to `baseUrl`. The CLI rejects paths that are absolute, empty, escape with `..`, or contain unsupported URL fragments.
-
-`install.root` is project-relative. Published registries should install under `lib/` so generated code is part of the Flutter project source tree.
-
-For `copyFiles` init actions, files are treated as relative to the action `base` when `base` and `destBase` are present. The official registry uses paths relative to that base, so the CLI maps those paths without requiring the base prefix inside each file entry.
-
-## Component Manifest Source of Truth
-
-For v1 component installs, resolved component manifest data is the source of truth for files, dependencies, shared groups, locale resources, ownership keys, and lockfile records.
-
-Registries should publish per-component manifest sources when they can. The CLI prefers those per-component sources for install-time data. If a registry does not publish per-component manifest sources, the CLI falls back to the registry's configured `components.json` and then to index metadata where that registry exposes it.
-
-The missing per-component manifest result is cached per registry during resolution. A registry that does not provide that source is not repeatedly probed for the same missing path in later lookups in the same command flow.
-
-## Locale Resources
-
-Components can declare locale resources in their component manifest. Resource files are component-local, so a project installs only the locale keys for components it actually uses.
-
-Supported resource payloads are JSON objects in `json` or `arb` format. During `add`, the CLI merges resource keys into the app ARB file selected by `l10n.yaml`. Existing app keys are preserved. During `remove`, the CLI deletes only keys that were added by the removed component and are not owned by another installed component.
-
-Users can create the required Flutter localization files with:
-
-```bash
-flutter_shadcn locale init
-```
-
-## Theme Artifacts
-
-Each registry owns its theme format and generation pipeline. Conversion should happen at registry publish time. The CLI consumes only pre-generated, hash-verified theme artifacts.
-
-When a registry supports themes, its published theme data should resolve to artifacts and manifests that are already generated for CLI consumption. The CLI does not perform theme conversion at apply time.
-
-## Inline Init
-
-`init.version` must be `1`. `init.actions` is executed by `flutter_shadcn init <namespace>` after the registry is resolved and validated.
-
-`init.defaultComponents` is optional. When present, the listed component IDs are installed after inline actions complete. The installer uses the selected namespace, so `"app"` behaves like `flutter_shadcn add @namespace/app` and pulls normal component dependencies.
-
-Supported actions are documented in [inline-init-actions.md](inline-init-actions.md).
-
-## Validation Behavior
-
-Public install, init, and add flows fail when the registry directory or registry manifests do not match their schema. Developer-only integrity bypass is documented in [../developer/integrity-and-schema-validation.md](../developer/integrity-and-schema-validation.md).
+`flutter_shadcn registries` still reads an optional registry directory (when `registriesPath` is configured) to list discoverable registries, but installs always use the v2 manifest. See [Registries](../user/registries.md) and [Registry setup](../guides/registry-setup.md).

@@ -1,6 +1,22 @@
 # Registries
 
-The CLI is multi-registry by default. A registry namespace identifies where a component comes from and where it should be installed.
+A registry publishes a manifest (`manifests/registry.json`, schemaVersion 2) plus the component, primitive, foundation and theme files it describes. The CLI resolves the registry remotely by default and can be pointed at a local checkout or an `http(s)` URL.
+
+## Registry Source
+
+Resolution order:
+
+1. `--registry <path|url>` on the command line.
+2. `SHADCN_REGISTRY_ROOT` / `SHADCN_REGISTRY_URL` environment variables.
+3. `registryPath` / `registryUrl` in `.shadcn/config.json` (written by `init`).
+4. The default remote registry (GitHub raw at the CLI version's ref).
+
+```bash
+flutter_shadcn --registry ../shadcn_flutter_kit/flutter_shadcn_kit/lib/registry add button
+flutter_shadcn --registry https://example.com/registry validate
+```
+
+A remote registry is cached under `.shadcn/cache/registry`; `--offline` reads the cache and never touches the network.
 
 ## List Registries
 
@@ -9,15 +25,13 @@ flutter_shadcn registries
 flutter_shadcn registries --json
 ```
 
-This shows configured registries, discoverable registries from the registry directory, the default namespace, whether each registry is enabled, and available capabilities.
-
 ## Set the Default Registry
 
 ```bash
 flutter_shadcn default shadcn
+flutter_shadcn default shadcn --local
+flutter_shadcn default shadcn --remote
 ```
-
-The default registry is used for unqualified component names when the component is not ambiguous.
 
 To see the current default:
 
@@ -25,28 +39,15 @@ To see the current default:
 flutter_shadcn default
 ```
 
-## Use a Specific Registry
+## Component Addresses
+
+Component commands accept an optional `@namespace/` prefix; the CLI strips it and resolves the component from the active registry.
 
 ```bash
-flutter_shadcn add @shadcn/button
-flutter_shadcn info @shadcn/button
-flutter_shadcn list @shadcn
-flutter_shadcn search @shadcn button
+flutter_shadcn add button
+flutter_shadcn info button
+flutter_shadcn search button
 ```
-
-Use `@namespace/component` for component commands. Use `@namespace` by itself for registry browsing commands such as `list`, `search`, and `feedback`.
-
-## Global Registry Selection
-
-Some commands can also use the public root option:
-
-```bash
-flutter_shadcn --registry-name shadcn validate
-flutter_shadcn --registry-name shadcn audit
-flutter_shadcn --registry-name shadcn deps
-```
-
-Use this when the command works against the active registry rather than one explicit component.
 
 ## Offline Mode
 
@@ -54,41 +55,18 @@ Use this when the command works against the active registry rather than one expl
 flutter_shadcn --offline list
 ```
 
-Offline mode disables network calls and uses cached data. Use it only after the needed registry data has already been fetched or configured locally.
-
-## Registry Directory
-
-The registry directory defines:
-
-- namespace
-- install root
-- manifest paths
-- capabilities
-- trust metadata
-- inline init actions
-
-Reference details are in [../reference/registries-json.md](../reference/registries-json.md).
+Offline mode disables network calls and uses the cache. Use it only after the registry has been fetched once.
 
 ## Manifest Resolution
 
-The registry directory entry and project config tell the CLI which manifest paths belong to a namespace. During install, the CLI treats the resolved registry manifest data as the source of truth for a component.
+The manifest is the single source of truth for a component:
 
-Resolution order is registry-scoped:
+- `components/<id>` declares the component's files, user-owned files, deps and public API.
+- `foundation`, `theme` and `primitives` declare the layer units.
+- `fileHashes` records a sha256 for every copyable file.
 
-- use the component manifest source published by the registry when available
-- fall back to the registry's configured `components.json`
-- fall back to the registry's configured `index.json` only for lookup metadata when the registry supports it
+`validate` checks the manifest against the v2 rules; `doctor` checks the installed project against the manifest and `shadcn.lock`.
 
-If a registry does not publish a per-component manifest source, that absence is cached for that registry during resolution so later component installs do not repeatedly probe the same missing source.
+## Init
 
-## Init and Assets
-
-`flutter_shadcn init [namespace]` executes inline `init.actions` from `registries.json`. Public init no longer depends on fetching `meta.json` before bootstrap.
-
-`flutter_shadcn init --yes` installs the required bootstrap surface only. Optional fonts, icons, and asset packs are installed explicitly:
-
-```bash
-flutter_shadcn assets --typography
-flutter_shadcn assets --icons
-flutter_shadcn assets --all
-```
+`flutter_shadcn init [--dir <path>] [--theme <id>] [--yes]` copies the always-on foundation + theme core, writes `.shadcn/config.json` and `shadcn.lock`, and generates `<installRoot>/theme/app_theme.dart`. It never installs a component.

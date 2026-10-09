@@ -1,3 +1,4 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer.dart';
@@ -162,6 +163,139 @@ void main() {
       expect(report.applied, isFalse);
       expect(report.needsAttention, isTrue);
       expect(disk('components/button/button.dart'), isNot(contains('v = 9')));
+    });
+
+    Map<String, dynamic> manifestJson() =>
+        jsonDecode(fixture.read('manifests/registry.json'))
+            as Map<String, dynamic>;
+
+    /// sha256 of every `.dart` file in the fixture, keyed by relPath.
+    Map<String, String> allHashes() {
+      final result = <String, String>{};
+      for (final entity in Directory(fixture.root).listSync(recursive: true)) {
+        if (entity is File && entity.path.endsWith('.dart')) {
+          final rel =
+              p.relative(entity.path, from: fixture.root).replaceAll('\\', '/');
+          result[rel] = FileHashing.ofText(entity.readAsStringSync());
+        }
+      }
+      return result;
+    }
+
+    Future<UpdateReport> updateWith({PubCommandRunner? runner}) async {
+      final loaded = await RegistryManifestLoader(source).load();
+      return UpdateService(
+        manifest: loaded.manifest,
+        reader: RegistrySourceFileReader(source),
+        projectRoot: project.path,
+        installRoot: installRoot,
+        manifestSha256: loaded.sha256,
+        pubRunner: runner,
+      ).run();
+    }
+
+    test('installs a file the manifest added to an installed component',
+        () async {
+      fixture.writeRegistryFile(
+        'components/button/button_extra.dart',
+        'class ButtonExtra {}\n',
+      );
+      final json = manifestJson();
+      final button = (json['components'] as Map<String, dynamic>)['button']
+          as Map<String, dynamic>;
+      (button['files'] as List).add('components/button/button_extra.dart');
+      json['fileHashes'] = allHashes();
+      fixture.writeManifest(json);
+
+      final report = await update();
+      final newTarget = target('components/button/button_extra.dart');
+      expect(report.added, contains(newTarget));
+      expect(
+          disk('components/button/button_extra.dart'), contains('ButtonExtra'));
+      final lock = await ShadcnLockRepository(project.path).load();
+      expect(lock.componentFor('button')!.files, contains(newTarget));
+
+      final again = await update();
+      expect(again.added, isEmpty);
+      expect(again.needsAttention, isFalse);
+    });
+
+    test('installs a new layer file for a dependency unit', () async {
+      fixture.writeRegistryFile('foundation/extra.dart', 'class Extra {}\n');
+      final json = manifestJson();
+      final data = (json['foundation'] as Map<String, dynamic>)['data']
+          as Map<String, dynamic>;
+      (data['files'] as List).add('foundation/extra.dart');
+      json['fileHashes'] = allHashes();
+      fixture.writeManifest(json);
+
+      final report = await update();
+      final newTarget = target('foundation/extra.dart');
+      expect(report.added, contains(newTarget));
+      expect(File(p.join(project.path, newTarget)).existsSync(), isTrue);
+      final lock = await ShadcnLockRepository(project.path).load();
+      expect(lock.layerState(LockLayer.foundation).files, contains(newTarget));
+    });
+
+    test('installs a new user-owned file the manifest added', () async {
+      fixture.writeRegistryFile(
+        'components/button/button_extra_theme.dart',
+        'class ButtonExtraTheme {}\n',
+      );
+      final json = manifestJson();
+      final button = (json['components'] as Map<String, dynamic>)['button']
+          as Map<String, dynamic>;
+      (button['userOwned'] as List)
+          .add('components/button/button_extra_theme.dart');
+      json['fileHashes'] = allHashes();
+      fixture.writeManifest(json);
+
+      final report = await update();
+      final newTarget = target('components/button/button_extra_theme.dart');
+      expect(report.added, contains(newTarget));
+      final lock = await ShadcnLockRepository(project.path).load();
+      expect(lock.componentFor('button')!.userOwned, contains(newTarget));
+      expect(lock.componentFor('button')!.files, isNot(contains(newTarget)));
+    });
+
+    test('reports and adds a new package the closure needs', () async {
+      File(p.join(project.path, 'pubspec.yaml')).writeAsStringSync(
+        'name: update_app\n\ndependencies:\n  flutter:\n    sdk: flutter\n',
+      );
+      final json = manifestJson();
+      final data = (json['foundation'] as Map<String, dynamic>)['data']
+          as Map<String, dynamic>;
+      data['packages'] = [
+        {'name': 'intl', 'constraint': '^0.20.2'},
+      ];
+      fixture.writeManifest(json);
+
+      final report = await updateWith(runner: const _NoopPubRunner());
+      expect(report.packagesAdded, contains('intl'));
+      expect(report.needsAttention, isTrue);
+      expect(
+        File(p.join(project.path, 'pubspec.yaml')).readAsStringSync(),
+        contains('intl'),
+      );
+    });
+
+    test('--check reports a new upstream file without writing it', () async {
+      fixture.writeRegistryFile(
+        'components/button/button_extra.dart',
+        'class ButtonExtra {}\n',
+      );
+      final json = manifestJson();
+      final button = (json['components'] as Map<String, dynamic>)['button']
+          as Map<String, dynamic>;
+      (button['files'] as List).add('components/button/button_extra.dart');
+      json['fileHashes'] = allHashes();
+      fixture.writeManifest(json);
+
+      final report = await update(check: true);
+      final newTarget = target('components/button/button_extra.dart');
+      expect(report.added, contains(newTarget));
+      expect(report.needsAttention, isTrue);
+      expect(File(p.join(project.path, newTarget)).existsSync(), isFalse);
     });
   });
 }
