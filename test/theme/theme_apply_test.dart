@@ -7,6 +7,7 @@ import 'package:flutter_shadcn_cli/src/application/services/theme/theme_models.d
 import 'package:flutter_shadcn_cli/src/application/services/theme/theme_registry_source.dart';
 import 'package:flutter_shadcn_cli/src/application/services/theme/theme_service.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/commands/init_command.dart';
 import 'package:path/path.dart' as p;
 import 'package:flutter_shadcn_cli/src/registry/manifest/registry_manifest.dart';
 import 'package:test/test.dart';
@@ -212,7 +213,7 @@ void main() {
     );
   });
 
-  // End to end against the registry the CLI actually ships against: the 42
+  // End to end against the registry the CLI actually ships against: the 43
   // presets in `flutter_shadcn_kit/lib/registry`.
   group('the real kit registry', () {
     final kit = findKitPackageRoot();
@@ -220,22 +221,24 @@ void main() {
     test('lists the published presets', () async {
       final service = await _kitService(kit, harness);
       final presets = await service.listPresets();
-      expect(presets.length, 42);
+      expect(presets.length, 43);
+      expect(presets.map((entry) => entry.id), contains('neutral'));
       expect(presets.map((entry) => entry.id), contains('vercel'));
       expect(
-          presets.firstWhere((entry) => entry.id == 'vercel').name, 'Vercel');
+          presets.firstWhere((entry) => entry.id == 'neutral').name, 'Neutral');
     }, skip: kit == null ? 'shadcn_flutter_kit not present' : null);
 
-    test('applies vercel, the init --yes default', () async {
+    test('init --yes default is neutral and applies it', () async {
+      expect(kDefaultThemePreset, 'neutral');
       final service = await _kitService(kit, harness);
-      final result = await service.apply('vercel');
+      final result = await service.apply(kDefaultThemePreset);
       expect(result.status, ThemeApplyStatus.created);
       expect(result.path, 'lib/ui/shadcn/theme/app_theme.dart');
       final generated = harness.themeFile().readAsStringSync();
-      expect(generated, contains('const ShadcnColors vercelLightColors'));
-      expect(generated, contains('ShadcnThemeData buildVercelTheme'));
+      expect(generated, contains('const ShadcnColors neutralLightColors'));
+      expect(generated, contains('ShadcnThemeData buildNeutralTheme'));
       expect(generated, contains("import 'theme.dart';"));
-      expect(harness.lock().theme!.id, 'vercel');
+      expect(harness.lock().theme!.id, 'neutral');
       expect(harness.lock().theme!.sha256, result.sha256);
     }, skip: kit == null ? 'shadcn_flutter_kit not present' : null);
   });

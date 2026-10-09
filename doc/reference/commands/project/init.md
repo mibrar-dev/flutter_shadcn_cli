@@ -17,7 +17,7 @@ This command does not define positional arguments.
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
 | `--dir <path>` |  |  | Install root (default: lib/ui/shadcn). |
-| `--theme <id>` |  |  | Theme preset id (default: vercel). |
+| `--theme <id>` |  |  | Theme preset id (default: neutral). |
 | `--yes` | `-y` | `false` | Non-interactive; use the default preset. |
 | `--json` |  | `false` | Output machine-readable JSON. |
 

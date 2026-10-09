@@ -18,7 +18,7 @@ const CliCommandGroupMeta projectCommandGroup = CliCommandGroupMeta(
         ),
         CliFlagMeta(
           name: '--theme <id>',
-          description: 'Theme preset id (default: vercel).',
+          description: 'Theme preset id (default: neutral).',
         ),
         CliFlagMeta(
           name: '--yes',

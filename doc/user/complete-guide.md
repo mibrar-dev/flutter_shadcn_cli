@@ -18,6 +18,11 @@ You need:
 
 - Flutter installed and available on `PATH`
 - Dart installed through Flutter or the Dart SDK
+- **Dart SDK 3.12.0 or newer** — the registry sources declare no per-file
+  `// @dart=` pins, so the installed components compile against your app's SDK
+  floor. The newest language feature they use (`private-named-parameters`, a
+  `this._keys` field formal in a named-parameter list) shipped in Dart 3.12.0;
+  an older floor fails with `experiment_not_enabled`.
 - A Flutter project created with `flutter create` or an existing Flutter app
 - Network access for the first remote registry fetch
 

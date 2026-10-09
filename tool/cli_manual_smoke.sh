@@ -127,10 +127,6 @@ run flutter pub get >"$LOG_ROOT/flutter_pub_get.log"
   echo "Missing generated app_theme.dart." >&2
   exit 70
 }
-[[ -f lib/ui/shadcn/analysis_options.yaml ]] || {
-  echo "Missing install-root analysis_options.yaml." >&2
-  exit 70
-}
 [[ -f lib/ui/shadcn/foundation/data.dart ]] || {
   echo "Missing foundation layer." >&2
   exit 70

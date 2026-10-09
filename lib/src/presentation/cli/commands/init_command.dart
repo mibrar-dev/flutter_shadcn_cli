@@ -11,7 +11,7 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
 /// Preset used by `init --yes` (plan §9.2): neutral black/white, closest to
 /// shadcn's default.
-const String kDefaultThemePreset = 'vercel';
+const String kDefaultThemePreset = 'neutral';
 
 /// Default install root (plan §2.1).
 const String kDefaultInstallRoot = 'lib/ui/shadcn';

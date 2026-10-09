@@ -38,7 +38,7 @@ ArgParser buildCliParser() {
             negatable: false,
             help: 'Run non-interactively and use the default preset')
         ..addOption('dir', help: 'Install root (default: lib/ui/shadcn)')
-        ..addOption('theme', help: 'Theme preset id (default: vercel)')
+        ..addOption('theme', help: 'Theme preset id (default: neutral)')
         ..addFlag('json', negatable: false, help: 'Machine-readable output')
         ..addFlag('help', abbr: 'h', negatable: false),
     )

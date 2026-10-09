@@ -28,6 +28,12 @@ flutter_shadcn version
 
 The package also exposes `shadcn` as a shorter executable alias.
 
+Installed components carry no per-file `// @dart=` language pins, so the app
+they land in must declare `environment: sdk: ^3.12.0` or newer — the newest
+language feature the registry uses shipped in Dart 3.12.0. See
+[doc/user/complete-guide.md](doc/user/complete-guide.md) for the full
+requirements list.
+
 ## Quick Start
 
 Run commands from the root of an existing Flutter project:
@@ -37,7 +43,7 @@ flutter_shadcn init --yes
 flutter_shadcn add button
 ```
 
-`init` copies the always-on foundation + theme core, writes `.shadcn/config.json` and `shadcn.lock`, and generates the app theme from a preset (`vercel` by default).
+`init` copies the always-on foundation + theme core, writes `.shadcn/config.json` and `shadcn.lock`, and generates the app theme from a preset (`neutral` by default).
 
 Point the CLI at a local registry checkout while developing a registry:
 
