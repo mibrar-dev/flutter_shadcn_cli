@@ -1,504 +1,383 @@
-import 'dart:async';
-import 'dart:convert';
 import 'dart:io';
-import 'dart:typed_data';
 
-import 'package:crypto/crypto.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/component_manifest_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_plan.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/init_config_overrides.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/install_target_policy.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_config_resolver.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_dry_run_service.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_selection_policy.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_writer_service.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_manifest_service.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_alias_entry.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_platform_service.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_pubspec_service.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_registry_file_owner.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/installer_shared_service.dart';
-import 'package:flutter_shadcn_cli/src/application/services/installer/namespace_collision_policy.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_install_part.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_lock_part.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_remove_part.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/pub_package_resolver.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
-import 'package:flutter_shadcn_cli/src/application/services/pubspec/pubspec_change_planner.dart';
-import 'package:flutter_shadcn_cli/src/application/services/registry_dependency_graph.dart';
-import 'package:flutter_shadcn_cli/src/registry.dart';
-import 'package:flutter_shadcn_cli/src/config.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/resolver_v1_exception.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_entry.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_index_loader.dart';
-import 'package:flutter_shadcn_cli/src/infrastructure/registry/theme_preset_loader.dart';
+import 'package:flutter_shadcn_cli/src/application/services/manifest_closure.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
-import 'package:flutter_shadcn_cli/src/state.dart';
+import 'package:flutter_shadcn_cli/src/registry/manifest/registry_manifest.dart';
 import 'package:path/path.dart' as p;
-import 'package:yaml/yaml.dart';
 
-part 'installer_theme_part.dart';
-part 'installer_config_part.dart';
-part 'installer_remove_part.dart';
-part 'installer_dry_run_part.dart';
-part 'installer_shared_part.dart';
-part 'installer_manifest_part.dart';
-part 'installer_file_install_part.dart';
-part 'installer_platform_alias_part.dart';
-part 'installer_pubspec_part.dart';
-part 'installer_locale_part.dart';
+/// Two installed components would define the same public symbol.
+///
+/// The v2 replacement for the v1 namespace-collision policy (plan §2.2).
+class SingleOwnerViolationException implements Exception {
+  const SingleOwnerViolationException(this.violations);
 
-class Installer {
-  static const int _fileCopyConcurrency = 4;
-  final Registry registry;
-  final String targetDir;
-  final CliLogger logger;
-  final String? installPathOverride;
-  final String? sharedPathOverride;
-  final String? stateNamespace;
-  final String? registryNamespace;
-  final String? registryBaseUrlOverride;
-  final String? themesPathOverride;
-  final String? themesSchemaPathOverride;
-  final Set<String>? includeFileKindsOverride;
-  final Set<String>? excludeFileKindsOverride;
-  final bool enableSharedGroups;
-  final bool enableComposites;
-  Set<String>? _installedComponentCache;
-  final Set<String> _installingComponentIds = {};
-  bool _initFilesEnsured = false;
-  bool _deferAliases = false;
-  bool _deferDependencyUpdates = false;
-  final Map<String, dynamic> _pendingDependencies = {};
-  final Set<String> _pendingAssets = {};
-  final List<FontEntry> _pendingFonts = [];
-  final Map<String, Future<void>> _componentInstallTasks = {};
-  bool _deferComponentManifest = false;
-  Future<void> _lockfileWriteQueue = Future<void>.value();
-  ShadcnConfig? _cachedConfig;
-  late final ComponentManifestResolver _manifestResolver;
-  final InstallerConfigResolver _configResolver;
-  final InstallerFileSelectionPolicy _fileSelectionPolicy;
-  final InstallerManifestService _manifestService;
-  final InstallerFileWriterService _fileWriter;
-  final InstallerSharedService _sharedService;
-  final InstallerPubspecService _pubspecService;
-  final InstallerPlatformService _platformService;
-  final InstallTargetPolicy _installTargetPolicy;
+  /// symbol -> the components that would define it.
+  final Map<String, List<String>> violations;
 
-  Installer({
-    required this.registry,
-    required this.targetDir,
-    CliLogger? logger,
-    this.installPathOverride,
-    this.sharedPathOverride,
-    this.stateNamespace,
-    this.registryNamespace,
-    this.registryBaseUrlOverride,
-    this.themesPathOverride,
-    this.themesSchemaPathOverride,
-    this.includeFileKindsOverride,
-    this.excludeFileKindsOverride,
-    this.enableSharedGroups = true,
-    this.enableComposites = true,
-    InstallerConfigResolver? configResolver,
-    InstallerFileSelectionPolicy? fileSelectionPolicy,
-    InstallerManifestService? manifestService,
-    InstallerFileWriterService? fileWriter,
-    InstallerPubspecService? pubspecService,
-    InstallerPlatformService? platformService,
-    InstallTargetPolicy? installTargetPolicy,
-  })  : logger = logger ?? CliLogger(),
-        _configResolver = configResolver ??
-            InstallerConfigResolver(
-              registry: registry,
-              installPathOverride: installPathOverride,
-              sharedPathOverride: sharedPathOverride,
-              registryNamespace: registryNamespace,
-            ),
-        _fileSelectionPolicy = fileSelectionPolicy ??
-            InstallerFileSelectionPolicy(
-              includeFileKindsOverride: includeFileKindsOverride,
-              excludeFileKindsOverride: excludeFileKindsOverride,
-              registryNamespace: registryNamespace,
-            ),
-        _manifestService = manifestService ??
-            InstallerManifestService(
-              targetDir: targetDir,
-              registry: registry,
-              registryNamespace: registryNamespace,
-              registryBaseUrlOverride: registryBaseUrlOverride,
-            ),
-        _fileWriter = fileWriter ??
-            InstallerFileWriterService(
-              registry: registry,
-              logger: logger ?? CliLogger(),
-            ),
-        _pubspecService = pubspecService ??
-            InstallerPubspecService(
-              targetDir: targetDir,
-              logger: logger ?? CliLogger(),
-            ),
-        _platformService = platformService ??
-            InstallerPlatformService(
-              targetDir: targetDir,
-              logger: logger ?? CliLogger(),
-            ),
-        _sharedService = InstallerSharedService(
-          registry: registry,
-          logger: logger ?? CliLogger(),
-          fileCopyConcurrency: _fileCopyConcurrency,
-        ),
-        _installTargetPolicy =
-            installTargetPolicy ?? const InstallTargetPolicy() {
-    _manifestResolver = ComponentManifestResolver(
-      registry: registry,
-      logger: this.logger,
-    );
-  }
-
-  Future<void> init({
-    bool skipPrompts = false,
-    InitConfigOverrides? configOverrides,
-    String? themePreset,
-  }) async {
-    logger.header('Initializing flutter_shadcn');
-    final autoReuseExistingSetup = await _shouldAutoReuseExistingSetup(
-      skipPrompts: skipPrompts,
-      configOverrides: configOverrides,
-    );
-    final hasMissingConfigValues =
-        autoReuseExistingSetup ? await _hasMissingInitConfigValues() : false;
-    final effectiveSkipPrompts =
-        skipPrompts || (autoReuseExistingSetup && !hasMissingConfigValues);
-    if (autoReuseExistingSetup) {
-      logger.info(
-        'Detected existing .shadcn config/state. Re-initializing with saved settings.',
-      );
-      if (hasMissingConfigValues) {
-        logger.info(
-          'Some saved init settings are missing. Re-opening prompts to complete setup.',
-        );
-      }
-    }
-
-    if (configOverrides != null && configOverrides.hasAny) {
-      await _ensureConfigOverrides(configOverrides);
-    } else if (effectiveSkipPrompts) {
-      await _ensureConfigDefaults();
-    } else {
-      await _ensureConfig();
-    }
-
-    final config = await ShadcnConfig.load(targetDir);
-    await _ensureAnalysisOptionsExclude(config);
-    if (!effectiveSkipPrompts) {
-      _printInitSummary(config, themePreset);
-      final proceed = _confirmInitProceed();
-      if (!proceed) {
-        logger.warn('Initialization cancelled.');
-        return;
-      }
-    }
-
-    final coreShared = _coreSharedIdsForInit();
-    await RegistryDependencyGraph(registry).validateSharedInstall(coreShared);
-    final sharedToInstall = (await _resolveSharedDependencyClosure(
-      coreShared.toSet(),
-    ))
-      ..removeWhere((id) => id.isEmpty);
-    final sharedList = sharedToInstall.toList()..sort();
-
-    logger.section('Installing core shared modules');
-    var totalFiles = 0;
-    for (final sharedId in sharedList) {
-      final shared = registry.getSharedItem(sharedId);
-      if (shared == null) {
-        throw Exception('Shared module $sharedId not found');
-      }
-      logger.detail('  • $sharedId (${shared.files.length} files)');
-      totalFiles += shared.files.length;
-    }
-    logger.detail('  Total: $totalFiles files');
-    logger.info('');
-
-    for (final sharedId in sharedList) {
-      await installShared(sharedId);
-    }
-    await _updateDependencies({'data_widget': '^0.0.2', 'gap': '^3.0.1'});
-    if (themePreset != null && themePreset.isNotEmpty) {
-      await applyThemeById(themePreset);
-    } else if (!effectiveSkipPrompts) {
-      await _promptThemeSelection();
-    } else if (config.themeId != null && config.themeId!.isNotEmpty) {
-      await applyThemeById(config.themeId!);
-    } else if (autoReuseExistingSetup) {
-      await _promptThemeSelection();
-    }
-    await generateAliases();
-    await _updateComponentManifest();
-    await _updateState();
-
-    logger.success('Initialization complete');
-    logger.detail('Aliases written to lib/ui/shadcn/app_components.dart');
-  }
-
-  Future<bool> _shouldAutoReuseExistingSetup({
-    required bool skipPrompts,
-    required InitConfigOverrides? configOverrides,
-  }) async {
-    if (skipPrompts || (configOverrides?.hasAny ?? false)) {
-      return false;
-    }
-    final configExists = await ShadcnConfig.configFile(targetDir).exists();
-    final stateExists = await ShadcnState.stateFile(targetDir).exists();
-    return configExists && stateExists;
-  }
-
-  Future<bool> _hasMissingInitConfigValues() async {
-    final config = await ShadcnConfig.load(targetDir);
-    return config.installPath == null ||
-        config.sharedPath == null ||
-        config.includeReadme == null ||
-        config.includeMeta == null ||
-        config.includePreview == null;
-  }
-
-  Future<void> addComponent(
-    String name, {
-    bool installDependencies = true,
-    Set<String>? ancestry,
-  }) async {
-    await _ensureConfigLoaded();
-    final installedBeforeResolve = await _installedComponentIds();
-    if (installedBeforeResolve.contains(name)) {
-      logger.info(
-        'Skipping ${_componentDisplayName(name)} ($name): already installed',
-      );
-      return;
-    }
-
-    logger.progress('Resolving component: $name');
-    final component = await _manifestResolver.resolve(name);
-    if (component == null) {
-      logger.warn('Component "$name" not found');
-      return;
-    }
-
-    if (installDependencies && ancestry == null) {
-      await RegistryDependencyGraph(
-        registry,
-      ).validateComponentInstall([component.id]);
-    }
-
-    await ensureInitFiles(allowPrompts: false);
-
-    final stack = ancestry ?? <String>{};
-    if (stack.contains(component.id)) {
-      throw RegistryDependencyCycleException([...stack, component.id]);
-    }
-    stack.add(component.id);
-
-    final existingTask = _componentInstallTasks[component.id];
-    if (existingTask != null) {
-      await existingTask;
-      return;
-    }
-
-    final completer = Completer<void>();
-    _componentInstallTasks[component.id] = completer.future;
-    completer.future.ignore();
-
-    if (_installingComponentIds.contains(component.id)) {
-      logger.detail('Skipping ${component.id} (already installing)');
-      _componentInstallTasks.remove(component.id);
-      completer.complete();
-      return;
-    }
-
-    try {
-      final installed = await _installedComponentIds();
-      if (installed.contains(component.id)) {
-        logger.detail('Skipping ${component.id} (already installed)');
-        _validateComponentInstallTargets(component);
-        await _preflightNamespaceCollisions(component);
-        await _writeLockfileRecord(component);
-        return;
-      }
-
-      _validateComponentInstallTargets(component);
-      await _preflightNamespaceCollisions(component);
-      logger.action('Installing ${component.name} (${component.id})');
-      _installingComponentIds.add(component.id);
-      if (installDependencies) {
-        logger.progress(
-          'Resolving dependencies for ${component.name} '
-          '(${component.dependsOn.length} dependencies)',
-        );
-        for (final dep in component.dependsOn) {
-          await addComponent(dep, ancestry: stack);
-        }
-      }
-
-      if (enableSharedGroups) {
-        logger.progress(
-          'Installing shared modules for ${component.name} '
-          '(${component.shared.length} modules)',
-        );
-        for (final sharedId in component.shared) {
-          await installShared(sharedId);
-        }
-      }
-
-      if (component.pubspec.isNotEmpty) {
-        final deps = component.pubspec['dependencies'] as Map<String, dynamic>;
-        await _preflightDependencies(deps);
-      }
-
-      await _installComponentFiles(component);
-      await _applyPlatformInstructions(component);
-      final installedLocaleResources = await _installLocaleResources(component);
-
-      if (component.pubspec.isNotEmpty) {
-        final deps = component.pubspec['dependencies'] as Map<String, dynamic>;
-        logger.progress('Updating pubspec dependencies for ${component.name}');
-        await _queueDependencyUpdates(deps);
-      }
-      if (component.assets.isNotEmpty) {
-        logger.progress('Registering assets for ${component.name}');
-        await _queueAssetUpdates(component.assets);
-      }
-      if (component.fonts.isNotEmpty) {
-        logger.progress('Registering fonts for ${component.name}');
-        await _queueFontUpdates(component.fonts);
-      }
-      if (component.postInstall.isNotEmpty) {
-        _reportPostInstall(component);
-      }
-      try {
-        logger.progress('Writing component manifest for ${component.name}');
-        await _writeComponentManifest(
-          component,
-          localeResourcesInstalled: installedLocaleResources,
-        );
-      } catch (e) {
-        if (e is ResolverV1Exception) {
-          rethrow;
-        }
-        logger.warn('Failed to write component manifest: $e');
-      }
-      await _writeLockfileRecord(
-        component,
-        localeResourcesInstalled: installedLocaleResources,
-      );
-      _installedComponentCache?.add(component.id);
-      if (!_deferAliases) {
-        await generateAliases();
-      }
-      if (!_deferComponentManifest) {
-        await _updateComponentManifest();
-      }
-      if (!_deferComponentManifest) {
-        await _updateState();
-      }
-      if (!_deferDependencyUpdates) {
-        await _syncDependenciesWithInstalled();
-      }
-    } catch (e, st) {
-      if (!completer.isCompleted) {
-        completer.completeError(e, st);
-      }
-      rethrow;
-    } finally {
-      _installingComponentIds.remove(component.id);
-      _componentInstallTasks.remove(component.id);
-      stack.remove(component.id);
-      if (!completer.isCompleted) {
-        completer.complete();
-      }
-    }
-  }
-
-  String _componentDisplayName(String id) {
-    return id
-        .split(RegExp(r'[_\-\s]+'))
-        .where((part) => part.isNotEmpty)
-        .map((part) => part[0].toUpperCase() + part.substring(1))
-        .join(' ');
-  }
-
-  Future<void> installAllComponents({int concurrency = 6}) async {
-    await ensureInitFiles(allowPrompts: false);
-    final ids = registry.components.map((c) => c.id).toList();
-    if (ids.isEmpty) {
-      return;
-    }
-    logger.progress('Installing all components (${ids.length} total)');
-    final dependencyGraph = RegistryDependencyGraph(registry);
-    await dependencyGraph.validateComponentInstall(ids);
-    // Install dependency levels in order (dependencies before dependents)
-    // so cross-component file references resolve without spurious warnings.
-    // Components within one level are independent and may install
-    // concurrently. The whole bulk run defers alias/manifest/pubspec writes
-    // until the end instead of interleaving them per component.
-    final depGraph = await dependencyGraph.componentDependencyGraph(ids);
-    final levels = _topologicalLevels(depGraph, ids);
-
-    await runBulkInstall(() async {
-      for (final level in levels) {
-        var index = 0;
-        Future<void> worker() async {
-          while (true) {
-            if (index >= level.length) {
-              break;
-            }
-            final id = level[index++];
-            await addComponent(id, installDependencies: false);
-          }
-        }
-
-        final workerCount = concurrency.clamp(1, level.length);
-        await Future.wait(List.generate(workerCount, (_) => worker()));
-      }
-    });
-  }
-
-  /// Groups component ids into install levels using Kahn's algorithm: every
-  /// component appears in a later level than all of its dependencies, and
-  /// components sharing a level are mutually independent.
-  List<List<String>> _topologicalLevels(
-    Map<String, List<String>> depGraph,
-    List<String> allIds,
-  ) {
-    final remaining = <String, Set<String>>{
-      for (final id in allIds) id: depGraph[id]?.toSet() ?? <String>{},
-    };
-    final levels = <List<String>>[];
-    while (remaining.isNotEmpty) {
-      final ready = remaining.entries
-          .where((entry) => entry.value.isEmpty)
-          .map((entry) => entry.key)
-          .toList()
-        ..sort();
-      if (ready.isEmpty) {
-        // Unresolvable remainder (should have been rejected by validation):
-        // install alphabetically rather than hanging.
-        final rest = remaining.keys.toList()..sort();
-        levels.add(rest);
-        break;
-      }
-      levels.add(ready);
-      for (final id in ready) {
-        remaining.remove(id);
-      }
-      for (final deps in remaining.values) {
-        deps.removeAll(ready);
-      }
-    }
-    return levels;
+  @override
+  String toString() {
+    final details = violations.entries
+        .map((entry) => '${entry.key} (${entry.value.join(', ')})')
+        .join('; ');
+    return 'Single-owner preflight failed: $details would be defined more than '
+        'once. Remove the conflicting component or choose a different one.';
   }
 }
 
-final _classRegex = RegExp(
-  r'^\s*(abstract\s+)?class\s+([A-Z]\w*)(\s*<[^>{}]+>)?',
-  multiLine: true,
-);
+/// The v2 installer core: closure resolution, verbatim file copy, single-owner
+/// preflight, pubspec deltas and the lockfileVersion 2 record.
+///
+/// It is deliberately independent of the CLI presentation layer: commands
+/// (batch B5) build a plan, print it for `--dry-run`/`--json`, then apply it.
+class Installer {
+  Installer({
+    required this.manifest,
+    required this.projectRoot,
+    required RegistryFileReader reader,
+    String? installRoot,
+    CliLogger? logger,
+    PubCommandRunner? pubRunner,
+    this.manifestSha256 = '',
+  })  : installRoot = installRoot ?? manifest.install.root,
+        _reader = reader,
+        logger = logger ?? CliLogger(),
+        _pubRunner = pubRunner ?? const ProcessPubCommandRunner();
 
-final _partRegex = RegExp(r'''part\s+['"]([^'"]+)['"];''');
+  final RegistryManifest manifest;
+
+  /// Absolute project root.
+  final String projectRoot;
+
+  /// Project-relative install root, e.g. `lib/ui/shadcn`.
+  final String installRoot;
+
+  /// sha256 of `manifests/registry.json`, recorded in the lock.
+  final String manifestSha256;
+
+  final RegistryFileReader _reader;
+  final CliLogger logger;
+  final PubCommandRunner _pubRunner;
+
+  InstallerFileInstaller get _files => InstallerFileInstaller(
+        projectRoot: projectRoot,
+        installRoot: installRoot,
+        reader: _reader,
+      );
+
+  PubPackageResolver get _pubResolver => PubPackageResolver(
+        projectRoot: projectRoot,
+        runner: _pubRunner,
+        logger: logger,
+      );
+
+  ShadcnLockRepository get _lockRepo => ShadcnLockRepository(projectRoot);
+
+  ManifestClosureResolver get _closureResolver =>
+      ManifestClosureResolver(manifest);
+
+  /// Transitive closure of [componentIds]; throws
+  /// [ManifestClosureException] for an unknown id.
+  ManifestClosure resolveClosure(
+    Iterable<String> componentIds, {
+    bool includeCore = true,
+  }) =>
+      _closureResolver.resolve(componentIds, includeCore: includeCore);
+
+  /// Computes the plan without writing anything.
+  Future<DryRunPlan> plan(
+    Iterable<String> componentIds, {
+    bool includePreview = false,
+    bool overwrite = false,
+    bool includeCore = true,
+  }) async {
+    final requested = componentIds.toList();
+    final closure = resolveClosure(requested, includeCore: includeCore);
+    await _preflightSingleOwner(closure);
+    final files = await _planFiles(
+      closure,
+      includePreview: includePreview,
+      overwrite: overwrite,
+    );
+    final packagePlan = await _pubResolver.plan(
+      closure.packages.map(PubPackageRequirement.fromPackageRef),
+    );
+    return DryRunPlan(
+      requested: requested,
+      components: closure.components,
+      foundation: closure.foundation,
+      theme: closure.theme,
+      primitives: closure.primitives,
+      files: files,
+      packages: [
+        for (final package in packagePlan.missing)
+          PlannedPackage(
+            name: package.name,
+            sdk: package.sdk,
+            constraint: package.constraint,
+          ),
+      ],
+      includePreview: includePreview,
+    );
+  }
+
+  /// Installs [componentIds] (closure + core), or returns the plan when
+  /// [dryRun] is true.
+  Future<InstallReport> add(
+    Iterable<String> componentIds, {
+    bool dryRun = false,
+    bool includePreview = false,
+    bool overwrite = false,
+    bool includeCore = true,
+    bool runPubGet = true,
+  }) async {
+    final plan = await this.plan(
+      componentIds,
+      includePreview: includePreview,
+      overwrite: overwrite,
+      includeCore: includeCore,
+    );
+    if (dryRun) {
+      return InstallReport(plan: plan, applied: false);
+    }
+
+    final toWrite = [
+      for (final file in plan.files)
+        if (file.action == PlanAction.add || file.action == PlanAction.update)
+          file,
+    ];
+    final written = <String>[];
+    if (toWrite.isNotEmpty) {
+      final sources = await _files.readAll(
+        toWrite.map((file) => file.source),
+      );
+      _files.assertImportGuard({
+        for (final entry in sources.entries)
+          entry.key: decodeRegistryText(entry.value),
+      });
+      for (final file in toWrite) {
+        await _files.write(
+          source: file.source,
+          target: file.target,
+          bytes: sources[file.source]!,
+        );
+        written.add(file.target);
+      }
+    }
+
+    final current = await _lockRepo.load();
+    final delta = InstallLockBuilder(
+      manifest: manifest,
+      installRoot: installRoot,
+      manifestSha256: manifestSha256,
+    ).build(plan, current: current);
+    await _lockRepo.save(current.mergeWith(delta));
+
+    final packagePlan = await _pubResolver.plan(
+      resolveClosure(componentIds, includeCore: includeCore)
+          .packages
+          .map(PubPackageRequirement.fromPackageRef),
+    );
+    final applied = await _pubResolver.apply(packagePlan, runPubGet: runPubGet);
+
+    return InstallReport(
+      plan: plan,
+      applied: true,
+      written: written,
+      packagesAdded: applied.missing.map((package) => package.name).toList(),
+    );
+  }
+
+  /// Installs every component in the manifest (`add --all`).
+  ///
+  /// The v2 installer copies the whole closure at once, so the v1
+  /// level-ordered bulk install (de35dd2 `_topologicalLevels`) is unnecessary:
+  /// file copy order is irrelevant (plan §9.7).
+  Future<InstallReport> installAll({
+    bool dryRun = false,
+    bool includePreview = false,
+    bool runPubGet = true,
+  }) =>
+      add(
+        manifest.components.keys,
+        dryRun: dryRun,
+        includePreview: includePreview,
+        runPubGet: runPubGet,
+      );
+
+  /// Installs the always-on layer core (all foundation + theme units) with no
+  /// component; the `init` step (plan §2.1).
+  Future<InstallReport> installCore({
+    bool dryRun = false,
+    bool runPubGet = true,
+  }) =>
+      add(
+        const [],
+        dryRun: dryRun,
+        runPubGet: runPubGet,
+        includeCore: true,
+      );
+
+  /// Removes [componentIds] and any layer unit no remaining install needs.
+  Future<RemoveReport> remove(
+    Iterable<String> componentIds, {
+    bool force = false,
+    bool purgeUserThemes = false,
+    bool dryRun = false,
+  }) {
+    return InstallerRemover(
+      manifest: manifest,
+      projectRoot: projectRoot,
+      logger: logger,
+    ).remove(
+      componentIds,
+      force: force,
+      purgeUserThemes: purgeUserThemes,
+      dryRun: dryRun,
+    );
+  }
+
+  Future<List<PlannedFile>> _planFiles(
+    ManifestClosure closure, {
+    required bool includePreview,
+    required bool overwrite,
+  }) async {
+    final planned = <PlannedFile>[];
+    final registryFiles = <String>{...closure.files};
+    if (includePreview) {
+      for (final id in closure.components) {
+        final preview = 'components/$id/preview.dart';
+        if (await _reader.readBytes(preview) != null) {
+          registryFiles.add(preview);
+        }
+      }
+    }
+    final sources = registryFiles.toList()..sort();
+    for (final source in sources) {
+      planned.add(
+        await _decideFile(
+          source: source,
+          target: _files.targetPathFor(source),
+          userOwned: false,
+          overwrite: overwrite,
+        ),
+      );
+    }
+    for (final id in closure.components) {
+      for (final source in manifest.components[id]!.userOwned) {
+        planned.add(
+          await _decideFile(
+            source: source,
+            target: _files.targetPathFor(source),
+            userOwned: true,
+            overwrite: false,
+          ),
+        );
+      }
+    }
+    planned.sort((a, b) => a.target.compareTo(b.target));
+    return planned;
+  }
+
+  Future<PlannedFile> _decideFile({
+    required String source,
+    required String target,
+    required bool userOwned,
+    required bool overwrite,
+  }) async {
+    final sourceBytes = await _reader.readBytes(source);
+    if (sourceBytes == null) {
+      throw RegistryFileMissingException(source);
+    }
+    final sourceSha = FileHashing.ofBytes(sourceBytes);
+    final destination = File(p.join(projectRoot, target));
+    if (!await destination.exists()) {
+      return PlannedFile(
+        source: source,
+        target: target,
+        action: PlanAction.add,
+        userOwned: userOwned,
+        sha256: sourceSha,
+      );
+    }
+    final destinationSha = FileHashing.ofBytes(await destination.readAsBytes());
+    if (userOwned) {
+      return PlannedFile(
+        source: source,
+        target: target,
+        action: PlanAction.keep,
+        userOwned: true,
+        reason: 'user-owned',
+        sha256: destinationSha,
+      );
+    }
+    if (destinationSha == sourceSha) {
+      return PlannedFile(
+        source: source,
+        target: target,
+        action: PlanAction.skip,
+        reason: 'identical',
+        sha256: sourceSha,
+      );
+    }
+    if (overwrite) {
+      return PlannedFile(
+        source: source,
+        target: target,
+        action: PlanAction.update,
+        reason: 'overwrite',
+        sha256: sourceSha,
+      );
+    }
+    return PlannedFile(
+      source: source,
+      target: target,
+      action: PlanAction.skip,
+      reason: 'locally modified',
+      sha256: sourceSha,
+    );
+  }
+
+  Future<void> _preflightSingleOwner(ManifestClosure closure) async {
+    final requested = closure.components.toSet();
+    final owners = <String, String>{};
+    final violations = <String, List<String>>{};
+
+    void claim(String symbol, String owner) {
+      final existing = owners[symbol];
+      if (existing == null) {
+        owners[symbol] = owner;
+        return;
+      }
+      if (existing != owner) {
+        final entries = violations.putIfAbsent(symbol, () => [existing]);
+        if (!entries.contains(owner)) {
+          entries.add(owner);
+        }
+      }
+    }
+
+    for (final id in closure.components) {
+      for (final symbol in manifestSymbols(manifest.components[id]!.api)) {
+        claim(symbol, id);
+      }
+    }
+    final lock = await _lockRepo.load();
+    for (final component in lock.components) {
+      if (requested.contains(component.id)) {
+        continue;
+      }
+      for (final symbol in component.api.symbols) {
+        claim(symbol, component.id);
+      }
+    }
+    if (violations.isNotEmpty) {
+      throw SingleOwnerViolationException(violations);
+    }
+  }
+}
