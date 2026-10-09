@@ -1,0 +1,158 @@
+import 'package:flutter_shadcn_cli/src/application/services/theme/app_theme_values.dart';
+
+/// Library that exports `ShadcnThemeData` in an installed project.
+///
+/// `app_theme.dart` is written next to the registry's `theme/theme.dart`,
+/// `theme/color_tokens.dart` and `theme/tokens.dart`, so the default is a
+/// sibling-relative import — the tree uses relative imports everywhere else
+/// (P5_CLI_PLAN.md §3).
+const String defaultAppThemeImport = 'theme.dart';
+
+/// Renders the values-only `app_theme.dart` for [values].
+///
+/// The result is `dart format` clean: every construct is emitted on one line
+/// when it fits in 80 columns and exploded with a trailing comma otherwise,
+/// which is exactly what the tall style formatter produces.
+///
+/// Byte-for-byte identical to the kit's `tool/rearch/gen_app_theme.dart` for
+/// the same preset and the same [themeImport]; the header comments therefore
+/// name the kit tool, which is what generated the canonical file.
+String renderAppTheme(
+  AppThemeValues values, {
+  String themeImport = defaultAppThemeImport,
+}) {
+  final out = StringBuffer()
+    ..writeln('// GENERATED CODE - DO NOT MODIFY BY HAND.')
+    ..writeln(
+        '// Source: lib/registry/themes/${values.id}.json (id: ${values.id}).')
+    ..writeln(
+      '// Regenerate: dart run tool/rearch/gen_app_theme.dart '
+      '${values.id}.json app_theme.dart',
+    )
+    ..writeln();
+  for (final library in <String>[
+    'package:flutter/widgets.dart',
+    themeImport,
+    siblingAppThemeUri(themeImport, 'color_tokens.dart'),
+    siblingAppThemeUri(themeImport, 'tokens.dart'),
+  ]) {
+    out.writeln("import '$library';");
+  }
+  for (final source in <String>[
+    _colorsSource(values, 'light', values.light),
+    _colorsSource(values, 'dark', values.dark),
+    _tokensSource(values, 'Light', values.lightShadow),
+    _tokensSource(values, 'Dark', values.darkShadow),
+    if (values.hasFonts) _fontsSource(values),
+    _buildSource(values),
+  ]) {
+    out
+      ..writeln()
+      ..writeln(source);
+  }
+  return out.toString();
+}
+
+String _colorsSource(
+  AppThemeValues values,
+  String mode,
+  Map<String, int> colors,
+) {
+  final args = <String>[
+    'brightness: Brightness.${mode == 'light' ? 'light' : 'dark'}',
+    for (final key in appThemeColorTokenKeys)
+      '$key: Color(0x${_argb(colors[key]!)})',
+  ];
+  final head =
+      'const ShadcnColors ${values.prefix}${capitalizeAppThemeId(mode)}Colors = '
+      'ShadcnColors';
+  return '''/// Colour tokens for the ${values.name} preset, $mode brightness.
+${_call(head, args, suffix: ';')}''';
+}
+
+String _tokensSource(
+  AppThemeValues values,
+  String mode,
+  AppThemeShadowAtoms shadow,
+) {
+  final args = <String>[
+    'radius: ${_num(values.radius)}',
+    'spacingBase: ${_num(values.spacing * 16)}',
+    for (final step in const ['normal', 'tight', 'wide'])
+      if (values.tracking.containsKey(step))
+        'tracking${capitalizeAppThemeId(step)}: '
+            '${_num(values.tracking[step]! * 16)}',
+    _call(
+      'shadows: ShadowScale.derive',
+      <String>[
+        'color: Color(0x${_argb(shadow.color)})',
+        'opacity: ${_num(shadow.opacity)}',
+        'blur: ${_num(shadow.blur)}',
+        'spread: ${_num(shadow.spread)}',
+        'offsetX: ${_num(shadow.offsetX)}',
+        'offsetY: ${_num(shadow.offsetY)}',
+      ],
+      indent: '  ',
+      appended: 1,
+    ),
+  ];
+  final head = 'final ShadcnTokens ${values.prefix}$mode'
+      'Tokens = ShadcnTokens';
+  return '''/// Non-colour tokens for the ${values.name} preset, ${mode.toLowerCase()} brightness.
+${_call(head, args, suffix: ';')}''';
+}
+
+String _fontsSource(AppThemeValues values) {
+  final args = <String>[
+    for (final slot in const ['sans', 'serif', 'mono'])
+      if (values.fonts.containsKey(slot))
+        'font${capitalizeAppThemeId(slot)}: ${_quote(values.fonts[slot]!)}',
+  ];
+  return '''/// Mode-independent font families for the ${values.name} preset.
+${_call('const ShadcnFonts ${values.prefix}Fonts = ShadcnFonts', args, suffix: ';')}''';
+}
+
+String _buildSource(AppThemeValues values) {
+  final args = <String>[
+    'colors: isDark ? ${values.prefix}DarkColors : ${values.prefix}LightColors',
+    'tokens: isDark ? ${values.prefix}DarkTokens : ${values.prefix}LightTokens',
+    if (values.hasFonts) 'fonts: ${values.prefix}Fonts',
+  ];
+  return '''/// Builds the ambient theme for the ${values.name} preset.
+ShadcnThemeData build${values.classPrefix}Theme(Brightness brightness) {
+  final isDark = brightness == Brightness.dark;
+  ${_call('return ShadcnThemeData', args, indent: '  ', suffix: ';')}
+}''';
+}
+
+/// Renders `head(a: 1, b: 2)` plus [suffix] on one line when the whole
+/// statement fits in 80 columns, otherwise one argument per line with a
+/// trailing comma and the closing parenthesis back at [indent]. [appended] is
+/// the number of characters the caller puts after this call (the `,` of the
+/// enclosing argument list); it counts towards the one line fit but is not
+/// emitted, so an exploded nested call still ends with a single comma.
+///
+/// This is exactly the tall style `dart format` produces, which is what keeps
+/// the emitted file format clean without a `dart_style` dependency.
+String _call(
+  String head,
+  List<String> args, {
+  String indent = '',
+  String suffix = '',
+  int appended = 0,
+}) {
+  final flat = '$head(${args.join(', ')})$suffix';
+  if (indent.length + flat.length + appended <= 80) return flat;
+  final body = args.map((a) => '$indent  $a').join(',\n');
+  return '$head(\n$body,\n$indent)$suffix';
+}
+
+/// `0xFFAABBCC`, always eight upper case digits.
+String _argb(int argb) => argb.toRadixString(16).padLeft(8, '0').toUpperCase();
+
+/// Shortest round-tripping Dart literal for [value] (`-30.0`, `3.84`, `0.0`).
+String _num(double value) => value.toString();
+
+/// Single-quoted Dart string literal; escapes `\` and `'`.
+String _quote(String value) =>
+    "'${value.replaceAll(r'\', r'\\').replaceAll("'", r"\'")}'";

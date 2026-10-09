@@ -1,0 +1,111 @@
+{
+  "$schema": "./registry.schema.json",
+  "components": {
+    "button": {
+      "api": {
+        "classes": [
+          "FixtureButton"
+        ]
+      },
+      "category": "control",
+      "deps": {
+        "components": [],
+        "foundation": [
+          "data"
+        ],
+        "primitives": [
+          "clickable"
+        ],
+        "theme": [
+          "theme"
+        ]
+      },
+      "description": "Fixture button.",
+      "entry": "components/button/button.dart",
+      "files": [
+        "components/button/button.dart"
+      ],
+      "import": "package:test_app/ui/shadcn/components/button/button.dart",
+      "name": "Button",
+      "tags": [
+        "core"
+      ],
+      "theme": {
+        "class": "FixtureButtonTheme",
+        "userFile": "components/button/button_theme.dart"
+      },
+      "userOwned": [
+        "components/button/button_theme.dart"
+      ]
+    }
+  },
+  "fileHashes": {
+    "components/button/button.dart": "65f899a6f85f736f2c9346d40cf419990eb19fb53162afeeddf83d7d2ddea427",
+    "components/button/button_theme.dart": "cbd821a7384f86b432482146d045fd29139dfa3a08b1091482f6c95baa9fa4a8",
+    "foundation/data.dart": "e7fb3cedca465f09e791ba9584c8b9a2ee74200dde1f4d6caa2a3b6db7d77cf9",
+    "primitives/clickable.dart": "87a0f2c5eb3af2f39d0cf2f9264205f2ebdfe7d634a74ddab3eae91df05f6487",
+    "theme/color_tokens.dart": "651327fcf8eff5056d0353c7b7bf1b1cff58a361449aa1b9c5ef2470eec2a53a",
+    "theme/theme.dart": "3b8014ac316b3dd0e9db1081f89d2d12ee8376fdbff1a315b9539a06ae7037c5",
+    "theme/tokens.dart": "c202e9a93b1e9e9aa93c813e3e4f817d6f20fbe16199683be2fc85cf718bbbcb",
+    "themes/claude.json": "cb6df887ecf2e829863337ce7bcaf5757f8621103c349e572fac500bd484b092",
+    "themes/vercel.json": "ffe61931ae1f61394cf25f6e563194df18ed7a06c6f0f48d09a2e0df6fae163f"
+  },
+  "foundation": {
+    "data": {
+      "files": [
+        "foundation/data.dart"
+      ]
+    }
+  },
+  "install": {
+    "componentsDir": "components",
+    "layerDirs": {
+      "foundation": "foundation",
+      "primitives": "primitives",
+      "theme": "theme"
+    },
+    "root": "lib/ui/shadcn",
+    "userOwnedSuffix": "_theme.dart"
+  },
+  "primitives": {
+    "clickable": {
+      "files": [
+        "primitives/clickable.dart"
+      ]
+    }
+  },
+  "registry": {
+    "generatedAt": "2026-10-09T00:00:00Z",
+    "name": "shadcn_flutter",
+    "ref": "test",
+    "version": "2.0.0"
+  },
+  "schemaVersion": 2,
+  "theme": {
+    "theme": {
+      "files": [
+        "theme/theme.dart",
+        "theme/color_tokens.dart",
+        "theme/tokens.dart"
+      ]
+    }
+  },
+  "themes": {
+    "claude": {
+      "file": "themes/claude.json",
+      "modes": [
+        "light",
+        "dark"
+      ],
+      "name": "Claude"
+    },
+    "vercel": {
+      "file": "themes/vercel.json",
+      "modes": [
+        "light",
+        "dark"
+      ],
+      "name": "Vercel"
+    }
+  }
+}
