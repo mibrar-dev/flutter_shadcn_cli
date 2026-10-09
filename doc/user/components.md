@@ -35,7 +35,6 @@ The CLI writes:
 
 - the depth-preserving install root (default `lib/ui/shadcn/`): `foundation/`, `theme/`, `primitives/`, `components/<id>/`
 - `<installRoot>/theme/app_theme.dart` (generated from a theme preset)
-- `<installRoot>/analysis_options.yaml` (keeps the vendored tree out of the host app's lint rules)
 - `.shadcn/config.json` and `shadcn.lock`
 - `pubspec.yaml`, when the closure declares managed packages
 

@@ -67,7 +67,7 @@ Expected:
 - `.shadcn/config.json` exists.
 - `shadcn.lock` exists with `lockfileVersion: 2`.
 - `lib/ui/shadcn/foundation/` and `lib/ui/shadcn/theme/` exist.
-- `lib/ui/shadcn/theme/app_theme.dart` and `lib/ui/shadcn/analysis_options.yaml` exist.
+- `lib/ui/shadcn/theme/app_theme.dart` exists.
 - Init can be repeated without corrupting config or duplicating dependencies.
 
 ## Pass 3: Discovery

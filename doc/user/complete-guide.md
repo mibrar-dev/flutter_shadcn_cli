@@ -66,7 +66,6 @@ What `init` does:
 - copies every `foundation/` and `theme/` unit (no component)
 - writes `.shadcn/config.json` and `shadcn.lock` (lockfileVersion 2)
 - generates `<installRoot>/theme/app_theme.dart` from a preset
-- writes `<installRoot>/analysis_options.yaml` so the vendored tree stays out of the host app's lint rules
 
 Choose a preset or install root:
 
@@ -355,7 +354,7 @@ flutter_shadcn audit
 flutter analyze
 ```
 
-The CLI writes `<installRoot>/analysis_options.yaml` so vendored registry code does not pollute the host app's lint rules.
+The registry sources are lint-clean under a stock app's `flutter_lints`, so the install root needs no nested analyzer configuration.
 
 ### You need to undo CLI-managed files
 

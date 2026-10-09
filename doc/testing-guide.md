@@ -51,7 +51,7 @@ Expected result:
 - `.shadcn/config.json` exists.
 - `shadcn.lock` exists (`lockfileVersion: 2`).
 - `lib/ui/shadcn/foundation/` and `lib/ui/shadcn/theme/` exist.
-- `lib/ui/shadcn/theme/app_theme.dart` and `lib/ui/shadcn/analysis_options.yaml` exist.
+- `lib/ui/shadcn/theme/app_theme.dart` exists.
 
 List components:
 
@@ -121,7 +121,6 @@ The important files/folders are:
 shadcn.lock
 lib/ui/shadcn/foundation/
 lib/ui/shadcn/theme/
-lib/ui/shadcn/analysis_options.yaml
 ```
 
 Run init again:

@@ -87,7 +87,6 @@ Every install keeps the registry's directory depth so the relative imports insid
 
 ```
 lib/ui/shadcn/
-  analysis_options.yaml      # generated; keeps the vendored tree out of the host app's lint rules
   foundation/…               # shared primitives
   theme/…                    # theme tokens + the generated app_theme.dart
   primitives/…               # UI primitives

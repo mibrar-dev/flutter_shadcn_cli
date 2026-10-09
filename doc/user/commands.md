@@ -39,7 +39,6 @@ What it does:
 - copies every `foundation/` and `theme/` unit (no component)
 - writes `.shadcn/config.json` and `shadcn.lock` (lockfileVersion 2)
 - generates `<installRoot>/theme/app_theme.dart` from the chosen preset
-- writes `<installRoot>/analysis_options.yaml` so the vendored tree stays out of the host app's lint rules
 
 Options:
 
