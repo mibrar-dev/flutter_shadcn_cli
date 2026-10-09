@@ -1,6 +1,6 @@
 # flutter_shadcn info
 
-> Show component details.
+> Show a component's closure, files and api.
 
 ## Aliases
 
@@ -9,7 +9,7 @@
 ## Usage
 
 ```bash
-flutter_shadcn info <component> [flags]
+flutter_shadcn info <component> [--json]
 ```
 
 ## Arguments
@@ -22,14 +22,13 @@ flutter_shadcn info <component> [flags]
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--refresh` |  | `false` | Refresh cached registry data before loading details. |
 | `--json` |  | `false` | Output machine-readable JSON. |
 
 ## Examples
 
 ```bash
 flutter_shadcn info button
-flutter_shadcn i @shadcn/dialog
+flutter_shadcn i dialog
 ```
 
 ## See Also

@@ -1,151 +1,157 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:flutter_shadcn_cli/src/core/utils/component_ref_normalizer.dart';
-import 'package:flutter_shadcn_cli/src/discovery_commands.dart';
+import 'package:flutter_shadcn_cli/src/application/services/manifest_closure.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
-import 'package:flutter_shadcn_cli/src/installer.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
-import 'package:flutter_shadcn_cli/src/logger.dart';
-import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
-import 'package:flutter_shadcn_cli/src/registry/component.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_context.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
+/// `flutter_shadcn info <component> [--json]`: dependency closure, files, api
+/// and theme class for one component (P5_CLI_PLAN.md §2).
 Future<int> runInfoCommand({
   required ArgResults infoCommand,
-  required MultiRegistryManager multiRegistry,
-  required CliLogger logger,
-  Installer? installer,
+  required ArgResults rootArgs,
+  required String projectRoot,
+  String? registryOverride,
+  bool offline = false,
 }) async {
-  if (infoCommand['help'] == true) {
-    print(
-        'Usage: flutter_shadcn info <component-id|@namespace/component> [--refresh] [--json]');
-    print('');
-    print('Shows detailed information about a component.');
-    print('Options:');
-    print('  --refresh  Refresh cache from remote');
-    print('  --json     Output machine-readable JSON');
+  final json = commandFlag(infoCommand, 'json');
+  final logger = commandLogger(rootArgs, json: json);
+
+  if (commandFlag(infoCommand, 'help')) {
+    stdout.writeln('Usage: flutter_shadcn info <component> [--json]');
+    stdout.writeln('');
+    stdout
+        .writeln('Shows the dependency closure, files and api of a component.');
     return ExitCodes.success;
   }
-  if (infoCommand.rest.length > 1) {
-    return _rejectMultipleComponents(
-      infoCommand: infoCommand,
-      ids: infoCommand.rest,
-    );
-  }
-  final componentToken =
-      infoCommand.rest.isNotEmpty ? infoCommand.rest.first : '';
-  if (componentToken.isEmpty) {
-    print('Usage: flutter_shadcn info <component-id>');
-    return ExitCodes.usage;
-  }
-  String componentId = componentToken;
-  String? namespaceOverride;
-  final qualified = MultiRegistryManager.parseComponentRef(componentToken);
-  if (qualified != null) {
-    namespaceOverride = qualified.namespace;
-    componentId = qualified.componentId;
-  } else if (ComponentRefNormalizer.looksQualified(componentToken)) {
-    stderr.writeln(
-      'Error: Invalid component address "$componentToken". Use @namespace/component',
-    );
-    return ExitCodes.usage;
-  }
 
-  late final DiscoveryRegistryTarget target;
-  try {
-    target = await multiRegistry.resolveDiscoveryTarget(
-      namespace: namespaceOverride,
+  final ids = componentIdsFrom(infoCommand);
+  if (ids.isEmpty) {
+    stdout.writeln('Usage: flutter_shadcn info <component>');
+    return ExitCodes.usage;
+  }
+  if (ids.length > 1) {
+    logger.errorToStderr(
+      'Error: info accepts a single component id. Got ${ids.length}: '
+      '${ids.join(', ')}.',
     );
-  } on MultiRegistryException catch (e) {
-    // Mirror list_command: clean registry_not_found envelope, never crash,
-    // never prompt (especially in --json mode).
-    if (infoCommand['json'] == true) {
+    return ExitCodes.usage;
+  }
+  final id = ids.first;
+
+  try {
+    final context = await CommandContextResolver.resolve(
+      projectRoot: projectRoot,
+      logger: logger,
+      registryOverride: registryOverride,
+      offline: offline,
+    );
+    final manifest = context.loadedManifest.manifest;
+    final component = manifest.components[id];
+    if (component == null) {
+      if (json) {
+        printJson(jsonEnvelope(
+          command: 'info',
+          data: {'id': id},
+          errors: [
+            jsonError(
+              code: ExitCodeLabels.componentMissing,
+              message: 'Component "$id" is not in the registry manifest.',
+            ),
+          ],
+          meta: {'exitCode': ExitCodes.componentMissing},
+        ));
+      } else {
+        logger.errorToStderr('Error: component "$id" is not in the registry.');
+      }
+      return ExitCodes.componentMissing;
+    }
+
+    final closure = ManifestClosureResolver(manifest).resolve([id]);
+    final data = <String, dynamic>{
+      'id': component.id,
+      'name': component.name,
+      'category': component.category,
+      'description': component.description,
+      'tags': component.tags,
+      'entry': component.entry,
+      'installRoot': context.installRoot,
+      'import': _importPath(context.installRoot, component.entry),
+      'files': component.files,
+      'userOwned': component.userOwned,
+      'deps': {
+        'components': component.deps.components,
+        'primitives': component.deps.primitives,
+        'foundation': component.deps.foundation,
+        'theme': component.deps.theme,
+      },
+      'closure': {
+        'components': closure.components,
+        'primitives': closure.primitives,
+        'foundation': closure.foundation,
+        'theme': closure.theme,
+      },
+      'api': component.api.groups,
+      'themeClass': component.theme?.className,
+    };
+
+    if (json) {
       printJson(jsonEnvelope(
         command: 'info',
-        data: const {},
-        errors: [
-          jsonError(
-            code: ExitCodeLabels.registryNotFound,
-            message: e.message,
-          ),
-        ],
-        meta: {'exitCode': ExitCodes.registryNotFound},
+        data: data,
+        meta: {'exitCode': ExitCodes.success},
       ));
-    } else {
-      stderr.writeln('Error: ${e.message}');
+      return ExitCodes.success;
     }
-    return ExitCodes.registryNotFound;
+
+    stdout.writeln('${component.id} — ${component.name}');
+    stdout.writeln('  category:    ${component.category}');
+    stdout.writeln('  description: ${component.description}');
+    if (component.tags.isNotEmpty) {
+      stdout.writeln('  tags:        ${component.tags.join(', ')}');
+    }
+    stdout.writeln('  import:      ${data['import']}');
+    if (component.theme?.className != null) {
+      stdout.writeln('  theme class: ${component.theme!.className}');
+    }
+    stdout.writeln('');
+    stdout.writeln('Dependencies (direct):');
+    _printList('  components', component.deps.components);
+    _printList('  primitives', component.deps.primitives);
+    _printList('  foundation', component.deps.foundation);
+    _printList('  theme', component.deps.theme);
+    stdout.writeln('');
+    stdout.writeln('Closure:');
+    _printList('  components', closure.components);
+    _printList('  primitives', closure.primitives);
+    stdout.writeln('');
+    stdout.writeln('Files (${component.files.length}):');
+    for (final file in component.files) {
+      stdout.writeln('  $file');
+    }
+    if (component.userOwned.isNotEmpty) {
+      stdout.writeln('User-owned (never overwritten):');
+      for (final file in component.userOwned) {
+        stdout.writeln('  $file');
+      }
+    }
+    return ExitCodes.success;
+  } catch (error) {
+    return reportCommandError(error, logger);
   }
-  final registryComponent = _resolveManifestComponent(
-    installer: installer,
-    componentId: componentId,
-    discoveryNamespace: target.namespace,
-  );
-  final infoExit = await handleInfoCommand(
-    componentId: componentId,
-    registryBaseUrl: target.registryBase,
-    registryId: target.registryId,
-    refresh: infoCommand['refresh'] == true,
-    offline: multiRegistry.offline,
-    jsonOutput: infoCommand['json'] == true,
-    logger: logger,
-    indexPath: target.indexPath,
-    indexSchemaPath: target.indexSchemaPath,
-    registryComponent: registryComponent,
-  );
-  return infoExit;
 }
 
-/// Fails loudly when more than one component is requested: `info` only
-/// supports a single component, so silently answering the first one would
-/// mislead scripts and users.
-int _rejectMultipleComponents({
-  required ArgResults infoCommand,
-  required List<String> ids,
-}) {
-  const message =
-      'info accepts a single component id. Pass one component per invocation.';
-  if (infoCommand['json'] == true) {
-    printJson(jsonEnvelope(
-      command: 'info',
-      data: {
-        'ids': ids,
-      },
-      errors: [
-        jsonError(
-          code: ExitCodeLabels.usage,
-          message: '$message Got ${ids.length}: ${ids.join(', ')}.',
-          details: {'ids': ids, 'supported': 1},
-        ),
-      ],
-      meta: {'exitCode': ExitCodes.usage},
-    ));
-    return ExitCodes.usage;
-  }
-  stderr.writeln('Error: $message Got ${ids.length}: ${ids.join(', ')}.');
-  return ExitCodes.usage;
+String _importPath(String installRoot, String entry) =>
+    "package:<your_app>/${_join(installRoot, entry)}";
+
+String _join(String root, String entry) {
+  final normalizedRoot =
+      root.endsWith('/') ? root.substring(0, root.length - 1) : root;
+  return '$normalizedRoot/$entry';
 }
 
-/// Looks up the manifest-backed registry component so `info` can advertise
-/// an import path that is actually installed. Returns `null` when no
-/// preloaded installer is available or when it belongs to a different
-/// registry namespace than the one being described.
-Component? _resolveManifestComponent({
-  required Installer? installer,
-  required String componentId,
-  required String discoveryNamespace,
-}) {
-  final activeInstaller = installer;
-  if (activeInstaller == null) {
-    return null;
-  }
-  final installerNamespace = activeInstaller.registryNamespace;
-  if (installerNamespace != null && installerNamespace != discoveryNamespace) {
-    return null;
-  }
-  try {
-    return activeInstaller.registry.getComponent(componentId);
-  } catch (_) {
-    return null;
-  }
+void _printList(String label, List<String> values) {
+  stdout.writeln('$label: ${values.isEmpty ? '(none)' : values.join(', ')}');
 }

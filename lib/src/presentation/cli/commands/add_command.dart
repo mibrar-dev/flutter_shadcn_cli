@@ -2,72 +2,94 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
-import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/arg_helpers.dart';
-import 'package:flutter_shadcn_cli/src/registry.dart';
+import 'package:flutter_shadcn_cli/src/json_output.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_context.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
+/// `flutter_shadcn add` with component ids [--dry-run] [--json] [--force] [--all]
+/// [--include-preview]` (P5_CLI_PLAN.md §2.2).
+///
+/// Resolves the transitive closure, applies the single-owner preflight, copies
+/// the files verbatim and refreshes `shadcn.lock` v2. User-owned
+/// `<name>_theme.dart` files are never overwritten.
 Future<int> runAddCommand({
   required ArgResults addCommand,
-  required MultiRegistryManager multiRegistry,
+  required ArgResults rootArgs,
+  required String projectRoot,
+  String? registryOverride,
+  bool offline = false,
 }) async {
-  final Set<String> includeFileKinds;
-  final Set<String> excludeFileKinds;
-  try {
-    includeFileKinds = parseFileKindOptions(
-      addCommand['include-files'] as List,
-      optionName: 'include-files',
-    );
-    excludeFileKinds = parseFileKindOptions(
-      addCommand['exclude-files'] as List,
-      optionName: 'exclude-files',
-    );
-  } on CliArgumentException catch (e) {
-    stderr.writeln(e.message);
-    return ExitCodes.usage;
-  }
-  if (includeFileKinds.isNotEmpty && excludeFileKinds.isNotEmpty) {
-    stderr.writeln(
-      'Error: --include-files and --exclude-files cannot be used together.',
-    );
-    return ExitCodes.usage;
-  }
+  final json = commandFlag(addCommand, 'json');
+  final dryRun = commandFlag(addCommand, 'dry-run');
+  final logger = commandLogger(rootArgs, json: json);
 
-  if (addCommand['help'] == true) {
-    print(
-        'Usage: flutter_shadcn add <@namespace/component> [<@namespace/component> ...]');
-    print(
-        '       flutter_shadcn add <component> [<component> ...]  # resolves using default/enabled registries');
-    print('Options:');
-    print(
-        '  --include-files   Optional kinds to include: readme, preview, meta');
-    print(
-        '  --exclude-files   Optional kinds to exclude: readme, preview, meta');
-    print('  --help, -h         Show this message');
+  if (commandFlag(addCommand, 'help')) {
+    _printAddHelp();
     return ExitCodes.success;
   }
-  final rest = addCommand.rest;
-  if (rest.isEmpty) {
-    print('Usage: flutter_shadcn add <component>');
-    print('       flutter_shadcn add @namespace/component');
+
+  final includeAll = commandFlag(addCommand, 'all');
+  final force = commandFlag(addCommand, 'force');
+  final includePreview = commandFlag(addCommand, 'include-preview');
+  final requested = componentIdsFrom(addCommand);
+  if (!includeAll && requested.isEmpty) {
+    _printAddHelp();
     return ExitCodes.usage;
   }
 
   try {
-    await multiRegistry.runAdd(
-      rest,
-      includeFileKinds: includeFileKinds,
-      excludeFileKinds: excludeFileKinds,
+    final context = await CommandContextResolver.resolve(
+      projectRoot: projectRoot,
+      logger: logger,
+      registryOverride: registryOverride,
+      offline: offline,
     );
+    final ids = includeAll
+        ? (context.loadedManifest.manifest.components.keys.toList()..sort())
+        : requested;
+
+    final report = await context.installer.add(
+      ids,
+      dryRun: dryRun,
+      includePreview: includePreview,
+      overwrite: force,
+      includeCore: true,
+    );
+
+    if (json) {
+      printJson(jsonEnvelope(
+        command: 'add',
+        data: report.toJson(),
+        meta: {'exitCode': ExitCodes.success},
+      ));
+    } else if (!report.applied) {
+      report.plan.writeHuman(logger);
+    } else {
+      report.writeHuman(logger);
+    }
     return ExitCodes.success;
-  } catch (e) {
-    stderr.writeln('Error: $e');
-    if (e is RegistrySchemaValidationException ||
-        '$e'.contains('schema validation failed')) {
-      return ExitCodes.schemaInvalid;
-    }
-    if ('$e'.contains('ambiguous')) {
-      return ExitCodes.usage;
-    }
-    return ExitCodes.componentMissing;
+  } catch (error) {
+    return reportCommandError(error, logger);
   }
+}
+
+void _printAddHelp() {
+  stdout.writeln('Usage: flutter_shadcn add <component...> [flags]');
+  stdout.writeln('       flutter_shadcn add --all [flags]');
+  stdout.writeln('');
+  stdout
+      .writeln('Installs the transitive closure of the requested components:');
+  stdout.writeln(
+      'components, primitives, and the always-on foundation/theme core.');
+  stdout.writeln('');
+  stdout.writeln('Options:');
+  stdout
+      .writeln('  --all               Install every component in the registry');
+  stdout
+      .writeln('  --dry-run           Print the plan without writing anything');
+  stdout.writeln(
+      '  --force             Overwrite locally modified registry files');
+  stdout.writeln('  --include-preview   Also copy each component preview.dart');
+  stdout.writeln('  --json              Machine-readable output on stdout');
+  stdout.writeln('  --help, -h          Show this message');
 }

@@ -1,38 +1,40 @@
 # flutter_shadcn init
 
-> Initialize shadcn_flutter in the current project.
+> Install the layer core and generate the app theme.
 
 ## Usage
 
 ```bash
-flutter_shadcn init [namespace] [flags]
+flutter_shadcn init [flags]
 ```
 
 ## Arguments
 
-| Argument | Required | Description |
-|----------|----------|-------------|
-| `[namespace]` | No | Registry namespace to initialize from. |
+This command does not define positional arguments.
 
 ## Flags
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--yes` | `-y` | `false` | Run non-interactively and use defaults. |
+| `--dir <path>` |  |  | Install root (default: lib/ui/shadcn). |
+| `--theme <id>` |  |  | Theme preset id (default: vercel). |
+| `--yes` | `-y` | `false` | Non-interactive; use the default preset. |
+| `--json` |  | `false` | Output machine-readable JSON. |
 
 ## Examples
 
 ```bash
 flutter_shadcn init
-flutter_shadcn init shadcn --yes
+flutter_shadcn init --theme vercel --yes
 ```
 
 ## Notes
 
-`init` runs inline registry bootstrap actions from `registries.json`. Non-interactive `init --yes` installs the required project surface only; optional fonts, icons, and asset packs are installed with `assets`.
+Copies every foundation and theme unit (no component), writes .shadcn/config.json and shadcn.lock v2, and generates <installRoot>/theme/app_theme.dart from the chosen preset.
 
 ## See Also
 
 - [`flutter_shadcn registries`](registries.md)
 - [`flutter_shadcn default`](default.md)
-- [`flutter_shadcn sync`](sync.md)
+- [`flutter_shadcn theme`](theme.md)
+- [`flutter_shadcn add`](../components/add.md)

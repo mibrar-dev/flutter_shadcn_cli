@@ -1,6 +1,6 @@
 # flutter_shadcn default
 
-> Set or show the default registry namespace and source mode.
+> Set or show the default registry namespace.
 
 ## Usage
 
@@ -12,7 +12,7 @@ flutter_shadcn default [namespace] [--local | --remote]
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `[namespace]` | No | Registry namespace to set as default. |
+| `[namespace]` | No | Namespace to set as default. |
 
 ## Flags
 
@@ -22,9 +22,7 @@ This command does not define command-specific flags.
 
 ```bash
 flutter_shadcn default
-flutter_shadcn default shadcn
-flutter_shadcn --advanced default shadcn --local
-flutter_shadcn --advanced default shadcn --remote
+flutter_shadcn default shadcn --remote
 ```
 
 ## See Also

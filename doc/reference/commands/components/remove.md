@@ -1,6 +1,6 @@
 # flutter_shadcn remove
 
-> Remove one or more installed components.
+> Remove installed components and orphaned layer files.
 
 ## Aliases
 
@@ -22,8 +22,10 @@ flutter_shadcn remove <component...> [flags]
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--all` | `-a` | `false` | Remove all installed components. |
-| `--force` | `-f` | `false` | Skip confirmation prompts. |
+| `--all` | `-a` | `false` | Remove every installed component. |
+| `--force` | `-f` | `false` | Remove even when dependents remain. |
+| `--purge-user-themes` |  | `false` | Also delete <name>_theme.dart user files. |
+| `--json` |  | `false` | Output machine-readable JSON. |
 
 ## Examples
 

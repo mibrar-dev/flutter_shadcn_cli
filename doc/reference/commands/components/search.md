@@ -1,31 +1,29 @@
 # flutter_shadcn search
 
-> Search for components.
+> Search components by name, description or tag.
 
 ## Usage
 
 ```bash
-flutter_shadcn search <query> [flags]
+flutter_shadcn search <query> [--json]
 ```
 
 ## Arguments
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<query>` | No | Search text to match. |
+| `<query>` | Yes | Search text. |
 
 ## Flags
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--refresh` |  | `false` | Refresh cached registry data before searching. |
 | `--json` |  | `false` | Output machine-readable JSON. |
 
 ## Examples
 
 ```bash
 flutter_shadcn search button
-flutter_shadcn search input --json
 ```
 
 ## See Also

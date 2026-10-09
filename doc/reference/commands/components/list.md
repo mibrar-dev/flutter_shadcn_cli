@@ -9,7 +9,7 @@
 ## Usage
 
 ```bash
-flutter_shadcn list [flags]
+flutter_shadcn list [--json]
 ```
 
 ## Arguments
@@ -20,14 +20,13 @@ This command does not define positional arguments.
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--refresh` |  | `false` | Refresh cached registry data before listing. |
 | `--json` |  | `false` | Output machine-readable JSON. |
 
 ## Examples
 
 ```bash
 flutter_shadcn list
-flutter_shadcn ls --refresh
+flutter_shadcn ls --json
 ```
 
 ## See Also

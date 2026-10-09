@@ -228,7 +228,7 @@ void main() {
       expect(result.errors, contains(contains('unknown key "foundation"')));
     });
 
-    test('rejects a primitive dependency cycle', () {
+    test('accepts a primitive dependency cycle (plan §9.7)', () {
       final data = clone();
       updateUnit(data, 'primitives', 'clickable', (unit) {
         unit['deps'] = {
@@ -236,7 +236,22 @@ void main() {
         };
       });
       final result = ManifestSchemaValidator.validate(data);
-      expect(result.errors, contains(contains('cycle')));
+      expect(result.isValid, isTrue);
+      expect(result.errors, isEmpty);
+    });
+
+    test('still rejects a primitive dep on a missing primitive', () {
+      final data = clone();
+      updateUnit(data, 'primitives', 'clickable', (unit) {
+        unit['deps'] = {
+          'primitives': ['form_core', 'missing'],
+        };
+      });
+      final result = ManifestSchemaValidator.validate(data);
+      expect(
+        result.errors,
+        contains(contains('unknown primitive id "missing"')),
+      );
     });
   });
 

@@ -22,10 +22,6 @@ This command does not define command-specific flags.
 flutter_shadcn reset
 ```
 
-## Notes
-
-This command affects only global CLI state under the user home directory. It does not remove project files or uninstall the executable.
-
 ## See Also
 
 - [`flutter_shadcn project`](../project/project.md)

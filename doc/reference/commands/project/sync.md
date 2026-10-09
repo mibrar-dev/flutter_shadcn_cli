@@ -1,6 +1,6 @@
 # flutter_shadcn sync
 
-> Sync paths and theme from .shadcn/config.json.
+> Re-apply the installed closure and locked theme.
 
 ## Usage
 
@@ -26,3 +26,4 @@ flutter_shadcn sync
 
 - [`flutter_shadcn init`](init.md)
 - [`flutter_shadcn audit`](../diagnostics/audit.md)
+- [`flutter_shadcn update`](../components/update.md)

@@ -1,403 +1,323 @@
-import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_install_part.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
-import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/application/services/manifest_closure.dart';
+import 'package:flutter_shadcn_cli/src/application/services/registry_manifest_loader.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
-import 'package:flutter_shadcn_cli/src/logger.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/arg_helpers.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/platform_targets.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/registry_selection.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/runtime_roots.dart';
-import 'package:flutter_shadcn_cli/src/registry.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_context.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 import 'package:path/path.dart' as p;
+import 'package:yaml/yaml.dart';
 
-Future<int> runDoctorCommand(
-  ResolvedRoots roots,
-  ArgResults args,
-  ShadcnConfig config,
-) async {
-  final offline = args['offline'] == true;
-  final jsonOutput = args.command?['json'] == true;
-  final logger = CliLogger(verbose: args['verbose'] == true);
-  final selection = resolveRegistrySelection(args, roots, config, offline);
-  final envRoot = Platform.environment['SHADCN_REGISTRY_ROOT'];
-  final envUrl = Platform.environment['SHADCN_REGISTRY_URL'];
-  final pubCache = Platform.environment['PUB_CACHE'] ??
-      p.join(Platform.environment['HOME'] ?? '', '.pub-cache');
-  final cachePath = componentsJsonCachePath(selection.registryRoot);
-  final componentsSource = selection.registryRoot.describe(
-    selection.componentsPath,
-  );
-  Map<String, dynamic>? registryData;
-  SchemaSource? schemaSource;
-  bool? schemaValid;
-  final schemaErrors = <String>[];
+/// Doctor exit codes (plan §2.5).
+class DoctorExit {
+  static const int clean = 0;
+  static const int drift = 1;
+  static const int brokenClosure = 2;
+  static const int manifestInvalid = 3;
+}
+
+/// `flutter_shadcn doctor [--json]` (P5_CLI_PLAN.md §2.5).
+///
+/// Checks the manifest, the installed closure, the layer layout, per-file lock
+/// drift, user-owned files, the pubspec SDK deps and the import-depth guard.
+Future<int> runDoctorCommand({
+  required ArgResults doctorCommand,
+  required ArgResults rootArgs,
+  required String projectRoot,
+  String? registryOverride,
+  bool offline = false,
+}) async {
+  final json = commandFlag(doctorCommand, 'json');
+  final logger = commandLogger(rootArgs, json: json);
+
+  if (commandFlag(doctorCommand, 'help')) {
+    stdout.writeln('Usage: flutter_shadcn doctor [--json]');
+    stdout.writeln('');
+    stdout
+        .writeln('Diagnoses the registry manifest and the installed project.');
+    return ExitCodes.success;
+  }
+
+  final CommandContext context;
   try {
-    final content = await readComponentsJson(selection, offline: offline);
-    final decoded = jsonDecode(content);
-    if (decoded is Map<String, dynamic>) {
-      registryData = decoded;
-      schemaSource = ComponentsSchemaValidator.resolveSchemaSource(
-        data: decoded,
-        registryRoot: selection.registryRoot,
-      );
-    }
-  } catch (e) {
-    final message = e.toString();
-    final exitCode = message.contains('Offline mode')
-        ? ExitCodes.offlineUnavailable
-        : ExitCodes.networkError;
-    if (jsonOutput) {
-      final payload = jsonEnvelope(
+    context = await CommandContextResolver.resolve(
+      projectRoot: projectRoot,
+      logger: logger,
+      registryOverride: registryOverride,
+      offline: offline,
+    );
+  } on RegistryManifestException catch (error) {
+    if (json) {
+      printJson(jsonEnvelope(
         command: 'doctor',
-        data: {
-          'registry': {
-            'mode': selection.mode,
-            'root': selection.registryRoot.root,
-            'componentsJson': componentsSource,
-            'cache': cachePath ?? '(local registry, no cache)',
-          },
-        },
+        data: const {},
         errors: [
           jsonError(
-            code: message.contains('Offline mode')
-                ? ExitCodeLabels.offlineUnavailable
-                : ExitCodeLabels.networkError,
-            message: message,
+            code: ExitCodeLabels.schemaInvalid,
+            message: error.message,
+            details: {'issues': error.details},
           ),
         ],
-        meta: {
-          'exitCode': exitCode,
-        },
-      );
-      printJson(payload);
-      return exitCode;
+        meta: {'exitCode': DoctorExit.manifestInvalid},
+      ));
+    } else {
+      logger.errorToStderr('Error: ${error.message}');
+      for (final line in error.details) {
+        logger.errorToStderr('  - $line');
+      }
     }
-    logger.error('Failed to load components.json: $message');
+    return DoctorExit.manifestInvalid;
+  } catch (error) {
+    return reportCommandError(error, logger);
+  }
+
+  final report = await _Diagnosis.run(context);
+  final exitCode = report.exitCode;
+
+  if (json) {
+    printJson(jsonEnvelope(
+      command: 'doctor',
+      data: report.toJson(),
+      errors: [
+        for (final issue in report.errors)
+          jsonError(code: issue.code, message: issue.message),
+      ],
+      warnings: [
+        for (final issue in report.warnings)
+          jsonWarning(code: issue.code, message: issue.message),
+      ],
+      meta: {'exitCode': exitCode},
+    ));
     return exitCode;
   }
 
-  if (schemaSource != null && registryData != null) {
-    try {
-      final result = await ComponentsSchemaValidator.validateWithJsonSchema(
-        registryData,
-        schemaSource,
-      );
-      schemaValid = result.isValid;
-      schemaErrors.addAll(result.errors);
-    } catch (e) {
-      schemaValid = false;
-      schemaErrors.add('Failed to validate schema: $e');
+  logger.header('flutter_shadcn doctor');
+  logger.section('Registry');
+  logger.info('  root:     ${context.source.describe('')}');
+  logger.info('  manifest: ${context.loadedManifest.path} '
+      '(sha ${context.loadedManifest.sha256.substring(0, 12)})');
+  logger.info('  install:  ${context.installRoot}');
+  logger.section('Installed');
+  logger.info('  components: ${report.installedComponents}');
+  logger.info('  files:      ${report.trackedFiles} '
+      '(${report.modifiedFiles} modified, ${report.missingFiles} missing)');
+  if (report.errors.isEmpty && report.warnings.isEmpty) {
+    logger.success('No issues found.');
+  }
+  for (final issue in report.errors) {
+    logger.error(issue.message);
+  }
+  for (final issue in report.warnings) {
+    logger.warn(issue.message);
+  }
+  return exitCode;
+}
+
+class _Issue {
+  const _Issue(this.code, this.message);
+
+  final String code;
+  final String message;
+}
+
+class _Diagnosis {
+  _Diagnosis();
+
+  final List<_Issue> errors = [];
+  final List<_Issue> warnings = [];
+
+  int installedComponents = 0;
+  int trackedFiles = 0;
+  int modifiedFiles = 0;
+  int missingFiles = 0;
+
+  int get exitCode {
+    if (errors.any((issue) => issue.code == _brokenClosureCode)) {
+      return DoctorExit.brokenClosure;
     }
+    if (errors.isNotEmpty) {
+      return DoctorExit.drift;
+    }
+    return DoctorExit.clean;
   }
 
-  final defaults = (registryData?['defaults'] as Map?)
-          ?.map((key, value) => MapEntry(key.toString(), value.toString())) ??
-      const <String, String>{};
-  final installPath =
-      config.installPath ?? defaults['installPath'] ?? 'lib/ui/shadcn';
-  final sharedPath =
-      config.sharedPath ?? defaults['sharedPath'] ?? 'lib/ui/shadcn/shared';
-  final aliases = config.pathAliases ?? const <String, String>{};
-  final resolvedInstallPath = expandAliasPath(installPath, aliases);
-  final resolvedSharedPath = expandAliasPath(sharedPath, aliases);
-  final installPathOnDisk = ensureLibPrefix(resolvedInstallPath);
-  final sharedPathOnDisk = ensureLibPrefix(resolvedSharedPath);
-  final installPathValid = isLibPath(resolvedInstallPath);
-  final sharedPathValid = isLibPath(resolvedSharedPath);
-  final installPathExists =
-      Directory(p.join(Directory.current.path, installPathOnDisk)).existsSync();
-  final sharedPathExists =
-      Directory(p.join(Directory.current.path, sharedPathOnDisk)).existsSync();
-  final colorSchemePath = p.join(
-    Directory.current.path,
-    sharedPathOnDisk,
-    'theme',
-    'color_scheme.dart',
-  );
-  final colorSchemeExists = File(colorSchemePath).existsSync();
-  final invalidAliases = <String>[];
-  aliases.forEach((name, value) {
-    final aliasPath = p.join(Directory.current.path, ensureLibPrefix(value));
-    if (!Directory(aliasPath).existsSync()) {
-      invalidAliases.add(name);
-    }
-  });
+  static const String _brokenClosureCode = 'broken_closure';
 
-  final platformTargets = mergePlatformTargets(config.platformTargets);
-  final lockRepository = ShadcnLockRepository(Directory.current.path);
-  ShadcnLock lock = const ShadcnLock();
-  final lockfileExists = lockRepository.file.existsSync();
-  String? lockfileError;
-  try {
-    lock = await lockRepository.loadOrSynthesize();
-  } catch (e) {
-    lockfileError = e.toString();
-  }
-  final missingLockedFiles = <String>[];
-  if (lockfileError == null) {
+  Map<String, dynamic> toJson() => {
+        'installedComponents': installedComponents,
+        'trackedFiles': trackedFiles,
+        'modifiedFiles': modifiedFiles,
+        'missingFiles': missingFiles,
+        'errors': [
+          for (final issue in errors)
+            {'code': issue.code, 'message': issue.message},
+        ],
+        'warnings': [
+          for (final issue in warnings)
+            {'code': issue.code, 'message': issue.message},
+        ],
+      };
+
+  static Future<_Diagnosis> run(CommandContext context) async {
+    final diagnosis = _Diagnosis();
+    final manifest = context.loadedManifest.manifest;
+    final lockRepo = ShadcnLockRepository(context.projectRoot);
+    final lock = await lockRepo.load();
+    diagnosis.installedComponents = lock.components.length;
+
+    // Layer layout at the right depth (plan §3). `init` always creates
+    // foundation/ and theme/; `primitives/` and `components/` appear only when
+    // something is installed there, and the closure check below proves those
+    // directories (and every needed file) exist.
+    for (final dir in const ['foundation', 'theme']) {
+      final path = p.join(context.projectRoot, context.installRoot, dir);
+      if (!Directory(path).existsSync()) {
+        diagnosis.errors.add(_Issue(
+          _brokenClosureCode,
+          'Missing layer directory: ${context.installRoot}/$dir',
+        ));
+      }
+    }
+
+    // Closure present: every file the installed closure needs exists on disk.
+    final closure = ManifestClosureResolver(manifest).resolve(
+      lock.componentIds,
+      includeCore: true,
+    );
+    final missing = <String>[];
+    for (final source in closure.files) {
+      final target = p.posix.join(context.installRoot, source);
+      if (!File(p.join(context.projectRoot, target)).existsSync()) {
+        missing.add(target);
+      }
+    }
+    if (missing.isNotEmpty) {
+      diagnosis.errors.add(_Issue(
+        _brokenClosureCode,
+        'Installed closure is incomplete (${missing.length} file(s) missing).',
+      ));
+    }
+
+    // Lock drift.
+    final drift = await lockRepo.inspect(
+      lock,
+      manifestSha256: context.loadedManifest.sha256,
+    );
+    diagnosis.trackedFiles = drift.files.length;
+    diagnosis.modifiedFiles = drift.modified.length;
+    diagnosis.missingFiles = drift.missing.length;
+    for (final file in drift.registryOwnedDrift) {
+      diagnosis.errors.add(_Issue(
+        'drift',
+        '${file.path} is ${file.status.name} (registry-owned).',
+      ));
+    }
+    for (final file in drift.userOwnedDrift) {
+      diagnosis.warnings.add(_Issue(
+        'user_owned_drift',
+        '${file.path} is ${file.status.name} (user-owned).',
+      ));
+    }
+    if (drift.registryMoved) {
+      diagnosis.warnings.add(_Issue(
+        'registry_moved',
+        'The registry manifest changed since this install; run `update`.',
+      ));
+    }
+
+    // Import-depth guard on installed component files.
+    final guard = InstallerFileInstaller(
+      projectRoot: context.projectRoot,
+      installRoot: context.installRoot,
+      reader: const _NoopReader(),
+    );
+    final contents = <String, String>{};
     for (final component in lock.components) {
-      for (final relativePath in component.installedFiles) {
-        if (!File(p.join(Directory.current.path, relativePath)).existsSync()) {
-          missingLockedFiles.add('${component.qualifiedId}: $relativePath');
+      for (final target in component.files.keys) {
+        final file = File(p.join(context.projectRoot, target));
+        if (await file.exists()) {
+          final prefix = '${context.installRoot}/';
+          final source = target.startsWith(prefix)
+              ? target.substring(prefix.length)
+              : target;
+          contents[source] = await file.readAsString();
         }
       }
     }
-  }
-
-  final hasSchemaIssues = schemaValid == false;
-  final hasConfigIssues = !installPathValid ||
-      !sharedPathValid ||
-      !colorSchemeExists ||
-      invalidAliases.isNotEmpty;
-  final warnings = <Map<String, dynamic>>[];
-  final errors = <Map<String, dynamic>>[];
-
-  if (!installPathExists) {
-    warnings.add(jsonWarning(
-      code: ExitCodeLabels.configInvalid,
-      message: 'Install path does not exist.',
-      details: {'path': resolvedInstallPath},
-    ));
-  }
-  if (!sharedPathExists) {
-    warnings.add(jsonWarning(
-      code: ExitCodeLabels.configInvalid,
-      message: 'Shared path does not exist.',
-      details: {'path': resolvedSharedPath},
-    ));
-  }
-
-  if (hasSchemaIssues) {
-    errors.add(jsonError(
-      code: ExitCodeLabels.schemaInvalid,
-      message: 'Schema validation failed.',
-      details: {
-        'errorCount': schemaErrors.length,
-        'errors': schemaErrors,
-      },
-    ));
-  }
-  if (!installPathValid) {
-    errors.add(jsonError(
-      code: ExitCodeLabels.configInvalid,
-      message: 'Install path is not under lib/.',
-      details: {'path': resolvedInstallPath},
-    ));
-  }
-  if (!sharedPathValid) {
-    errors.add(jsonError(
-      code: ExitCodeLabels.configInvalid,
-      message: 'Shared path is not under lib/.',
-      details: {'path': resolvedSharedPath},
-    ));
-  }
-  if (!colorSchemeExists) {
-    errors.add(jsonError(
-      code: ExitCodeLabels.configInvalid,
-      message: 'color_scheme.dart is missing.',
-      details: {'path': colorSchemePath},
-    ));
-  }
-  if (invalidAliases.isNotEmpty) {
-    errors.add(jsonError(
-      code: ExitCodeLabels.configInvalid,
-      message: 'One or more path aliases are invalid.',
-      details: {'aliases': invalidAliases},
-    ));
-  }
-  if (missingLockedFiles.isNotEmpty) {
-    errors.add(jsonError(
-      code: ExitCodeLabels.validationFailed,
-      message: 'One or more locked component files are missing.',
-      details: {'files': missingLockedFiles},
-    ));
-  }
-  if (lockfileError != null) {
-    errors.add(jsonError(
-      code: ExitCodeLabels.validationFailed,
-      message: 'Failed to parse shadcn.lock.',
-      details: {'error': lockfileError},
-    ));
-  }
-
-  var doctorExitCode = ExitCodes.success;
-  final hasLockIssues = missingLockedFiles.isNotEmpty || lockfileError != null;
-  if (hasSchemaIssues && (hasConfigIssues || hasLockIssues)) {
-    doctorExitCode = ExitCodes.validationFailed;
-  } else if (hasSchemaIssues) {
-    doctorExitCode = ExitCodes.schemaInvalid;
-  } else if (hasConfigIssues) {
-    doctorExitCode = ExitCodes.configInvalid;
-  } else if (hasLockIssues) {
-    doctorExitCode = ExitCodes.validationFailed;
-  }
-
-  if (jsonOutput) {
-    final payload = jsonEnvelope(
-      command: 'doctor',
-      data: {
-        'environment': {
-          'script': Platform.script.toFilePath(),
-          'cwd': Directory.current.path,
-          'pubCache': pubCache,
-        },
-        'registry': {
-          'mode': selection.mode,
-          'root': selection.registryRoot.root,
-          'componentsJson': componentsSource,
-          'cache': cachePath ?? '(local registry, no cache)',
-          'schema': schemaSource?.label,
-        },
-        'configuration': {
-          'SHADCN_REGISTRY_ROOT': envRoot,
-          'SHADCN_REGISTRY_URL': envUrl,
-          'cliRoot': roots.cliRoot,
-          'localRegistryRoot': roots.localRegistryRoot,
-          'config.registryMode': config.registryMode,
-          'config.registryPath': config.registryPath,
-          'config.registryUrl': config.registryUrl,
-        },
-        'paths': {
-          'installPath': installPath,
-          'sharedPath': sharedPath,
-          'resolvedInstallPath': resolvedInstallPath,
-          'resolvedSharedPath': resolvedSharedPath,
-          'installPathValid': installPathValid,
-          'sharedPathValid': sharedPathValid,
-          'installPathExists': installPathExists,
-          'sharedPathExists': sharedPathExists,
-          'colorSchemePath': colorSchemePath,
-          'colorSchemeExists': colorSchemeExists,
-        },
-        'aliases': {
-          'configured': aliases,
-          'invalid': invalidAliases,
-        },
-        'schema': {
-          'found': schemaSource != null,
-          'valid': schemaValid,
-          'errorCount': schemaErrors.length,
-          'errors': schemaErrors,
-        },
-        'platformTargets': platformTargets,
-        'lockfile': {
-          'exists': lockfileExists,
-          'lockfileVersion': lock.lockfileVersion,
-          'registryCount': lock.registries.length,
-          'componentCount': lock.components.length,
-          'missingFiles': missingLockedFiles,
-          'error': lockfileError,
-        },
-      },
-      errors: errors,
-      warnings: warnings,
-      meta: {
-        'exitCode': doctorExitCode,
-      },
-    );
-    printJson(payload);
-    return doctorExitCode;
-  }
-
-  logger.header('flutter_shadcn doctor');
-
-  void kv(String label, String value) {
-    const pad = 22;
-    final padded = label.padRight(pad);
-    logger.info('  $padded $value');
-  }
-
-  print('');
-  logger.section('Environment');
-  kv('Script', Platform.script.toFilePath());
-  kv('CWD', Directory.current.path);
-  kv('PUB_CACHE', pubCache);
-
-  print('');
-  logger.section('Registry');
-  kv('Mode', selection.mode);
-  kv('Root', selection.registryRoot.root);
-  kv('components.json', componentsSource);
-  kv('Cache', cachePath ?? '(local registry, no cache)');
-  kv('Schema', schemaSource?.label ?? '(not found)');
-
-  print('');
-  logger.section('Configuration');
-  kv('SHADCN_REGISTRY_ROOT', envRoot ?? '(unset)');
-  kv('SHADCN_REGISTRY_URL', envUrl ?? '(unset)');
-  kv('cliRoot', roots.cliRoot ?? '(unresolved)');
-  kv('localRegistryRoot', roots.localRegistryRoot ?? '(unresolved)');
-  kv('config.registryMode', config.registryMode ?? '(unset)');
-  kv('config.registryPath', config.registryPath ?? '(unset)');
-  kv('config.registryUrl', config.registryUrl ?? '(unset)');
-
-  print('');
-  logger.section('Config paths');
-  kv('installPath', resolvedInstallPath);
-  kv('sharedPath', resolvedSharedPath);
-  logger.info('  installPath valid: ${installPathValid ? 'yes' : 'no'}');
-  logger.info('  sharedPath valid: ${sharedPathValid ? 'yes' : 'no'}');
-  logger.info('  installPath exists: ${installPathExists ? 'yes' : 'no'}');
-  logger.info('  sharedPath exists: ${sharedPathExists ? 'yes' : 'no'}');
-  if (invalidAliases.isNotEmpty) {
-    logger.warn('  invalid aliases: ${invalidAliases.join(', ')}');
-  }
-
-  print('');
-  logger.section('Theme files');
-  kv('color_scheme.dart', colorSchemeExists ? colorSchemePath : 'missing');
-
-  print('');
-  logger.section('Schema validation');
-  if (schemaSource == null || registryData == null) {
-    logger.warn('  Schema file not found.');
-  } else if (schemaValid == true) {
-    logger.success('  components.json matches the schema.');
-  } else {
-    logger.error('  Schema issues: ${schemaErrors.length}');
-    for (final error in schemaErrors.take(12)) {
-      logger.info('  - $error');
+    try {
+      guard.assertImportGuard(contents);
+    } on ImportGuardException catch (error) {
+      diagnosis.errors.add(_Issue(_brokenClosureCode, error.toString()));
     }
-    if (schemaErrors.length > 12) {
-      logger.info('  ...and ${schemaErrors.length - 12} more');
+
+    // Pubspec SDK deps the closure declares.
+    await _checkPubspec(context, closure, diagnosis);
+    return diagnosis;
+  }
+
+  static Future<void> _checkPubspec(
+    CommandContext context,
+    ManifestClosure closure,
+    _Diagnosis diagnosis,
+  ) async {
+    final pubspec = File(p.join(context.projectRoot, 'pubspec.yaml'));
+    if (!await pubspec.exists()) {
+      diagnosis.warnings.add(const _Issue(
+        'pubspec_missing',
+        'pubspec.yaml not found; cannot verify dependencies.',
+      ));
+      return;
+    }
+    final dependencies = _dependencies(await pubspec.readAsString());
+    final missing = <String>[];
+    for (final package in closure.packages) {
+      if (package.name.isEmpty) {
+        continue;
+      }
+      if (!dependencies.contains(package.name)) {
+        missing.add(package.name);
+      }
+    }
+    if (missing.isNotEmpty) {
+      diagnosis.warnings.add(_Issue(
+        'pubspec_missing_deps',
+        'pubspec.yaml is missing: ${missing.join(', ')}',
+      ));
     }
   }
 
-  print('');
-  logger.section('Lockfile');
-  kv('shadcn.lock', lockfileExists ? 'present' : 'not present');
-  kv('lockfileVersion', lock.lockfileVersion.toString());
-  kv('locked components', lock.components.length.toString());
-  if (missingLockedFiles.isEmpty) {
-    if (lockfileError == null) {
-      logger.success('  locked files are present.');
-    } else {
-      logger.error('  failed to parse shadcn.lock: $lockfileError');
+  static Set<String> _dependencies(String pubspec) {
+    final names = <String>{};
+    try {
+      final doc = loadYaml(pubspec);
+      if (doc is YamlMap) {
+        for (final section in const ['dependencies', 'dev_dependencies']) {
+          final deps = doc[section];
+          if (deps is YamlMap) {
+            for (final key in deps.keys) {
+              names.add(key.toString());
+            }
+          }
+        }
+      }
+    } catch (_) {
+      // A malformed pubspec is reported by the missing-deps warning.
     }
-  } else {
-    logger.error('  missing locked files: ${missingLockedFiles.length}');
-    for (final file in missingLockedFiles.take(12)) {
-      logger.info('  - $file');
-    }
-    if (missingLockedFiles.length > 12) {
-      logger.info('  ...and ${missingLockedFiles.length - 12} more');
-    }
+    return names;
   }
+}
 
-  print('');
-  logger.section('Platform targets');
-  logger
-      .info('  (set .shadcn/config.json "platformTargets" to override paths)');
-  platformTargets.forEach((platform, targets) {
-    logger.info('  $platform:');
-    for (final entry in targets.entries) {
-      logger.info('    ${entry.key}: ${entry.value}');
-    }
-  });
+/// Doctor never reads from the registry source during the import guard.
+class _NoopReader implements RegistryFileReader {
+  const _NoopReader();
 
-  return doctorExitCode;
+  @override
+  Future<List<int>?> readBytes(String relPath) async => null;
+
+  @override
+  Future<String?> readString(String relPath) async => null;
 }

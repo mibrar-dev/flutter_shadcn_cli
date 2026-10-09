@@ -72,7 +72,7 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
     commands: [
       CliCommandMeta(
         id: 'add',
-        description: 'Install one or more components.',
+        description: 'Install one or more components and their closure.',
         sortOrder: 10,
         usage: 'flutter_shadcn add <component...> [flags]',
         arguments: [
@@ -90,27 +90,39 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
             description: 'Install every available component.',
           ),
           CliFlagMeta(
-            name: '--include-files <kind>',
-            description:
-                'Optional file kinds to include: readme, preview, or meta.',
+            name: '--dry-run',
+            defaultValue: 'false',
+            description: 'Print the plan without writing anything.',
           ),
           CliFlagMeta(
-            name: '--exclude-files <kind>',
-            description:
-                'Optional file kinds to exclude: readme, preview, or meta.',
+            name: '--force',
+            short: '-f',
+            defaultValue: 'false',
+            description: 'Overwrite locally modified registry files.',
+          ),
+          CliFlagMeta(
+            name: '--include-preview',
+            defaultValue: 'false',
+            description: 'Also copy each component preview.dart.',
+          ),
+          CliFlagMeta(
+            name: '--json',
+            defaultValue: 'false',
+            description: 'Output machine-readable JSON.',
           ),
         ],
         examples: [
           'flutter_shadcn add button',
-          'flutter_shadcn add @shadcn/button',
+          'flutter_shadcn add input select tabs',
+          'flutter_shadcn add --all',
         ],
         notes:
-            'Use namespaced addresses when multiple registries provide the same component. The installer uses resolved registry manifest data as the source of truth and merges only the installed component locale resources into app ARB files.',
-        seeAlso: ['list', 'search', 'info', 'remove'],
+            'Installs the transitive closure: requested components, their components/primitives deps, and the always-on foundation + theme core. User-owned <name>_theme.dart files are never overwritten.',
+        seeAlso: ['remove', 'update', 'list', 'info', 'dry-run'],
       ),
       CliCommandMeta(
         id: 'remove',
-        description: 'Remove one or more installed components.',
+        description: 'Remove installed components and orphaned layer files.',
         sortOrder: 20,
         aliases: ['rm'],
         usage: 'flutter_shadcn remove <component...> [flags]',
@@ -126,31 +138,38 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
             name: '--all',
             short: '-a',
             defaultValue: 'false',
-            description: 'Remove all installed components.',
+            description: 'Remove every installed component.',
           ),
           CliFlagMeta(
             name: '--force',
             short: '-f',
             defaultValue: 'false',
-            description: 'Skip confirmation prompts.',
+            description: 'Remove even when dependents remain.',
+          ),
+          CliFlagMeta(
+            name: '--purge-user-themes',
+            defaultValue: 'false',
+            description: 'Also delete <name>_theme.dart user files.',
+          ),
+          CliFlagMeta(
+            name: '--json',
+            defaultValue: 'false',
+            description: 'Output machine-readable JSON.',
           ),
         ],
-        examples: [
-          'flutter_shadcn remove button',
-          'flutter_shadcn rm dialog',
-        ],
+        examples: ['flutter_shadcn remove button', 'flutter_shadcn rm dialog'],
         seeAlso: ['add', 'list'],
       ),
       CliCommandMeta(
-        id: 'dry-run',
-        description: 'Preview what would be installed.',
+        id: 'update',
+        description: 'Update installed components from the registry.',
         sortOrder: 30,
-        usage: 'flutter_shadcn dry-run <component...> [flags]',
+        usage: 'flutter_shadcn update [component...] [flags]',
         arguments: [
           CliArgumentMeta(
-            '<component...>',
+            '[component...]',
             false,
-            'Component names or @namespace/component addresses to preview.',
+            'Components to update (default: all installed).',
           ),
         ],
         flags: [
@@ -158,7 +177,12 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
             name: '--all',
             short: '-a',
             defaultValue: 'false',
-            description: 'Preview installing every available component.',
+            description: 'Update every installed component.',
+          ),
+          CliFlagMeta(
+            name: '--check',
+            defaultValue: 'false',
+            description: 'Report only; exit 1 when behind or modified.',
           ),
           CliFlagMeta(
             name: '--json',
@@ -167,67 +191,80 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           ),
         ],
         examples: [
-          'flutter_shadcn dry-run button',
-          'flutter_shadcn dry-run --json @shadcn/card',
+          'flutter_shadcn update',
+          'flutter_shadcn update button',
+          'flutter_shadcn update --check',
         ],
-        seeAlso: ['add', 'deps'],
+        notes:
+            'Hash-driven: files whose bytes still match shadcn.lock are overwritten with the manifest\'s current content, locally modified files are reported and left, and user-owned theme files are never touched.',
+        seeAlso: ['add', 'audit', 'doctor'],
+      ),
+      CliCommandMeta(
+        id: 'dry-run',
+        description: 'Preview what add would install.',
+        sortOrder: 40,
+        usage: 'flutter_shadcn dry-run <component...> [flags]',
+        arguments: [
+          CliArgumentMeta(
+            '<component...>',
+            false,
+            'Components to preview.',
+          ),
+        ],
+        flags: [
+          CliFlagMeta(
+            name: '--all',
+            short: '-a',
+            defaultValue: 'false',
+            description: 'Preview every component.',
+          ),
+          CliFlagMeta(
+            name: '--json',
+            defaultValue: 'false',
+            description: 'Output machine-readable JSON.',
+          ),
+        ],
+        examples: ['flutter_shadcn dry-run button'],
+        seeAlso: ['add'],
       ),
       CliCommandMeta(
         id: 'list',
         description: 'List available components.',
-        sortOrder: 40,
+        sortOrder: 50,
         aliases: ['ls'],
-        usage: 'flutter_shadcn list [flags]',
+        usage: 'flutter_shadcn list [--json]',
         flags: [
-          CliFlagMeta(
-            name: '--refresh',
-            defaultValue: 'false',
-            description: 'Refresh cached registry data before listing.',
-          ),
           CliFlagMeta(
             name: '--json',
             defaultValue: 'false',
             description: 'Output machine-readable JSON.',
           ),
         ],
-        examples: [
-          'flutter_shadcn list',
-          'flutter_shadcn ls --refresh',
-        ],
+        examples: ['flutter_shadcn list', 'flutter_shadcn ls --json'],
         seeAlso: ['search', 'info', 'add'],
       ),
       CliCommandMeta(
         id: 'search',
-        description: 'Search for components.',
-        sortOrder: 50,
-        usage: 'flutter_shadcn search <query> [flags]',
-        arguments: [
-          CliArgumentMeta('<query>', false, 'Search text to match.'),
-        ],
+        description: 'Search components by name, description or tag.',
+        sortOrder: 60,
+        usage: 'flutter_shadcn search <query> [--json]',
+        arguments: [CliArgumentMeta('<query>', true, 'Search text.')],
         flags: [
-          CliFlagMeta(
-            name: '--refresh',
-            defaultValue: 'false',
-            description: 'Refresh cached registry data before searching.',
-          ),
           CliFlagMeta(
             name: '--json',
             defaultValue: 'false',
             description: 'Output machine-readable JSON.',
           ),
         ],
-        examples: [
-          'flutter_shadcn search button',
-          'flutter_shadcn search input --json',
-        ],
+        examples: ['flutter_shadcn search button'],
         seeAlso: ['list', 'info'],
       ),
       CliCommandMeta(
         id: 'info',
-        description: 'Show component details.',
-        sortOrder: 60,
+        description: 'Show a component\'s closure, files and api.',
+        sortOrder: 70,
         aliases: ['i'],
-        usage: 'flutter_shadcn info <component> [flags]',
+        usage: 'flutter_shadcn info <component> [--json]',
         arguments: [
           CliArgumentMeta(
             '<component>',
@@ -237,20 +274,12 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
         ],
         flags: [
           CliFlagMeta(
-            name: '--refresh',
-            defaultValue: 'false',
-            description: 'Refresh cached registry data before loading details.',
-          ),
-          CliFlagMeta(
             name: '--json',
             defaultValue: 'false',
             description: 'Output machine-readable JSON.',
           ),
         ],
-        examples: [
-          'flutter_shadcn info button',
-          'flutter_shadcn i @shadcn/dialog',
-        ],
+        examples: ['flutter_shadcn info button', 'flutter_shadcn i dialog'],
         seeAlso: ['list', 'search', 'add'],
       ),
     ],
@@ -262,38 +291,24 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
     commands: [
       CliCommandMeta(
         id: 'init',
-        description: 'Initialize shadcn_flutter in the current project.',
+        description: 'Install the layer core and generate the app theme.',
         sortOrder: 10,
-        usage: 'flutter_shadcn init [namespace] [flags]',
-        arguments: [
-          CliArgumentMeta(
-            '[namespace]',
-            false,
-            'Registry namespace to initialize from.',
-          ),
-        ],
+        usage: 'flutter_shadcn init [flags]',
         flags: [
+          CliFlagMeta(
+            name: '--dir <path>',
+            description: 'Install root (default: lib/ui/shadcn).',
+          ),
+          CliFlagMeta(
+            name: '--theme <id>',
+            description: 'Theme preset id (default: vercel).',
+          ),
           CliFlagMeta(
             name: '--yes',
             short: '-y',
             defaultValue: 'false',
-            description: 'Run non-interactively and use defaults.',
+            description: 'Non-interactive; use the default preset.',
           ),
-        ],
-        examples: [
-          'flutter_shadcn init',
-          'flutter_shadcn init shadcn --yes',
-        ],
-        notes:
-            '`init` runs inline registry bootstrap actions from `registries.json`. Non-interactive `init --yes` installs the required project surface only; optional fonts, icons, and asset packs are installed with `assets`.',
-        seeAlso: ['registries', 'default', 'sync'],
-      ),
-      CliCommandMeta(
-        id: 'registries',
-        description: 'List available and configured registries.',
-        sortOrder: 20,
-        usage: 'flutter_shadcn registries [flags]',
-        flags: [
           CliFlagMeta(
             name: '--json',
             defaultValue: 'false',
@@ -301,44 +316,54 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           ),
         ],
         examples: [
-          'flutter_shadcn registries',
-          'flutter_shadcn registries --json',
+          'flutter_shadcn init',
+          'flutter_shadcn init --theme vercel --yes',
         ],
+        notes:
+            'Copies every foundation and theme unit (no component), writes .shadcn/config.json and shadcn.lock v2, and generates <installRoot>/theme/app_theme.dart from the chosen preset.',
+        seeAlso: ['registries', 'default', 'theme', 'add'],
+      ),
+      CliCommandMeta(
+        id: 'registries',
+        description: 'List configured and discoverable registries.',
+        sortOrder: 20,
+        usage: 'flutter_shadcn registries [--json]',
+        flags: [
+          CliFlagMeta(
+            name: '--json',
+            defaultValue: 'false',
+            description: 'Output machine-readable JSON.',
+          ),
+        ],
+        examples: ['flutter_shadcn registries'],
         seeAlso: ['default', 'init'],
       ),
       CliCommandMeta(
         id: 'default',
-        description:
-            'Set or show the default registry namespace and source mode.',
+        description: 'Set or show the default registry namespace.',
         sortOrder: 30,
         usage: 'flutter_shadcn default [namespace] [--local | --remote]',
         arguments: [
-          CliArgumentMeta(
-            '[namespace]',
-            false,
-            'Registry namespace to set as default.',
-          ),
+          CliArgumentMeta('[namespace]', false, 'Namespace to set as default.'),
         ],
         examples: [
           'flutter_shadcn default',
-          'flutter_shadcn default shadcn',
-          'flutter_shadcn --advanced default shadcn --local',
-          'flutter_shadcn --advanced default shadcn --remote',
+          'flutter_shadcn default shadcn --remote',
         ],
         seeAlso: ['registries', 'init'],
       ),
       CliCommandMeta(
         id: 'sync',
-        description: 'Sync paths and theme from .shadcn/config.json.',
+        description: 'Re-apply the installed closure and locked theme.',
         sortOrder: 40,
         usage: 'flutter_shadcn sync',
         examples: ['flutter_shadcn sync'],
-        seeAlso: ['init', 'audit'],
+        seeAlso: ['init', 'audit', 'update'],
       ),
       CliCommandMeta(
         id: 'project',
         description: 'Project repair and cleanup commands.',
-        sortOrder: 45,
+        sortOrder: 50,
         usage: 'flutter_shadcn project <reset|refresh> [flags]',
         arguments: [
           CliArgumentMeta(
@@ -353,142 +378,36 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           'flutter_shadcn project refresh',
         ],
         notes:
-            'Use `project reset` to remove CLI-managed project files with a 24-hour undo window. Use `project refresh` to regenerate missing scaffolding only.',
+            '`project reset` removes CLI-managed files with a 24-hour undo window. `project refresh` re-applies the installed closure and locked theme.',
         seeAlso: ['sync', 'init', 'reset'],
       ),
       CliCommandMeta(
-        id: 'assets',
-        description: 'Install font and icon assets.',
-        sortOrder: 50,
-        usage: 'flutter_shadcn assets [flags]',
-        flags: [
-          CliFlagMeta(
-            name: '--icons',
-            defaultValue: 'false',
-            description: 'Install icon font assets.',
-          ),
-          CliFlagMeta(
-            name: '--typography',
-            defaultValue: 'false',
-            description: 'Install typography font assets.',
-          ),
-          CliFlagMeta(
-            name: '--fonts',
-            defaultValue: 'false',
-            description: 'Alias for --typography.',
-          ),
-          CliFlagMeta(
-            name: '--list',
-            defaultValue: 'false',
-            description: 'List available assets.',
-          ),
-          CliFlagMeta(
-            name: '--all',
-            short: '-a',
-            defaultValue: 'false',
-            description: 'Install all available assets.',
-          ),
-        ],
-        examples: [
-          'flutter_shadcn assets --list',
-          'flutter_shadcn assets --icons --typography',
-        ],
-        notes:
-            'Assets are registry-provided inline actions. Use this command for optional fonts, icons, and asset packs after `init`.',
-        seeAlso: ['init', 'theme'],
-      ),
-      CliCommandMeta(
-        id: 'locale',
-        description: 'Create local Flutter localization files.',
-        sortOrder: 55,
-        usage: 'flutter_shadcn locale <command>',
-        arguments: [
-          CliArgumentMeta(
-            '<command>',
-            true,
-            'Locale command to run. Currently supported: init.',
-          ),
-        ],
-        examples: [
-          'flutter_shadcn locale init',
-        ],
-        notes:
-            '`locale init` creates `l10n.yaml` and `lib/l10n/app_en.arb` so installed components can merge their component-local locale resources into app-local ARB files.',
-        seeAlso: ['init', 'add'],
-      ),
-      CliCommandMeta(
         id: 'theme',
-        description: 'Manage registry theme presets.',
+        description: 'List and apply registry theme presets.',
         sortOrder: 60,
-        usage: 'flutter_shadcn theme [id] [flags]',
+        usage: 'flutter_shadcn theme <list|apply <preset>> [flags]',
         arguments: [
-          CliArgumentMeta(
-            '[id]',
-            false,
-            'Theme preset id to apply.',
-          ),
+          CliArgumentMeta('<list|apply>', false, 'Theme action to run.'),
         ],
         flags: [
-          CliFlagMeta(
-            name: '--list',
-            defaultValue: 'false',
-            description: 'List theme presets.',
-          ),
           CliFlagMeta(
             name: '--refresh',
             defaultValue: 'false',
-            description: 'Refresh cached theme data.',
+            description: 'Overwrite app_theme.dart even when edited.',
           ),
           CliFlagMeta(
-            name: '--apply <id>',
-            short: '-a',
-            description: 'Apply a registry theme preset.',
-          ),
-          CliFlagMeta(
-            name: '--apply-file <path>',
-            description: 'Apply a theme from a local JSON file.',
-            advanced: true,
-          ),
-          CliFlagMeta(
-            name: '--apply-url <url>',
-            description: 'Apply a theme from a JSON URL.',
-            advanced: true,
+            name: '--json',
+            defaultValue: 'false',
+            description: 'Output machine-readable JSON.',
           ),
         ],
         examples: [
-          'flutter_shadcn theme --list',
-          'flutter_shadcn theme --apply neutral',
-          'flutter_shadcn --advanced theme --apply-file theme.json',
+          'flutter_shadcn theme list',
+          'flutter_shadcn theme apply vercel',
         ],
         notes:
-            'File and URL theme imports require --advanced. The theme widget subcommand supports widget-level list, list-targets, reset, apply-file, and apply-url workflows.',
-        seeAlso: ['assets', 'init'],
-      ),
-      CliCommandMeta(
-        id: 'platform',
-        description: 'Configure platform target paths.',
-        sortOrder: 70,
-        usage: 'flutter_shadcn platform [flags]',
-        flags: [
-          CliFlagMeta(
-            name: '--set <platform.section=path>',
-            description: 'Set a platform target path.',
-          ),
-          CliFlagMeta(
-            name: '--reset <platform.section>',
-            description: 'Remove a platform target override.',
-          ),
-          CliFlagMeta(
-            name: '--list',
-            defaultValue: 'false',
-            description: 'List configured platform targets.',
-          ),
-        ],
-        examples: [
-          'flutter_shadcn platform --list',
-          'flutter_shadcn platform --set ios.runner=ios/Runner',
-        ],
-        seeAlso: ['init', 'sync'],
+            'app_theme.dart is user-owned: without --refresh a locally modified file is reported as drift and left untouched.',
+        seeAlso: ['init', 'add'],
       ),
     ],
   ),
@@ -503,15 +422,13 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
         sortOrder: 5,
         usage: 'flutter_shadcn reset',
         examples: ['flutter_shadcn reset'],
-        notes:
-            'This command affects only global CLI state under the user home directory. It does not remove project files or uninstall the executable.',
         seeAlso: ['project', 'doctor'],
       ),
       CliCommandMeta(
         id: 'doctor',
-        description: 'Diagnose registry resolution and project state.',
+        description: 'Diagnose the manifest, closure, layout and lock drift.',
         sortOrder: 10,
-        usage: 'flutter_shadcn doctor [flags]',
+        usage: 'flutter_shadcn doctor [--json]',
         flags: [
           CliFlagMeta(
             name: '--json',
@@ -520,13 +437,15 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           ),
         ],
         examples: ['flutter_shadcn doctor'],
-        seeAlso: ['validate', 'audit'],
+        notes:
+            'Exit codes: 0 clean, 1 drift/modified, 2 broken closure, 3 manifest invalid.',
+        seeAlso: ['validate', 'audit', 'update'],
       ),
       CliCommandMeta(
         id: 'validate',
-        description: 'Validate registry integrity.',
+        description: 'Validate the registry manifest against the v2 schema.',
         sortOrder: 20,
-        usage: 'flutter_shadcn validate [flags]',
+        usage: 'flutter_shadcn validate [--json]',
         flags: [
           CliFlagMeta(
             name: '--json',
@@ -534,14 +453,14 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
             description: 'Output machine-readable JSON.',
           ),
         ],
-        examples: ['flutter_shadcn validate --json'],
+        examples: ['flutter_shadcn validate'],
         seeAlso: ['doctor', 'audit'],
       ),
       CliCommandMeta(
         id: 'audit',
-        description: 'Audit installed components.',
+        description: 'Compare installed files against shadcn.lock.',
         sortOrder: 30,
-        usage: 'flutter_shadcn audit [flags]',
+        usage: 'flutter_shadcn audit [--json]',
         flags: [
           CliFlagMeta(
             name: '--json',
@@ -550,38 +469,7 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           ),
         ],
         examples: ['flutter_shadcn audit'],
-        seeAlso: ['doctor', 'deps'],
-      ),
-      CliCommandMeta(
-        id: 'deps',
-        description: 'Compare registry dependencies against pubspec.yaml.',
-        sortOrder: 40,
-        usage: 'flutter_shadcn deps [component...] [flags]',
-        arguments: [
-          CliArgumentMeta(
-            '[component...]',
-            false,
-            'Optional component names to check.',
-          ),
-        ],
-        flags: [
-          CliFlagMeta(
-            name: '--all',
-            short: '-a',
-            defaultValue: 'false',
-            description: 'Compare dependencies for all registry components.',
-          ),
-          CliFlagMeta(
-            name: '--json',
-            defaultValue: 'false',
-            description: 'Output machine-readable JSON.',
-          ),
-        ],
-        examples: [
-          'flutter_shadcn deps button',
-          'flutter_shadcn deps --all',
-        ],
-        seeAlso: ['audit', 'dry-run'],
+        seeAlso: ['doctor', 'update'],
       ),
     ],
   ),
@@ -599,29 +487,19 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
           CliFlagMeta(
             name: '--type <type>',
             short: '-t',
-            description:
-                'Feedback type: bug, feature, docs, question, performance, or other.',
+            description: 'Feedback type: bug, feature, docs, question, other.',
           ),
-          CliFlagMeta(
-            name: '--title <title>',
-            description: 'Issue title.',
-          ),
-          CliFlagMeta(
-            name: '--body <body>',
-            description: 'Issue description or body.',
-          ),
+          CliFlagMeta(name: '--title <title>', description: 'Issue title.'),
+          CliFlagMeta(name: '--body <body>', description: 'Issue body.'),
         ],
-        examples: [
-          'flutter_shadcn feedback',
-          'flutter_shadcn feedback --type bug --title "Install failed"',
-        ],
+        examples: ['flutter_shadcn feedback'],
         seeAlso: ['doctor', 'version'],
       ),
       CliCommandMeta(
         id: 'version',
-        description: 'Show CLI version.',
+        description: 'Show the CLI version.',
         sortOrder: 20,
-        usage: 'flutter_shadcn version [flags]',
+        usage: 'flutter_shadcn version [--check]',
         flags: [
           CliFlagMeta(
             name: '--check',
@@ -629,17 +507,14 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
             description: 'Check for updates.',
           ),
         ],
-        examples: [
-          'flutter_shadcn version',
-          'flutter_shadcn version --check',
-        ],
+        examples: ['flutter_shadcn version --check'],
         seeAlso: ['upgrade'],
       ),
       CliCommandMeta(
         id: 'upgrade',
         description: 'Upgrade the CLI to the latest version.',
         sortOrder: 30,
-        usage: 'flutter_shadcn upgrade [flags]',
+        usage: 'flutter_shadcn upgrade [--force]',
         flags: [
           CliFlagMeta(
             name: '--force',
@@ -648,10 +523,7 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
             description: 'Force upgrade even if already latest.',
           ),
         ],
-        examples: [
-          'flutter_shadcn upgrade',
-          'flutter_shadcn upgrade --force',
-        ],
+        examples: ['flutter_shadcn upgrade'],
         seeAlso: ['version'],
       ),
     ],
@@ -672,7 +544,7 @@ const cliCommandMetadata = <CliCommandGroupMeta>[
             name: '--generate',
             short: '-g',
             defaultValue: 'false',
-            description: 'Regenerate docs/reference/commands.',
+            description: 'Regenerate doc/reference/commands.',
           ),
         ],
         examples: ['flutter_shadcn --advanced docs --generate'],

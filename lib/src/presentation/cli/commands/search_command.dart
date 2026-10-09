@@ -1,92 +1,93 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:flutter_shadcn_cli/src/discovery_commands.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
-import 'package:flutter_shadcn_cli/src/logger.dart';
-import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_context.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
+import 'package:flutter_shadcn_cli/src/registry/manifest/manifest_component.dart';
 
+/// `flutter_shadcn search <query> [--json]`: case-insensitive match over
+/// component id, name, description and tags (P5_CLI_PLAN.md §2).
 Future<int> runSearchCommand({
   required ArgResults searchCommand,
-  required MultiRegistryManager multiRegistry,
-  required CliLogger logger,
+  required ArgResults rootArgs,
+  required String projectRoot,
+  String? registryOverride,
+  bool offline = false,
 }) async {
-  if (searchCommand['help'] == true) {
-    print('Usage: flutter_shadcn search <query> [--refresh] [--json]');
-    print(
-        '       flutter_shadcn search @<namespace> [query] [--refresh] [--json]');
-    print('');
-    print('Searches for components by name, description, or tags.');
-    print('Options:');
-    print('  --refresh  Refresh cache from remote');
-    print('  --json     Output machine-readable JSON');
+  final json = commandFlag(searchCommand, 'json');
+  final logger = commandLogger(rootArgs, json: json);
+
+  if (commandFlag(searchCommand, 'help')) {
+    stdout.writeln('Usage: flutter_shadcn search <query> [--json]');
+    stdout.writeln('');
+    stdout.writeln('Searches component id, name, description and tags.');
     return ExitCodes.success;
   }
 
-  String? searchNamespaceOverride;
-  final searchTokens = [...searchCommand.rest];
-  if (searchTokens.isNotEmpty &&
-      searchTokens.first.startsWith('@') &&
-      !searchTokens.first.contains('/')) {
-    searchNamespaceOverride = searchTokens.removeAt(0).substring(1).trim();
-    if (searchNamespaceOverride.isEmpty) {
-      stderr.writeln('Error: Invalid namespace token for search.');
-      return ExitCodes.usage;
-    }
+  final query = searchCommand.rest.join(' ').trim().toLowerCase();
+  if (query.isEmpty) {
+    stdout.writeln('Usage: flutter_shadcn search <query>');
+    return ExitCodes.usage;
   }
 
-  final searchQuery = searchTokens.join(' ');
-  late final DiscoveryRegistryTarget target;
   try {
-    target = await multiRegistry.resolveDiscoveryTarget(
-      namespace: searchNamespaceOverride,
+    final context = await CommandContextResolver.resolve(
+      projectRoot: projectRoot,
+      logger: logger,
+      registryOverride: registryOverride,
+      offline: offline,
     );
-  } on MultiRegistryException catch (e) {
-    // Mirror list_command: clean registry_not_found envelope, never crash,
-    // never prompt (especially in --json mode).
-    if (searchCommand['json'] == true) {
+    final matches = context.loadedManifest.manifest.components.values
+        .where((component) => _matches(component, query))
+        .toList()
+      ..sort((a, b) => a.id.compareTo(b.id));
+
+    if (json) {
       printJson(jsonEnvelope(
         command: 'search',
-        data: const {},
-        errors: [
-          jsonError(
-            code: ExitCodeLabels.registryNotFound,
-            message: e.message,
-          ),
-        ],
-        meta: {'exitCode': ExitCodes.registryNotFound},
+        data: {
+          'query': query,
+          'count': matches.length,
+          'components': [
+            for (final component in matches)
+              {
+                'id': component.id,
+                'name': component.name,
+                'description': component.description,
+                'tags': component.tags,
+              },
+          ],
+        },
+        meta: {'exitCode': ExitCodes.success},
       ));
-    } else {
-      stderr.writeln('Error: ${e.message}');
+      return ExitCodes.success;
     }
-    return ExitCodes.registryNotFound;
+    if (matches.isEmpty) {
+      stdout.writeln('No components match "$query".');
+      return ExitCodes.success;
+    }
+    stdout.writeln('${matches.length} match(es) for "$query":');
+    for (final component in matches) {
+      stdout.writeln('  ${component.id.padRight(28)} ${component.description}');
+    }
+    return ExitCodes.success;
+  } catch (error) {
+    return reportCommandError(error, logger);
   }
+}
 
-  if (searchQuery.isEmpty) {
-    final listExit = await handleListCommand(
-      registryBaseUrl: target.registryBase,
-      registryId: target.registryId,
-      refresh: searchCommand['refresh'] == true,
-      offline: multiRegistry.offline,
-      jsonOutput: searchCommand['json'] == true,
-      logger: logger,
-      indexPath: target.indexPath,
-      indexSchemaPath: target.indexSchemaPath,
-    );
-    return listExit;
+bool _matches(ManifestComponent component, String query) {
+  if (component.id.toLowerCase().contains(query) ||
+      component.name.toLowerCase().contains(query) ||
+      component.description.toLowerCase().contains(query)) {
+    return true;
   }
-
-  final searchExit = await handleSearchCommand(
-    query: searchQuery,
-    registryBaseUrl: target.registryBase,
-    registryId: target.registryId,
-    refresh: searchCommand['refresh'] == true,
-    offline: multiRegistry.offline,
-    jsonOutput: searchCommand['json'] == true,
-    logger: logger,
-    indexPath: target.indexPath,
-    indexSchemaPath: target.indexSchemaPath,
-  );
-  return searchExit;
+  for (final tag in component.tags) {
+    if (tag.toLowerCase().contains(query)) {
+      return true;
+    }
+  }
+  return false;
 }

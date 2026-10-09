@@ -14,10 +14,13 @@ import 'package:path/path.dart' as p;
 ///   slashes, no leading `./` or `/`, `.dart`/`.json` suffix) and live under
 ///   the directory their owner implies.
 /// - `deps` blocks have exactly the documented keys and every referenced id
-///   exists in the corresponding map (deps closure); primitive→primitive
-///   cycles are rejected.
+///   exists in the corresponding map (deps closure). Primitive→primitive
+///   cycles are LEGAL (plan §9.7): the real graph has cycles
+///   (`clickable ↔ clickable_state`, the overlay/popover cluster), so closure
+///   resolution is cycle-tolerant and the validator must not reject them.
 /// - `fileHashes` values are lowercase sha256 hex and cover every copyable
-///   file declared by the manifest.
+///   file declared by the manifest. `themes/*.json` are consumed to generate
+///   `theme/app_theme.dart`, never copied, so they are not required here.
 /// - When [registryRoot] is given, every listed file must exist on disk.
 ///
 /// The component / theme-preset / fileHashes block checks live in
@@ -85,7 +88,7 @@ class ManifestSchemaValidator {
       primitives,
       errors,
     );
-    final themes = ManifestComponentChecks.checkThemes(
+    ManifestComponentChecks.checkThemes(
       data['themes'],
       errors,
     );
@@ -94,7 +97,6 @@ class ManifestSchemaValidator {
       theme: theme,
       primitives: primitives,
       components: components,
-      themes: themes,
     );
     ManifestComponentChecks.checkFileHashes(
       data['fileHashes'],
@@ -294,39 +296,7 @@ class ManifestSchemaValidator {
       }
     }
 
-    _checkPrimitiveCycles(units, errors);
     return unitFiles;
-  }
-
-  static void _checkPrimitiveCycles(
-    Map<String, Map<String, dynamic>> units,
-    List<String> errors,
-  ) {
-    final state = <String, int>{};
-    bool hasCycle(String id) {
-      final mark = state[id] ?? 0;
-      if (mark == 1) return true;
-      if (mark == 2) return false;
-      state[id] = 1;
-      final deps = units[id]?['deps'];
-      final primitiveDeps = deps is Map ? deps['primitives'] : null;
-      if (primitiveDeps is List) {
-        for (final dep in primitiveDeps) {
-          if (dep is String && units.containsKey(dep) && hasCycle(dep)) {
-            return true;
-          }
-        }
-      }
-      state[id] = 2;
-      return false;
-    }
-
-    for (final id in units.keys) {
-      if (hasCycle(id)) {
-        errors.add('primitives.$id: dependency cycle detected');
-        return;
-      }
-    }
   }
 
   static Set<String> _declaredFiles({
@@ -334,7 +304,6 @@ class ManifestSchemaValidator {
     required Map<String, List<String>> theme,
     required Map<String, List<String>> primitives,
     required Map<String, Map<String, dynamic>> components,
-    required Map<String, Map<String, dynamic>> themes,
   }) {
     final paths = <String>{};
     for (final files in [...foundation.values, ...theme.values]) {
@@ -351,12 +320,6 @@ class ManifestSchemaValidator {
       final userOwned = entry['userOwned'];
       if (userOwned is List) {
         paths.addAll(userOwned.whereType<String>());
-      }
-    }
-    for (final entry in themes.values) {
-      final file = entry['file'];
-      if (file is String) {
-        paths.add(file);
       }
     }
     return paths;

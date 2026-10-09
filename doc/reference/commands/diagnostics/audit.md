@@ -1,11 +1,11 @@
 # flutter_shadcn audit
 
-> Audit installed components.
+> Compare installed files against shadcn.lock.
 
 ## Usage
 
 ```bash
-flutter_shadcn audit [flags]
+flutter_shadcn audit [--json]
 ```
 
 ## Arguments
@@ -27,4 +27,4 @@ flutter_shadcn audit
 ## See Also
 
 - [`flutter_shadcn doctor`](doctor.md)
-- [`flutter_shadcn deps`](deps.md)
+- [`flutter_shadcn update`](../components/update.md)

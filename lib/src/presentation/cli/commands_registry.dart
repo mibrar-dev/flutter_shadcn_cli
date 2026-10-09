@@ -1,186 +1,199 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:flutter_shadcn_cli/src/application/dto/registry_summary.dart';
+import 'package:flutter_shadcn_cli/src/application/services/registry_source_resolver.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/registry_directory/registry_directory_client.dart';
+import 'package:flutter_shadcn_cli/src/infrastructure/registry_directory/registry_directory_entry.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
-import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
-import 'package:flutter_shadcn_cli/src/presentation/cli/platform_targets.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
+/// `flutter_shadcn registries [--json]`: configured + discoverable registries
+/// (P5_CLI_PLAN.md §2).
 Future<int> runRegistriesCommand({
   required ArgResults command,
-  required ShadcnConfig config,
-  required MultiRegistryManager multiRegistry,
+  required ArgResults rootArgs,
+  required String projectRoot,
 }) async {
-  if (command['help'] == true) {
-    print('Usage: flutter_shadcn registries [--json]');
-    print('');
-    print('Lists configured and discoverable registries.');
-    print('Options:');
-    print('  --json             Output machine-readable JSON');
-    print('  --help, -h         Show this message');
+  final json = commandFlag(command, 'json');
+  if (commandFlag(command, 'help')) {
+    stdout.writeln('Usage: flutter_shadcn registries [--json]');
+    stdout.writeln('');
+    stdout.writeln('Lists configured and discoverable registries.');
     return ExitCodes.success;
   }
-  final summaries = await multiRegistry.listRegistries();
-  if (command['json'] == true) {
-    final payload = jsonEnvelope(
+  final config = await ShadcnConfig.load(projectRoot);
+  final summaries = await _collectSummaries(config, projectRoot);
+
+  if (json) {
+    printJson(jsonEnvelope(
       command: 'registries',
       data: {
         'defaultNamespace': config.effectiveDefaultNamespace,
-        'items': summaries.map((s) => s.toJson()).toList(),
+        'items': summaries.map((summary) => summary.toJson()).toList(),
       },
-    );
-    printJson(payload);
+      meta: {'exitCode': ExitCodes.success},
+    ));
     return ExitCodes.success;
   }
   if (summaries.isEmpty) {
-    print('No registries configured.');
+    stdout.writeln('No registries configured.');
     return ExitCodes.success;
   }
-  print('Registries:');
+  stdout.writeln('Registries:');
   for (final summary in summaries) {
-    final defaultMarker = summary.isDefault ? ' (default)' : '';
-    final enabled = summary.enabled ? 'enabled' : 'disabled';
-    print('  ${summary.namespace}$defaultMarker');
-    print('    source: ${summary.source}');
-    print('    status: $enabled');
+    final marker = summary.isDefault ? ' (default)' : '';
+    stdout.writeln('  ${summary.namespace}$marker');
+    stdout.writeln('    source: ${summary.source}');
     if (summary.mode != null) {
-      print('    mode: ${summary.mode}');
+      stdout.writeln('    mode: ${summary.mode}');
     }
-    if (summary.baseUrl != null && summary.baseUrl!.isNotEmpty) {
-      print('    baseUrl: ${summary.baseUrl}');
+    if (summary.baseUrl?.isNotEmpty == true) {
+      stdout.writeln('    baseUrl: ${summary.baseUrl}');
     }
-    if (summary.registryPath != null && summary.registryPath!.isNotEmpty) {
-      print('    path: ${summary.registryPath}');
-    }
-    if (summary.capabilitySharedGroups != null ||
-        summary.capabilityComposites != null ||
-        summary.capabilityTheme != null) {
-      print(
-        '    capabilities: sharedGroups=${summary.capabilitySharedGroups ?? false}, composites=${summary.capabilityComposites ?? false}, theme=${summary.capabilityTheme ?? false}',
-      );
+    if (summary.registryPath?.isNotEmpty == true) {
+      stdout.writeln('    path: ${summary.registryPath}');
     }
   }
   return ExitCodes.success;
 }
 
+/// `flutter_shadcn default [namespace] [--local | --remote]`
+/// (P5_CLI_PLAN.md §2).
 Future<({ShadcnConfig config, int exitCode})> runDefaultCommand({
   required ArgResults command,
+  required ArgResults rootArgs,
   required ShadcnConfig config,
-  required MultiRegistryManager multiRegistry,
+  required String projectRoot,
 }) async {
-  final wantsLocal = command['local'] == true;
-  final wantsRemote = command['remote'] == true;
-  if (command['help'] == true) {
-    print('Usage: flutter_shadcn default [namespace] [--local | --remote]');
-    print('');
-    print('Sets the default registry namespace and active source mode.');
-    print('');
-    print('Options:');
-    print('  --local            Persist local registry development paths');
-    print('  --remote           Switch back to the published remote registry');
+  final logger = commandLogger(rootArgs, json: false);
+  if (commandFlag(command, 'help')) {
+    stdout.writeln(
+        'Usage: flutter_shadcn default [namespace] [--local|--remote]');
+    stdout.writeln('');
+    stdout.writeln('Sets the default registry namespace and source mode.');
     return (config: config, exitCode: ExitCodes.success);
   }
+  final wantsLocal = commandFlag(command, 'local');
+  final wantsRemote = commandFlag(command, 'remote');
   if (wantsLocal && wantsRemote) {
-    print('Error: --local and --remote cannot be used together.');
+    logger
+        .errorToStderr('Error: --local and --remote cannot be used together.');
     return (config: config, exitCode: ExitCodes.usage);
   }
   final namespace = command.rest.isNotEmpty
       ? command.rest.first.trim()
       : config.effectiveDefaultNamespace;
+
   if (!wantsLocal && !wantsRemote && command.rest.isEmpty) {
-    final current = config.registryConfig();
-    print('Current default registry: ${config.effectiveDefaultNamespace}');
-    if (current?.registryMode != null) {
-      print('Mode: ${current!.registryMode}');
+    stdout.writeln(
+        'Current default registry: ${config.effectiveDefaultNamespace}');
+    if (config.registryMode != null) {
+      stdout.writeln('Mode: ${config.registryMode}');
     }
-    if (config.registriesPath?.trim().isNotEmpty == true) {
-      print('Registries path: ${config.registriesPath}');
+    if (config.registryPath?.isNotEmpty == true) {
+      stdout.writeln('Registry path: ${config.registryPath}');
     }
-    if (current?.registryPath?.trim().isNotEmpty == true) {
-      print('Registry path: ${current!.registryPath}');
+    if (config.registryUrl?.isNotEmpty == true) {
+      stdout.writeln('Registry URL: ${config.registryUrl}');
     }
     return (config: config, exitCode: ExitCodes.success);
   }
-  try {
-    if (wantsLocal) {
-      stdout.write('Path to local registries.json file or directory: ');
-      final registriesPath = stdin.readLineSync()?.trim() ?? '';
-      if (registriesPath.isEmpty) {
-        print('Error: registries path is required for local mode.');
-        return (config: config, exitCode: ExitCodes.usage);
-      }
-      stdout.write('Path to local registry root: ');
-      final registryPath = stdin.readLineSync()?.trim() ?? '';
-      if (registryPath.isEmpty) {
-        print('Error: registry path is required for local mode.');
-        return (config: config, exitCode: ExitCodes.usage);
-      }
-      final next = await multiRegistry.configureDefaultRegistryLocal(
-        namespace,
-        registriesPath: registriesPath,
-        registryPath: registryPath,
-      );
-      print(
-        'Default registry set to: ${next.effectiveDefaultNamespace} (local)',
-      );
-      return (config: next, exitCode: ExitCodes.success);
+
+  var next = config.copyWith(defaultNamespace: namespace);
+  if (wantsRemote) {
+    next = next.copyWith(
+      registryMode: 'remote',
+      registryPath: null,
+      registryUrl: RegistrySourceResolver.defaultBaseUrl(),
+    );
+  } else if (wantsLocal) {
+    stdout.write('Path to local registry root: ');
+    final registryPath = stdin.readLineSync()?.trim() ?? '';
+    if (registryPath.isEmpty) {
+      logger.errorToStderr('Error: registry path is required for local mode.');
+      return (config: config, exitCode: ExitCodes.usage);
     }
-    if (wantsRemote) {
-      final next = await multiRegistry.configureDefaultRegistryRemote(
-        namespace,
-      );
-      print(
-        'Default registry set to: ${next.effectiveDefaultNamespace} (remote)',
-      );
-      return (config: next, exitCode: ExitCodes.success);
-    }
-    final next = await multiRegistry.setDefaultRegistry(namespace);
-    print('Default registry set to: ${next.effectiveDefaultNamespace}');
-    return (config: next, exitCode: ExitCodes.success);
-  } catch (e) {
-    print('Error: $e');
-    return (config: config, exitCode: ExitCodes.configInvalid);
+    next = next.copyWith(
+      registryMode: 'local',
+      registryPath: registryPath,
+      registryUrl: null,
+    );
   }
+  await ShadcnConfig.save(projectRoot, next);
+  stdout.writeln(
+    'Default registry set to: ${next.effectiveDefaultNamespace}'
+    '${wantsRemote ? ' (remote)' : wantsLocal ? ' (local)' : ''}',
+  );
+  return (config: next, exitCode: ExitCodes.success);
 }
 
-Future<({ShadcnConfig config, int exitCode})> runPlatformCommand({
-  required ArgResults command,
-  required ShadcnConfig config,
-  required String targetDir,
-}) async {
-  if (command['help'] == true) {
-    print(
-      'Usage: flutter_shadcn platform [--list | --set <p.s=path> | --reset <p.s>]',
+Future<List<RegistrySummary>> _collectSummaries(
+  ShadcnConfig config,
+  String projectRoot,
+) async {
+  final summaries = <String, RegistrySummary>{};
+  final defaultNamespace = config.effectiveDefaultNamespace;
+  config.registries?.forEach((namespace, entry) {
+    summaries[namespace] = RegistrySummary(
+      namespace: namespace,
+      displayName: namespace,
+      isDefault: namespace == defaultNamespace,
+      enabled: entry.enabled,
+      source: 'config',
+      mode: entry.registryMode,
+      baseUrl: entry.baseUrl ?? entry.registryUrl,
+      registryPath: entry.registryPath,
+      installRoot: entry.installPath,
+      capabilitySharedGroups: entry.capabilitySharedGroups,
+      capabilityComposites: entry.capabilityComposites,
+      capabilityTheme: entry.capabilityTheme,
     );
-    print('');
-    print('Options:');
-    print('  --list             List platform targets');
-    print(
-      '  --set              Set override (repeatable), e.g. ios.infoPlist=ios/Runner/Info.plist',
+  });
+
+  final client = RegistryDirectoryClient();
+  try {
+    final directory = await client.load(
+      projectRoot: projectRoot,
+      directoryPath: config.registriesPath,
+      offline: false,
     );
-    print(
-      '  --reset            Remove override (repeatable), e.g. ios.infoPlist',
-    );
-    print('  --help, -h         Show this message');
-    return (config: config, exitCode: ExitCodes.success);
+    for (final entry in directory.registries) {
+      final existing = summaries[entry.namespace];
+      summaries[entry.namespace] =
+          _mergeDirectory(entry, existing, defaultNamespace);
+    }
+  } catch (_) {
+    // The directory is optional; the configured entries above still list.
+  } finally {
+    client.close();
   }
 
-  final sets = (command['set'] as List).cast<String>();
-  final resets = (command['reset'] as List).cast<String>();
-  final list = command['list'] == true;
-  if (sets.isEmpty && resets.isEmpty && !list) {
-    print('Nothing selected. Use --list, --set, or --reset.');
-    return (config: config, exitCode: ExitCodes.usage);
-  }
+  return summaries.values.toList()
+    ..sort((a, b) => a.namespace.compareTo(b.namespace));
+}
 
-  var nextConfig = config;
-  final updated = updatePlatformTargets(config, sets, resets);
-  if (updated != null) {
-    nextConfig = updated;
-    await ShadcnConfig.save(targetDir, nextConfig);
-  }
-  final targets = mergePlatformTargets(nextConfig.platformTargets);
-  printPlatformTargets(targets);
-  return (config: nextConfig, exitCode: ExitCodes.success);
+RegistrySummary _mergeDirectory(
+  RegistryDirectoryEntry entry,
+  RegistrySummary? existing,
+  String defaultNamespace,
+) {
+  return RegistrySummary(
+    namespace: entry.namespace,
+    displayName: entry.displayName,
+    isDefault: entry.namespace == defaultNamespace,
+    enabled: existing?.enabled ?? true,
+    source: existing == null ? 'directory' : 'config+directory',
+    mode: existing?.mode ?? 'remote',
+    baseUrl: existing?.baseUrl ?? entry.baseUrl,
+    registryPath: existing?.registryPath,
+    installRoot: existing?.installRoot ?? entry.installRoot,
+    capabilitySharedGroups:
+        existing?.capabilitySharedGroups ?? entry.capabilities.sharedGroups,
+    capabilityComposites:
+        existing?.capabilityComposites ?? entry.capabilities.composites,
+    capabilityTheme: existing?.capabilityTheme ?? entry.capabilities.theme,
+  );
 }
