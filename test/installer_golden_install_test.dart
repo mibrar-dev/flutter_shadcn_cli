@@ -68,7 +68,6 @@ void main() {
     ];
     final expectedTree = <String>[
       for (final source in expectedSources) target(source),
-      target('analysis_options.yaml'),
       'shadcn.lock',
     ]..sort();
     final actualTree = [

@@ -169,7 +169,6 @@ class Installer {
         written.add(file.target);
       }
     }
-    await _files.ensureAnalysisOptions();
 
     final current = await _lockRepo.load();
     final delta = InstallLockBuilder(

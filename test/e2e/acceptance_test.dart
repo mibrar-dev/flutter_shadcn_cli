@@ -103,7 +103,12 @@ void main() {
       expect(file('shadcn.lock').existsSync(), isTrue);
       expect(file('lib/ui/shadcn/theme/app_theme.dart').existsSync(), isTrue);
       expect(file('lib/ui/shadcn/foundation/data.dart').existsSync(), isTrue);
-      expect(file('lib/ui/shadcn/analysis_options.yaml').existsSync(), isTrue);
+      // The install root must NOT carry a nested analysis_options.yaml: the
+      // registry sources are lint-clean under a stock app's flutter_lints.
+      expect(
+        file('lib/ui/shadcn/analysis_options.yaml').existsSync(),
+        isFalse,
+      );
       expect(lock()['lockfileVersion'], 2);
 
       // ── add ───────────────────────────────────────────────────────────

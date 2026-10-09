@@ -103,7 +103,6 @@ void main() {
       expect(report.written, hasLength(9));
 
       final expected = [
-        'lib/ui/shadcn/analysis_options.yaml',
         'lib/ui/shadcn/components/button/button.dart',
         'lib/ui/shadcn/components/button/button_style.dart',
         'lib/ui/shadcn/components/button/button_theme.dart',
