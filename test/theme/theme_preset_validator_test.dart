@@ -241,27 +241,16 @@ void main() {
       }
     }, skip: kit == null ? 'shadcn_flutter_kit not present' : null);
 
-    // Tripwire for the two documented gaps in `ManifestSchemaValidator`
-    // (batch B1) that the generated kit manifest trips over: primitive
-    // dependency cycles (plan 9.7 made them legal) and `themes/*.json` entries
-    // without a `fileHashes` digest. When B1 lands the fix this test flips to
-    // a clean `isValid`; any OTHER error fails here too.
-    test('the kit manifest only trips the two known validator gaps', () {
+    // F4 closed both gaps the tripwire used to allow: the kit now hashes every
+    // `themes/*.json`, and primitive cycles are legal (plan 9.7). This is a
+    // plain gate now — the theme flow serves presets from this manifest, so it
+    // must pass full validation.
+    test('the kit manifest passes full v2 validation', () {
       final result = ManifestSchemaValidator.validate(
         kitRegistryManifest(kit!),
         registryRoot: p.join(kit, 'lib', 'registry'),
       );
-      if (result.isValid) return;
-      final knownGap = result.errors.every(
-        (error) =>
-            error.contains('dependency cycle detected') ||
-            error.startsWith('fileHashes: missing entry for "themes/'),
-      );
-      expect(
-        knownGap,
-        isTrue,
-        reason: 'unexpected manifest errors:\n${result.errors.join('\n')}',
-      );
+      expect(result.isValid, isTrue, reason: result.errors.join('\n'));
     }, skip: kit == null ? 'shadcn_flutter_kit not present' : null);
   });
 }

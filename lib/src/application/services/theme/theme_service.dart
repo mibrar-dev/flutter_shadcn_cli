@@ -7,6 +7,7 @@ import 'package:flutter_shadcn_cli/src/application/services/theme/theme_models.d
 import 'package:flutter_shadcn_cli/src/application/services/theme/theme_preset_validator.dart';
 import 'package:flutter_shadcn_cli/src/application/services/theme/theme_registry_source.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/infrastructure/resolver/v1/project_path_guard.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry/manifest/registry_manifest.dart';
@@ -336,7 +337,9 @@ class ThemeService {
           'on disk ${drift?.actualSha256 ?? '(none)'}).',
         );
         _logger.warnToStderr(
-          'Re-run with --refresh to regenerate it from ${result.sourceFile}.',
+          'Re-run with --refresh to regenerate it from ${result.sourceFile}. '
+          'Exiting with theme_drift (${ExitCodes.themeDrift}); nothing was '
+          'written.',
         );
     }
     _logger.detail('  ↳ sha256 ${result.sha256}');

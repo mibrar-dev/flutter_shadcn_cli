@@ -160,13 +160,19 @@ void main() {
       expect(themeFile().existsSync(), isFalse);
     });
 
-    test('drift is reported and exits 50 without touching the file', () async {
+    test('drift is reported and exits theme_drift without touching the file',
+        () async {
       await run(<String>['apply', 'vercel']);
       themeFile().writeAsStringSync('// hand edited\n');
 
-      expect(
-          await run(<String>['apply', 'claude']), ExitCodes.validationFailed);
+      expect(await run(<String>['apply', 'claude']), ExitCodes.themeDrift);
       expect(themeFile().readAsStringSync(), '// hand edited\n');
+      expect(capture.stderr, contains('theme_drift (80)'));
+    });
+
+    test('an unknown preset is validation_failed, not drift', () async {
+      expect(await run(<String>['apply', 'nope']), ExitCodes.validationFailed);
+      expect(ExitCodes.themeDrift, isNot(ExitCodes.validationFailed));
     });
 
     test('--refresh rewrites a drifted file', () async {

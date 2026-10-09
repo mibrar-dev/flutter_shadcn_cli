@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:flutter_shadcn_cli/src/application/services/theme/theme_models.dart';
 import 'package:flutter_shadcn_cli/src/application/services/theme/theme_registry_source.dart';
@@ -46,72 +47,98 @@ void main() {
       );
     });
 
+    // The theme flow runs the full ManifestSchemaValidator, so the message
+    // names the file and the version rule and every validator error lands in
+    // `details`. Derived from the valid fixture so only the mutated rule fires.
     test('refuses a manifest that is not schemaVersion 2', () {
-      final source = ThemeRegistrySource.overReader(
-        (_) async => jsonEncode(<String, dynamic>{'schemaVersion': 1}),
-      );
-      expect(
-        source.loadManifest(),
-        throwsA(
-          isA<ThemeApplyException>().having(
-            (error) => error.message,
-            'message',
-            contains('has schemaVersion 1; this CLI needs the v2 manifest'),
-          ),
+      final source = _sourceOver({
+        ThemeRegistrySource.manifestPath: jsonEncode(
+          _validManifest()..['schemaVersion'] = 1,
         ),
-      );
-    });
-
-    test('reports every malformed themes entry at once', () {
-      final source = ThemeRegistrySource.overReader(
-        (_) async => jsonEncode(<String, dynamic>{
-          'schemaVersion': 2,
-          'themes': <String, dynamic>{
-            'broken': <String, dynamic>{'name': ''},
-            'nope': 'string',
-          },
-        }),
-      );
+      });
       expect(
         source.loadManifest(),
         throwsA(
           isA<ThemeApplyException>()
-              .having((error) => error.message, 'message',
-                  contains('has no usable `themes` section'))
               .having(
-                (error) => error.details,
+                (error) => error.message,
+                'message',
+                allOf(
+                  contains(ThemeRegistrySource.manifestPath),
+                  contains('is not a valid registry manifest'),
+                  contains('schemaVersion 2'),
+                ),
+              )
+              .having(
+                (error) => error.details.join('\n'),
                 'details',
-                containsAll(<String>[
-                  'themes.broken.file is required.',
-                  'themes.broken.name is required.',
-                  'themes.broken.modes must be a non-empty array.',
-                  'themes.nope must be an object.',
-                ]),
+                contains('schemaVersion must be 2 (got 1)'),
               ),
         ),
       );
     });
 
-    // The generated kit manifest has primitive cycles (plan 9.7) and no
-    // fileHashes entry for themes/*.json, so the theme flow must not depend on
-    // whole-manifest validation; `validate` / `doctor` own that.
-    test('tolerates a manifest the full v2 validator rejects', () async {
-      final source = ThemeRegistrySource.overReader(
-        (relPath) async => relPath == ThemeRegistrySource.manifestPath
-            ? jsonEncode(<String, dynamic>{
-                'schemaVersion': 2,
-                'themes': <String, dynamic>{
-                  'only': <String, dynamic>{
-                    'file': 'themes/only.json',
-                    'name': 'Only',
-                    'modes': <String>['light'],
-                  },
-                },
-              })
-            : null,
-        describe: (rel) => rel,
+    // Whole-manifest validation owns the wording, so this asserts the
+    // contract (one error per malformed entry, all reported at once) without
+    // pinning another batch's phrasing.
+    test('reports every malformed themes entry at once', () {
+      final source = _sourceOver({
+        ThemeRegistrySource.manifestPath: jsonEncode(_validManifest()),
+      });
+      final decoded = _validManifest();
+      decoded['themes'] = <String, dynamic>{
+        'broken': <String, dynamic>{'name': ''},
+        'nope': 'string',
+      };
+      final malformed = _sourceOver({
+        ThemeRegistrySource.manifestPath: jsonEncode(decoded),
+      });
+      expect(source.loadManifest(), completes);
+      expect(
+        malformed.loadManifest(),
+        throwsA(
+          isA<ThemeApplyException>()
+              .having((error) => error.message, 'message',
+                  contains('is not a valid registry manifest'))
+              .having(
+                (error) => error.details.join('\n'),
+                'details',
+                allOf(
+                  contains('themes.broken'),
+                  contains('themes.nope'),
+                  // Nothing else is wrong with this manifest.
+                  isNot(contains('missing required top-level key')),
+                ),
+              ),
+        ),
       );
-      expect((await source.loadManifest()).themes.keys, <String>['only']);
+    });
+
+    // Whole-manifest validation really runs: a missing digest for a declared
+    // layer file is refused. (`themes/*.json` are deliberately exempt — they
+    // are consumed to render app_theme.dart, never copied — even though the
+    // kit now publishes their digests for diffing.)
+    test('refuses a manifest whose fileHashes miss a declared layer file', () {
+      final decoded = _validManifest();
+      (decoded['fileHashes']! as Map<String, dynamic>)
+          .remove('foundation/data.dart');
+      final source = _sourceOver({
+        ThemeRegistrySource.manifestPath: jsonEncode(decoded),
+      });
+      expect(
+        source.loadManifest(),
+        throwsA(
+          isA<ThemeApplyException>()
+              .having((error) => error.message, 'message',
+                  contains('is not a valid registry manifest'))
+              .having(
+                (error) => error.details.join('\n'),
+                'details',
+                contains(
+                    'fileHashes: missing entry for "foundation/data.dart"'),
+              ),
+        ),
+      );
     });
 
     test('requires a configured registry', () {
@@ -178,4 +205,18 @@ void main() {
       expect(harness.service().findPreset('   '), isNull);
     });
   });
+}
+
+/// The fixture manifest as a fresh mutable map, so one test can break exactly
+/// one rule and assert that rule in isolation.
+Map<String, dynamic> _validManifest() =>
+    jsonDecode(File(p.join(fixtureRegistryRoot, 'manifests/registry.json'))
+        .readAsStringSync()) as Map<String, dynamic>;
+
+/// A [ThemeRegistrySource] serving the given registry-relative documents.
+ThemeRegistrySource _sourceOver(Map<String, String> documents) {
+  return ThemeRegistrySource.overReader(
+    (relPath) async => documents[relPath],
+    describe: (rel) => rel,
+  );
 }

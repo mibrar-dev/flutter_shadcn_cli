@@ -90,7 +90,7 @@ Future<int> runThemeCommand({
       if (json) {
         print(jsonEncode(<String, Object?>{'applied': result.toJson()}));
       }
-      return result.isClean ? ExitCodes.success : ExitCodes.validationFailed;
+      return _applyExitCode(result);
     }
     if (wantsList) {
       return await _printCatalog(await service.listPresets(), json: json);
@@ -147,7 +147,17 @@ Future<int> _chooseInteractively(ThemeService service) async {
     return ExitCodes.success;
   }
   final result = await service.apply(chosen.id);
-  return result.isClean ? ExitCodes.success : ExitCodes.validationFailed;
+  return _applyExitCode(result);
+}
+
+/// A refused apply is [ExitCodes.themeDrift], not `validation_failed`: nothing
+/// is invalid, the CLI declined to overwrite a user-owned file, and
+/// `--refresh` is the documented way forward.
+int _applyExitCode(ThemeApplyResult result) {
+  if (result.isClean) return ExitCodes.success;
+  return result.status == ThemeApplyStatus.drift
+      ? ExitCodes.themeDrift
+      : ExitCodes.validationFailed;
 }
 
 /// The preset id from `theme apply <id>`, `theme --apply <id>`, a leading

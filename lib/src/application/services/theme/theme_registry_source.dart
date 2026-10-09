@@ -2,6 +2,7 @@ import 'dart:convert';
 
 import 'package:flutter_shadcn_cli/src/application/services/theme/theme_models.dart';
 import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/registry/manifest/manifest_schema_validator.dart';
 import 'package:flutter_shadcn_cli/src/registry/manifest/registry_manifest.dart';
 import 'package:flutter_shadcn_cli/src/registry/registry_location.dart';
 
@@ -67,54 +68,25 @@ class ThemeRegistrySource {
   /// validator only run for a local registry.
   final String? registryRoot;
 
-  /// Loads `manifests/registry.json` and checks the parts the theme flow uses.
+  /// Loads `manifests/registry.json` and validates it against the v2 rules.
   ///
-  /// Deliberately scoped: whole-manifest validation (deps closure, layer
-  /// files, `fileHashes` coverage) belongs to `validate`/`doctor`, and the
-  /// generated kit manifest does not satisfy every rule that validator
-  /// enforces today (its primitive graph has cycles per plan §9.7, and
-  /// `themes/*.json` carry no `fileHashes` entry). Here the hard rules are the
-  /// ones a preset cannot work without:
-  ///
-  /// - `schemaVersion` must be 2 (anything else is the retired v1 manifest);
-  /// - `themes` must be an object of `{file, name, modes}` entries;
-  /// - `install.root` is used as the default install root.
+  /// The theme flow runs the **full** [ManifestSchemaValidator]: a manifest
+  /// whose layers, deps or `fileHashes` are broken cannot be installed from
+  /// either, so serving presets from it would only defer the error. The
+  /// generated kit manifest satisfies every rule (`themes/*.json` are hashed,
+  /// and primitive cycles are legal per plan §9.7).
   ///
   /// Preset documents themselves are checked against `themes.schema.json` by
   /// [ThemeService.apply]. Throws [ThemeApplyException] on any failure.
   Future<RegistryManifest> loadManifest() async {
-    final text = await _readOrFail(manifestPath);
-    final decoded = _decode(text, manifestPath);
-    if (decoded['schemaVersion'] != 2) {
+    final decoded = _decode(await _readOrFail(manifestPath), manifestPath);
+    final result =
+        ManifestSchemaValidator.validate(decoded, registryRoot: registryRoot);
+    if (!result.isValid) {
       throw ThemeApplyException(
-        '${_describe(manifestPath)} has schemaVersion '
-        '${decoded['schemaVersion']}; this CLI needs the v2 manifest.',
-      );
-    }
-    final errors = <String>[];
-    final themes = decoded['themes'];
-    if (themes is! Map) {
-      errors.add('`themes` must be an object of preset entries.');
-    } else {
-      themes.forEach((id, entry) {
-        if (entry is! Map) {
-          errors.add('themes.$id must be an object.');
-          return;
-        }
-        final file = entry['file']?.toString().trim() ?? '';
-        final name = entry['name']?.toString().trim() ?? '';
-        final modes = entry['modes'];
-        if (file.isEmpty) errors.add('themes.$id.file is required.');
-        if (name.isEmpty) errors.add('themes.$id.name is required.');
-        if (modes is! List || modes.isEmpty) {
-          errors.add('themes.$id.modes must be a non-empty array.');
-        }
-      });
-    }
-    if (errors.isNotEmpty) {
-      throw ThemeApplyException(
-        '${_describe(manifestPath)} has no usable `themes` section.',
-        details: errors,
+        '${_describe(manifestPath)} is not a valid registry manifest '
+        '(schemaVersion 2).',
+        details: result.errors,
       );
     }
     return RegistryManifest.fromJson(decoded);
