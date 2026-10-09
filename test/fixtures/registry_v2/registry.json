@@ -1,0 +1,147 @@
+{
+  "$schema": "https://flutter-shadcn.github.io/registry-directory/registry/registry.schema.v2.json",
+  "schemaVersion": 2,
+  "registry": {
+    "name": "shadcn_flutter",
+    "version": "0.2.7",
+    "ref": "refactor/rearchitecture",
+    "generatedAt": "2026-10-09T00:00:00Z"
+  },
+  "install": {
+    "root": "lib/ui/shadcn",
+    "componentsDir": "components",
+    "layerDirs": {
+      "foundation": "foundation",
+      "theme": "theme",
+      "primitives": "primitives"
+    },
+    "userOwnedSuffix": "_theme.dart"
+  },
+  "foundation": {
+    "data": {
+      "files": ["foundation/data.dart"]
+    },
+    "gap": {
+      "files": ["foundation/gap.dart"]
+    }
+  },
+  "theme": {
+    "theme": {
+      "files": ["theme/theme.dart"]
+    },
+    "color_tokens": {
+      "files": ["theme/color_tokens.dart", "theme/color_utils.dart"]
+    }
+  },
+  "primitives": {
+    "clickable": {
+      "files": ["primitives/clickable.dart"],
+      "deps": {
+        "primitives": []
+      }
+    },
+    "form_core": {
+      "files": ["primitives/form_core/form_core.dart"],
+      "deps": {
+        "primitives": ["clickable"]
+      }
+    }
+  },
+  "components": {
+    "button": {
+      "name": "Button",
+      "category": "control",
+      "description": "Pressable action control with seven variants and five fixed sizes.",
+      "entry": "components/button/button.dart",
+      "files": ["components/button/button.dart", "components/button/button_style.dart"],
+      "userOwned": ["components/button/button_theme.dart"],
+      "deps": {
+        "foundation": ["data", "gap"],
+        "theme": ["theme", "color_tokens"],
+        "primitives": ["clickable"],
+        "components": []
+      },
+      "tags": ["control", "button"],
+      "api": {
+        "classes": ["Button", "ButtonGroup"],
+        "enums": ["ButtonVariant", "ButtonSize"]
+      },
+      "theme": {
+        "class": "ButtonTheme",
+        "userFile": "button_theme.dart",
+        "fields": {
+          "primary": "ButtonVariantStyle? - filled high-emphasis row"
+        }
+      },
+      "install": "flutter_shadcn add button",
+      "import": "import 'package:<your_app>/ui/shadcn/components/button/button.dart';",
+      "packages": [
+        {
+          "name": "intl",
+          "constraint": "^0.20.2"
+        }
+      ]
+    },
+    "input": {
+      "name": "Input",
+      "category": "control",
+      "description": "Single-line text field with label and validation states.",
+      "entry": "components/input/input.dart",
+      "files": ["components/input/input.dart"],
+      "userOwned": [],
+      "deps": {
+        "foundation": ["data"],
+        "theme": ["theme", "color_tokens"],
+        "primitives": ["form_core"],
+        "components": []
+      },
+      "tags": ["control", "input"],
+      "api": {
+        "classes": ["Input"],
+        "enums": ["InputVariant"]
+      },
+      "theme": null
+    },
+    "text_area": {
+      "name": "Text Area",
+      "category": "control",
+      "description": "Multi-line text field built on the input primitive.",
+      "entry": "components/text_area/text_area.dart",
+      "files": ["components/text_area/text_area.dart"],
+      "userOwned": [],
+      "deps": {
+        "foundation": ["data"],
+        "theme": ["theme"],
+        "primitives": ["form_core"],
+        "components": ["input"]
+      },
+      "tags": ["control", "input"],
+      "api": {
+        "classes": ["TextArea"]
+      }
+    }
+  },
+  "themes": {
+    "modern-minimal": {
+      "file": "themes/modern-minimal.json",
+      "name": "Modern Minimal",
+      "modes": ["light", "dark"]
+    }
+  },
+  "fileHashes": {
+    "foundation/data.dart": "39491846507754a97ff8f7bf8eaf5de3d7244e4323bb59b4936aea6b4e57f9a1",
+    "foundation/gap.dart": "f7dadf5ca9d4db9d27f2f17e972323520e8692e33984fcc63fae3872b4355f63",
+    "theme/theme.dart": "d42cb91fea897c496704447f46c94fc9804cdd5566fccefbe6126c5b16ad4d16",
+    "theme/color_tokens.dart": "2ff465b88125e787b22759832a9c4f608edbc63876e0f4d0696ee33d7c520684",
+    "theme/color_utils.dart": "cda27de8e962cb2a1a1ce028475ec1d2f883dc69d81ea25fdefd5c7bcb3ca33f",
+    "primitives/clickable.dart": "734adbf7557248513cad79b06a2b8c01195fa16716e6581747953601f45e6d7b",
+    "primitives/form_core/form_core.dart": "12d9fe517fd182c502887ee92ac27b6784eedb693d6d7b38ba1e8045a7b7f903",
+    "components/button/button.dart": "b4d7f11ed4b4b27169fdd568847201234997d6869b93a3de541f3663f9ae30e7",
+    "components/button/button_style.dart": "cc2638930f960a2c399e88be3eebf36bf32cea9b1b8b6a03cecf5032e68379df",
+    "components/button/button_theme.dart": "f9d0d232d28a895ce1d415943cec4a7002b29499f4aa2eb82856d060d11609e3",
+    "components/input/input.dart": "652353875fc7a0ac8a4c67ec1efc724933e8858feb9215cb47e1d8b9da3faf6b",
+    "components/input/input_theme.dart": "db8467168fa725a83b0da379f53a600c2794b3de6423d5280b15438fdcc8c8be",
+    "components/text_area/text_area.dart": "66eec801d9614bce20de9786e9b1d3332a6088e24c0f01f73a458abbeb6978c1",
+    "themes/modern-minimal.json": "60a9ee8db184235f04b84471663cc93c4bbd744310c5081b726c5cdc79b47449"
+  }
+}
