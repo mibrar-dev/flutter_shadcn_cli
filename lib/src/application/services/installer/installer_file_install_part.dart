@@ -75,7 +75,8 @@ class ImportGuardException implements Exception {
   @override
   String toString() =>
       'Import guard: "$file" imports "$importTarget" which resolves to '
-      '"$resolved" outside foundation/, theme/, primitives/ or components/.';
+      '"$resolved" outside foundation/, theme/, primitives/, components/ or '
+      'blocks/.';
 }
 
 /// A file the installer wrote.
@@ -122,6 +123,9 @@ class InstallerFileInstaller {
   /// Component directory name.
   static const String componentsDir = 'components';
 
+  /// Block directory name (registry layer 4, P6-B1).
+  static const String blocksDir = 'blocks';
+
   static final RegExp _importPattern = RegExp(
     r'''^\s*(?:import|export)\s+['"]([^'"]+)['"]''',
     multiLine: true,
@@ -130,12 +134,15 @@ class InstallerFileInstaller {
   /// Project-relative destination for [relPath].
   ///
   /// `foundation/x.dart` -> `<root>/foundation/x.dart`;
-  /// `components/button/button.dart` -> `<root>/components/button/button.dart`.
-  /// `themes/*.json` and other non-copyable paths are rejected.
+  /// `components/button/button.dart` -> `<root>/components/button/button.dart`;
+  /// `blocks/login-01/login_01.dart` -> `<root>/blocks/login-01/login_01.dart`.
+  /// `themes/*.json`, block `docs` and other non-copyable paths are rejected.
   String targetPathFor(String relPath) {
     final normalized = p.posix.normalize(relPath.replaceAll('\\', '/'));
     final head = normalized.split('/').first;
-    if (head == componentsDir || layerDirs.contains(head)) {
+    if (head == componentsDir ||
+        head == blocksDir ||
+        layerDirs.contains(head)) {
       return p.posix.join(installRoot, normalized);
     }
     throw ArgumentError.value(
@@ -179,7 +186,9 @@ class InstallerFileInstaller {
             resolved.startsWith('../') ||
             p.posix.isAbsolute(resolved);
         final head = resolved.split('/').first;
-        final insideLayout = head == componentsDir || layerDirs.contains(head);
+        final insideLayout = head == componentsDir ||
+            head == blocksDir ||
+            layerDirs.contains(head);
         if (escapes || !insideLayout) {
           throw ImportGuardException(
             file: file,

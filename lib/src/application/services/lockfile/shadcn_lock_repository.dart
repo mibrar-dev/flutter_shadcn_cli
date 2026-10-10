@@ -15,6 +15,7 @@ export 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_file_e
 export 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_install_state.dart';
 export 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_json.dart';
 export 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_layer.dart';
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_block.dart';
 export 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_component.dart';
 export 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_v2.dart';
 
@@ -141,6 +142,11 @@ class ShadcnLockRepository {
       }
       for (final file in component.userOwned.entries) {
         entries.add(_TrackedFile(file.key, component.id, file.value, true));
+      }
+    }
+    for (final block in lock.blocks) {
+      for (final file in block.files.entries) {
+        entries.add(_TrackedFile(file.key, block.id, file.value, false));
       }
     }
 

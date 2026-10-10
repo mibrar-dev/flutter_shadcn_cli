@@ -635,7 +635,8 @@ class _ThemeStudioHomeState extends State<ThemeStudioHome>
       );
     }
 
-    final index = _selectedComponentIndex.clamp(0, _filteredComponents.length - 1);
+    final index =
+        _selectedComponentIndex.clamp(0, _filteredComponents.length - 1);
     final component = _filteredComponents[index];
 
     return Expanded(
@@ -780,7 +781,6 @@ class _ThemeStudioHomeState extends State<ThemeStudioHome>
       ],
     );
   }
-
 
   Widget _buildSidebar(BuildContext context, StudioData data) {
     final rows = _buildSidebarRows();

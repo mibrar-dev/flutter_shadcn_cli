@@ -115,7 +115,11 @@ class InstallReport {
       plan.writeHuman(logger);
       return;
     }
-    logger.header('Installed ${plan.components.length} component(s)');
+    final summary = [
+      '${plan.components.length} component(s)',
+      if (plan.blocks.isNotEmpty) '${plan.blocks.length} block(s)',
+    ].join(' + ');
+    logger.header('Installed $summary');
     logger.info('  files written: ${written.length}');
     if (packagesAdded.isNotEmpty) {
       logger.info('  packages added: ${packagesAdded.join(', ')}');
@@ -133,7 +137,9 @@ class DryRunPlan {
   const DryRunPlan({
     required this.requested,
     this.missing = const [],
+    this.requestedBlocks = const [],
     this.components = const [],
+    this.blocks = const [],
     this.foundation = const [],
     this.theme = const [],
     this.primitives = const [],
@@ -148,7 +154,19 @@ class DryRunPlan {
   /// Requested ids that are not in the manifest (empty: closure throws first).
   final List<String> missing;
 
+  /// Block ids added on top of [requested], e.g. `add --all --blocks`.
+  ///
+  /// A block the user typed by name travels in [requested] instead: one
+  /// address space serves `add <id>`, and such a block shows up in [blocks]
+  /// like any other closure member.
+  final List<String> requestedBlocks;
+
   final List<String> components;
+
+  /// Block ids in the closure. Nothing depends on a block, so a block is never
+  /// pulled in by another block: this is exactly what was asked for.
+  final List<String> blocks;
+
   final List<String> foundation;
   final List<String> theme;
   final List<String> primitives;
@@ -174,8 +192,10 @@ class DryRunPlan {
   Map<String, dynamic> toJson() {
     return {
       'requested': requested,
+      'requestedBlocks': requestedBlocks,
       'missing': missing,
       'components': components,
+      'blocks': blocks,
       'layers': {
         'foundation': foundation,
         'theme': theme,
@@ -196,6 +216,12 @@ class DryRunPlan {
     logger.section('Components (${components.length})');
     for (final id in components) {
       logger.info('  • $id');
+    }
+    if (blocks.isNotEmpty) {
+      logger.section('Blocks (${blocks.length})');
+      for (final id in blocks) {
+        logger.info('  • $id');
+      }
     }
     logger.section('Layers');
     logger.info('  foundation: ${foundation.join(', ')}');

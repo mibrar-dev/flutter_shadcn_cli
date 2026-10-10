@@ -56,6 +56,7 @@ class UpdateService {
 
   Future<UpdateReport> run({
     Set<String>? componentIds,
+    Set<String>? blockIds,
     bool check = false,
   }) async {
     final lock = await _lockRepo.load();
@@ -76,10 +77,11 @@ class UpdateService {
     final newHashes = <String, String>{};
     final newLayerFiles = <LockLayer, Map<String, String>>{};
     final newComponentFiles = <String, Map<String, String>>{};
+    final newBlockFiles = <String, Map<String, String>>{};
     final newUserOwned = <String, Map<String, String>>{};
 
     // Pass 1: files the lock already tracks.
-    final tracked = _trackedRegistryFiles(lock, componentIds);
+    final tracked = _trackedRegistryFiles(lock, componentIds, blockIds);
     for (final entry in tracked.entries) {
       final target = entry.key;
       if (themePath != null && target == themePath) {
@@ -125,6 +127,7 @@ class UpdateService {
     // Pass 2: files the manifest added to the installed closure.
     final closure = ManifestClosureResolver(manifest).resolve(
       _targetComponentIds(lock, componentIds),
+      blockIds: _targetBlockIds(lock, blockIds),
       includeCore: false,
     );
     final known = tracked.keys.toSet();
@@ -147,14 +150,26 @@ class UpdateService {
       if (diskSha == null) {
         added.add(target);
         _recordNewFile(
-            source, target, newSha, newLayerFiles, newComponentFiles);
+          source,
+          target,
+          newSha,
+          newLayerFiles,
+          newComponentFiles,
+          newBlockFiles,
+        );
         if (!check) {
           await _write(disk, bytes);
         }
       } else if (FileHashing.matches(newSha, diskSha)) {
         unchanged.add(target);
         _recordNewFile(
-            source, target, newSha, newLayerFiles, newComponentFiles);
+          source,
+          target,
+          newSha,
+          newLayerFiles,
+          newComponentFiles,
+          newBlockFiles,
+        );
       } else {
         // An untracked local file at a registry path: never clobber it.
         modified.add(target);
@@ -217,6 +232,7 @@ class UpdateService {
           newHashes: newHashes,
           newLayerFiles: newLayerFiles,
           newComponentFiles: newComponentFiles,
+          newBlockFiles: newBlockFiles,
           newUserOwned: newUserOwned,
           closure: closure,
         ),
@@ -260,9 +276,19 @@ class UpdateService {
     ]..sort();
   }
 
+  /// Installed block ids that still exist in the manifest.
+  List<String> _targetBlockIds(ShadcnLock lock, Set<String>? blockIds) {
+    final ids = blockIds ?? lock.blockIds.toSet();
+    return [
+      for (final id in ids)
+        if (manifest.blocks.containsKey(id)) id,
+    ]..sort();
+  }
+
   Map<String, String> _trackedRegistryFiles(
     ShadcnLock lock,
     Set<String>? componentIds,
+    Set<String>? blockIds,
   ) {
     final result = <String, String>{};
     for (final layer in LockLayer.values) {
@@ -273,6 +299,12 @@ class UpdateService {
         continue;
       }
       result.addAll(component.files);
+    }
+    for (final block in lock.blocks) {
+      if (blockIds != null && !blockIds.contains(block.id)) {
+        continue;
+      }
+      result.addAll(block.files);
     }
     return result;
   }
@@ -287,13 +319,15 @@ class UpdateService {
     return null;
   }
 
-  /// Records a newly installed registry file against its layer or component.
+  /// Records a newly installed registry file against its layer, component or
+  /// block.
   void _recordNewFile(
     String source,
     String target,
     String sha256,
     Map<LockLayer, Map<String, String>> layerFiles,
     Map<String, Map<String, String>> componentFiles,
+    Map<String, Map<String, String>> blockFiles,
   ) {
     final segments = source.split('/');
     final head = segments.first;
@@ -304,6 +338,10 @@ class UpdateService {
     }
     if (head == InstallerFileInstaller.componentsDir && segments.length > 1) {
       componentFiles.putIfAbsent(segments[1], () => {})[target] = sha256;
+      return;
+    }
+    if (head == InstallerFileInstaller.blocksDir && segments.length > 1) {
+      blockFiles.putIfAbsent(segments[1], () => {})[target] = sha256;
     }
   }
 

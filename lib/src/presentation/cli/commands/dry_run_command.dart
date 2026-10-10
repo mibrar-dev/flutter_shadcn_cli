@@ -19,17 +19,20 @@ Future<int> runDryRunCommand({
   final logger = commandLogger(rootArgs, json: json);
 
   if (commandFlag(dryRunCommand, 'help')) {
-    stdout.writeln('Usage: flutter_shadcn dry-run <component...> [--json]');
-    stdout.writeln('       flutter_shadcn dry-run --all [--json]');
+    stdout.writeln('Usage: flutter_shadcn dry-run <component|block...> '
+        '[--json]');
+    stdout.writeln('       flutter_shadcn dry-run --all [--blocks] [--json]');
     stdout.writeln('');
     stdout.writeln('Shows what `add` would write, without writing anything.');
     return ExitCodes.success;
   }
 
   final includeAll = commandFlag(dryRunCommand, 'all');
+  final includeBlocks = commandFlag(dryRunCommand, 'blocks');
   final requested = componentIdsFrom(dryRunCommand);
   if (!includeAll && requested.isEmpty) {
-    stdout.writeln('Usage: flutter_shadcn dry-run <component...> [--all]');
+    stdout
+        .writeln('Usage: flutter_shadcn dry-run <component|block...> [--all]');
     return ExitCodes.usage;
   }
 
@@ -40,10 +43,14 @@ Future<int> runDryRunCommand({
       registryOverride: registryOverride,
       offline: offline,
     );
-    final ids = includeAll
-        ? (context.loadedManifest.manifest.components.keys.toList()..sort())
-        : requested;
-    final plan = await context.installer.plan(ids, includeCore: true);
+    final manifest = context.loadedManifest.manifest;
+    final ids =
+        includeAll ? (manifest.components.keys.toList()..sort()) : requested;
+    final plan = await context.installer.plan(
+      ids,
+      blockIds: includeAll && includeBlocks ? manifest.blocks.keys : const [],
+      includeCore: true,
+    );
     if (json) {
       printJson(jsonEnvelope(
         command: 'dry-run',

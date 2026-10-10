@@ -186,6 +186,7 @@ class _Diagnosis {
     // Closure present: every file the installed closure needs exists on disk.
     final closure = ManifestClosureResolver(manifest).resolve(
       lock.componentIds,
+      blockIds: lock.blockIds,
       includeCore: true,
     );
     final missing = <String>[];
@@ -229,7 +230,7 @@ class _Diagnosis {
       ));
     }
 
-    // Import-depth guard on installed component files.
+    // Import-depth guard on installed component and block files.
     final guard = InstallerFileInstaller(
       projectRoot: context.projectRoot,
       installRoot: context.installRoot,
@@ -238,6 +239,18 @@ class _Diagnosis {
     final contents = <String, String>{};
     for (final component in lock.components) {
       for (final target in component.files.keys) {
+        final file = File(p.join(context.projectRoot, target));
+        if (await file.exists()) {
+          final prefix = '${context.installRoot}/';
+          final source = target.startsWith(prefix)
+              ? target.substring(prefix.length)
+              : target;
+          contents[source] = await file.readAsString();
+        }
+      }
+    }
+    for (final block in lock.blocks) {
+      for (final target in block.files.keys) {
         final file = File(p.join(context.projectRoot, target));
         if (await file.exists()) {
           final prefix = '${context.installRoot}/';

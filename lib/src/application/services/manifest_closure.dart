@@ -6,13 +6,13 @@ import 'package:flutter_shadcn_cli/src/registry/manifest/registry_manifest.dart'
 class ManifestClosureException implements Exception {
   const ManifestClosureException(this.kind, this.id, {this.referencedBy});
 
-  /// `component`, `primitive`, `foundation` or `theme`.
+  /// `component`, `block`, `primitive`, `foundation` or `theme`.
   final String kind;
 
   /// The unknown id.
   final String id;
 
-  /// The component whose dependency block referenced [id], when known.
+  /// The component or block whose dependency block referenced [id], when known.
   final String? referencedBy;
 
   @override
@@ -23,8 +23,8 @@ class ManifestClosureException implements Exception {
   }
 }
 
-/// The transitive closure of a set of components: every component, layer unit
-/// and file the install needs.
+/// The transitive closure of a set of components and blocks: every component,
+/// block, layer unit and file the install needs.
 ///
 /// Layers are implicit (plan §1.2): foundation/theme/primitives are never
 /// addressed as components, only pulled in here. The primitive graph contains
@@ -33,6 +33,7 @@ class ManifestClosureException implements Exception {
 class ManifestClosure {
   const ManifestClosure({
     this.components = const [],
+    this.blocks = const [],
     this.foundation = const [],
     this.theme = const [],
     this.primitives = const [],
@@ -43,6 +44,9 @@ class ManifestClosure {
   /// Component ids, sorted.
   final List<String> components;
 
+  /// Block ids, sorted.
+  final List<String> blocks;
+
   /// Foundation unit ids, sorted.
   final List<String> foundation;
 
@@ -52,16 +56,18 @@ class ManifestClosure {
   /// Primitive unit ids, sorted.
   final List<String> primitives;
 
-  /// Registry-relative copyable files (foundation/theme/primitives/components),
-  /// sorted. Excludes `themes/` JSON and user-owned files.
+  /// Registry-relative copyable files (foundation/theme/primitives/components/
+  /// blocks), sorted. Excludes `themes/` JSON, block `docs` and user-owned
+  /// files.
   final List<String> files;
 
-  /// Union of the `packages` declared by every unit and component in the
-  /// closure, sorted by name (plan §9.1).
+  /// Union of the `packages` declared by every unit, component and block in
+  /// the closure, sorted by name (plan §9.1).
   final List<PackageRef> packages;
 
   bool get isEmpty =>
       components.isEmpty &&
+      blocks.isEmpty &&
       foundation.isEmpty &&
       theme.isEmpty &&
       primitives.isEmpty;
@@ -69,6 +75,7 @@ class ManifestClosure {
   Map<String, dynamic> toJson() {
     return {
       'components': components,
+      'blocks': blocks,
       'foundation': foundation,
       'theme': theme,
       'primitives': primitives,
@@ -86,56 +93,72 @@ class ManifestClosure {
   }
 }
 
-/// Resolves the component + layer closure from a [RegistryManifest].
+/// Resolves the component + block + layer closure from a [RegistryManifest].
 class ManifestClosureResolver {
   const ManifestClosureResolver(this.manifest);
 
   final RegistryManifest manifest;
 
-  /// Transitive closure of [componentIds].
+  /// Transitive closure of [ids] plus [blockIds].
+  ///
+  /// [ids] may name a component or a block: that is the `add <id>` contract,
+  /// so `add login-01` resolves exactly like `add button`. [blockIds] is the
+  /// explicit form a caller uses when it knows the ids are blocks and nothing
+  /// else (`add --all --blocks`, `sync`, `project refresh`).
   ///
   /// [includeCore] adds every foundation and theme unit (the always-on core
   /// `init` copies, plan §2.1); `add` keeps it on so the layer core is present
   /// even on a project that was never `init`ed.
+  ///
+  /// An id that names neither is a [ManifestClosureException], so a typo never
+  /// silently installs nothing.
   ManifestClosure resolve(
-    Iterable<String> componentIds, {
+    Iterable<String> ids, {
+    Iterable<String> blockIds = const [],
     bool includeCore = true,
   }) {
     final components = <String>{};
+    final blocks = <String>{};
     final primitives = <String>{};
     final foundation = <String>{};
     final theme = <String>{};
 
-    final queue = <String>[];
-    for (final raw in componentIds) {
+    final queue = <_Seed>[];
+    for (final raw in ids) {
+      _seed(raw, components, blocks, queue);
+    }
+    for (final raw in blockIds) {
       final id = raw.trim();
       if (id.isEmpty) {
         continue;
       }
-      _requireComponent(id);
-      if (components.add(id)) {
-        queue.add(id);
+      _requireBlock(id);
+      if (blocks.add(id)) {
+        queue.add(_Seed.block(id));
       }
     }
 
     while (queue.isNotEmpty) {
-      final id = queue.removeLast();
-      final component = manifest.components[id]!;
-      for (final dep in component.deps.components) {
-        _requireComponent(dep, referencedBy: id);
+      final seed = queue.removeLast();
+      final deps = switch (seed.kind) {
+        _SeedKind.component => manifest.components[seed.id]!.deps,
+        _SeedKind.block => manifest.blocks[seed.id]!.deps,
+      };
+      for (final dep in deps.components) {
+        _requireComponent(dep, referencedBy: seed.id);
         if (components.add(dep)) {
-          queue.add(dep);
+          queue.add(_Seed.component(dep));
         }
       }
-      for (final dep in component.deps.primitives) {
-        _addPrimitive(dep, primitives, referencedBy: id);
+      for (final dep in deps.primitives) {
+        _addPrimitive(dep, primitives, referencedBy: seed.id);
       }
-      for (final dep in component.deps.foundation) {
-        _requireFoundation(dep, referencedBy: id);
+      for (final dep in deps.foundation) {
+        _requireFoundation(dep, referencedBy: seed.id);
         foundation.add(dep);
       }
-      for (final dep in component.deps.theme) {
-        _requireTheme(dep, referencedBy: id);
+      for (final dep in deps.theme) {
+        _requireTheme(dep, referencedBy: seed.id);
         theme.add(dep);
       }
     }
@@ -147,11 +170,14 @@ class ManifestClosureResolver {
 
     return ManifestClosure(
       components: _sorted(components),
+      blocks: _sorted(blocks),
       foundation: _sorted(foundation),
       theme: _sorted(theme),
       primitives: _sorted(primitives),
-      files: _sorted(_filesOf(components, primitives, foundation, theme)),
-      packages: _packagesOf(components, primitives, foundation, theme),
+      files: _sorted(
+        _filesOf(components, blocks, primitives, foundation, theme),
+      ),
+      packages: _packagesOf(components, blocks, primitives, foundation, theme),
     );
   }
 
@@ -159,6 +185,50 @@ class ManifestClosureResolver {
     if (!manifest.components.containsKey(id)) {
       throw ManifestClosureException(
         'component',
+        id,
+        referencedBy: referencedBy,
+      );
+    }
+  }
+
+  /// Seeds one user-typed id: a component when the manifest has one, a block
+  /// when it has that, an error when it has neither.
+  ///
+  /// The error names both kinds once the registry publishes blocks, so a typo
+  /// on a block id is not reported as a missing component.
+  void _seed(
+    String raw,
+    Set<String> components,
+    Set<String> blocks,
+    List<_Seed> queue,
+  ) {
+    final id = raw.trim();
+    if (id.isEmpty) {
+      return;
+    }
+    if (manifest.components.containsKey(id)) {
+      _requireComponent(id);
+      if (components.add(id)) {
+        queue.add(_Seed.component(id));
+      }
+      return;
+    }
+    if (manifest.blocks.containsKey(id)) {
+      if (blocks.add(id)) {
+        queue.add(_Seed.block(id));
+      }
+      return;
+    }
+    throw ManifestClosureException(
+      manifest.blocks.isEmpty ? 'component' : 'component or block',
+      id,
+    );
+  }
+
+  void _requireBlock(String id, {String? referencedBy}) {
+    if (!manifest.blocks.containsKey(id)) {
+      throw ManifestClosureException(
+        'block',
         id,
         referencedBy: referencedBy,
       );
@@ -207,6 +277,7 @@ class ManifestClosureResolver {
 
   Iterable<String> _filesOf(
     Set<String> components,
+    Set<String> blocks,
     Set<String> primitives,
     Set<String> foundation,
     Set<String> theme,
@@ -214,6 +285,9 @@ class ManifestClosureResolver {
     final files = <String>{};
     for (final id in components) {
       files.addAll(manifest.components[id]!.files);
+    }
+    for (final id in blocks) {
+      files.addAll(manifest.blocks[id]!.files);
     }
     for (final id in primitives) {
       files.addAll(manifest.primitives[id]!.files);
@@ -229,6 +303,7 @@ class ManifestClosureResolver {
 
   List<PackageRef> _packagesOf(
     Set<String> components,
+    Set<String> blocks,
     Set<String> primitives,
     Set<String> foundation,
     Set<String> theme,
@@ -246,6 +321,9 @@ class ManifestClosureResolver {
     for (final id in _sorted(components)) {
       collect(manifest.components[id]!.packages);
     }
+    for (final id in _sorted(blocks)) {
+      collect(manifest.blocks[id]!.packages);
+    }
     for (final id in _sorted(primitives)) {
       collect(manifest.primitives[id]!.packages);
     }
@@ -261,4 +339,15 @@ class ManifestClosureResolver {
 
   static List<String> _sorted(Iterable<String> values) =>
       values.toSet().toList()..sort();
+}
+
+enum _SeedKind { component, block }
+
+/// One queue entry: an id plus which map it came from.
+class _Seed {
+  const _Seed.component(this.id) : kind = _SeedKind.component;
+  const _Seed.block(this.id) : kind = _SeedKind.block;
+
+  final String id;
+  final _SeedKind kind;
 }

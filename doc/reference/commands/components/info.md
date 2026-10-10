@@ -1,6 +1,6 @@
 # flutter_shadcn info
 
-> Show a component's closure, files and api.
+> Show a component's or block's closure, files and api.
 
 ## Aliases
 
@@ -9,14 +9,14 @@
 ## Usage
 
 ```bash
-flutter_shadcn info <component> [--json]
+flutter_shadcn info <component|block> [--json]
 ```
 
 ## Arguments
 
 | Argument | Required | Description |
 |----------|----------|-------------|
-| `<component>` | Yes | Component name or @namespace/component address. |
+| `<component|block>` | Yes | Component or block name, or @namespace/component address. |
 
 ## Flags
 
@@ -28,8 +28,13 @@ flutter_shadcn info <component> [--json]
 
 ```bash
 flutter_shadcn info button
+flutter_shadcn info login-01
 flutter_shadcn i dialog
 ```
+
+## Notes
+
+A component reports its api and user-owned theme files; a block reports its viewport, its own files and the components it assembles.
 
 ## See Also
 

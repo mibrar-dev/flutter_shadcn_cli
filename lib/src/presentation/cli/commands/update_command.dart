@@ -46,11 +46,20 @@ Future<int> runUpdateCommand({
       offline: offline,
     );
     Set<String>? componentFilter;
-    if (!includeAll && ids.isNotEmpty) {
-      componentFilter = ids.toSet();
-    } else if (!includeAll && ids.isEmpty) {
+    Set<String>? blockFilter;
+    if (!includeAll) {
+      // `update <id>` accepts component and block ids: each filter keeps the
+      // ids of its own kind, so `update login-01` refreshes the block while
+      // `update button` touches no block at all.
       final lock = await ShadcnLockRepository(projectRoot).load();
-      componentFilter = lock.componentIds.toSet();
+      final installedComponents = lock.componentIds.toSet();
+      final installedBlocks = lock.blockIds.toSet();
+      componentFilter = ids.isEmpty
+          ? installedComponents
+          : ids.where(installedComponents.contains).toSet();
+      blockFilter = ids.isEmpty
+          ? installedBlocks
+          : ids.where(installedBlocks.contains).toSet();
     }
 
     final service = UpdateService(
@@ -64,8 +73,11 @@ Future<int> runUpdateCommand({
       themeRegenerator: (presetId) =>
           context.themeService.apply(presetId, refresh: true),
     );
-    final report =
-        await service.run(componentIds: componentFilter, check: check);
+    final report = await service.run(
+      componentIds: componentFilter,
+      blockIds: blockFilter,
+      check: check,
+    );
 
     if (json) {
       final exitCode = check && report.needsAttention ? 1 : ExitCodes.success;

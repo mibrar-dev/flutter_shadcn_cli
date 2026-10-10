@@ -6,12 +6,15 @@ import 'package:flutter_shadcn_cli/src/json_output.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/command_context.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
-/// `flutter_shadcn add` with component ids [--dry-run] [--json] [--force] [--all]
-/// [--include-preview]` (P5_CLI_PLAN.md §2.2).
+/// `flutter_shadcn add` with component and block ids
+/// `[--dry-run] [--json] [--force] [--all] [--blocks] [--include-preview]`
+/// (P5_CLI_PLAN.md §2.2, P6-B2).
 ///
-/// Resolves the transitive closure, applies the single-owner preflight, copies
-/// the files verbatim and refreshes `shadcn.lock` v2. User-owned
-/// `<name>_theme.dart` files are never overwritten.
+/// Resolves the transitive closure of every requested id — a component *or* a
+/// block — applies the single-owner preflight, copies the files verbatim and
+/// refreshes `shadcn.lock` v2. A block lands in `blocks/<id>/` together with
+/// every component, primitive, theme and foundation unit it needs.
+/// User-owned `<name>_theme.dart` files are never overwritten.
 Future<int> runAddCommand({
   required ArgResults addCommand,
   required ArgResults rootArgs,
@@ -29,12 +32,16 @@ Future<int> runAddCommand({
   }
 
   final includeAll = commandFlag(addCommand, 'all');
+  final includeBlocks = commandFlag(addCommand, 'blocks');
   final force = commandFlag(addCommand, 'force');
   final includePreview = commandFlag(addCommand, 'include-preview');
   final requested = componentIdsFrom(addCommand);
   if (!includeAll && requested.isEmpty) {
     _printAddHelp();
     return ExitCodes.usage;
+  }
+  if (includeBlocks && !includeAll) {
+    logger.warn('--blocks only widens --all; it does nothing on its own.');
   }
 
   try {
@@ -44,12 +51,13 @@ Future<int> runAddCommand({
       registryOverride: registryOverride,
       offline: offline,
     );
-    final ids = includeAll
-        ? (context.loadedManifest.manifest.components.keys.toList()..sort())
-        : requested;
+    final manifest = context.loadedManifest.manifest;
+    final ids =
+        includeAll ? (manifest.components.keys.toList()..sort()) : requested;
 
     final report = await context.installer.add(
       ids,
+      blockIds: includeAll && includeBlocks ? manifest.blocks.keys : const [],
       dryRun: dryRun,
       includePreview: includePreview,
       overwrite: force,
@@ -74,17 +82,20 @@ Future<int> runAddCommand({
 }
 
 void _printAddHelp() {
-  stdout.writeln('Usage: flutter_shadcn add <component...> [flags]');
-  stdout.writeln('       flutter_shadcn add --all [flags]');
+  stdout.writeln('Usage: flutter_shadcn add <component|block...> [flags]');
+  stdout.writeln('       flutter_shadcn add --all [--blocks] [flags]');
   stdout.writeln('');
-  stdout
-      .writeln('Installs the transitive closure of the requested components:');
+  stdout.writeln('Installs the transitive closure of every requested id:');
   stdout.writeln(
-      'components, primitives, and the always-on foundation/theme core.');
+      'components, blocks, primitives, and the always-on foundation/theme '
+      'core.');
+  stdout.writeln('A block installs to blocks/<id>/ with the components it '
+      'uses.');
   stdout.writeln('');
   stdout.writeln('Options:');
   stdout
       .writeln('  --all               Install every component in the registry');
+  stdout.writeln('  --blocks            With --all, install every block too');
   stdout
       .writeln('  --dry-run           Print the plan without writing anything');
   stdout.writeln(

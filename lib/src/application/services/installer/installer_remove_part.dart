@@ -11,6 +11,7 @@ class RemoveReport {
   const RemoveReport({
     required this.requested,
     this.removed = const [],
+    this.removedBlocks = const [],
     this.skipped = const [],
     this.refused = const [],
     this.dependents = const {},
@@ -24,16 +25,21 @@ class RemoveReport {
   /// Component ids removed.
   final List<String> removed;
 
+  /// Block ids removed.
+  final List<String> removedBlocks;
+
   /// Requested ids that were not installed.
   final List<String> skipped;
 
-  /// Requested ids still required by other installed components (no `--force`).
+  /// Requested ids still required by other installed components or blocks
+  /// (no `--force`).
   final List<String> refused;
 
-  /// refused id -> the components that still need it.
+  /// refused id -> the components and blocks that still need it.
   final Map<String, List<String>> dependents;
 
-  /// Project-relative paths deleted (component + orphaned layer files).
+  /// Project-relative paths deleted (component + block + orphaned layer
+  /// files).
   final List<String> deletedFiles;
 
   /// User-owned paths left in place.
@@ -45,6 +51,7 @@ class RemoveReport {
     return {
       'requested': requested,
       'removed': removed,
+      'removedBlocks': removedBlocks,
       'skipped': skipped,
       'refused': refused,
       'dependents': dependents,
@@ -55,12 +62,18 @@ class RemoveReport {
   }
 
   void writeHuman(CliLogger logger) {
-    if (removed.isEmpty && refused.isEmpty && skipped.isEmpty) {
+    if (removed.isEmpty &&
+        removedBlocks.isEmpty &&
+        refused.isEmpty &&
+        skipped.isEmpty) {
       logger.info('Nothing to remove.');
       return;
     }
     for (final id in removed) {
       logger.success('Removed $id (${deletedFiles.length} files total)');
+    }
+    for (final id in removedBlocks) {
+      logger.success('Removed block $id');
     }
     for (final id in refused) {
       logger.warn(
@@ -77,10 +90,12 @@ class RemoveReport {
   }
 }
 
-/// Removes components and prunes layer units no remaining install needs.
+/// Removes components and blocks and prunes layer units no remaining install
+/// needs.
 ///
 /// User-owned `<name>_theme.dart` files are never deleted unless
-/// `purgeUserThemes` is set (plan §1.5, §4).
+/// `purgeUserThemes` is set (plan §1.5, §4). A block owns no user-owned file,
+/// so `remove <block>` always deletes every path it recorded.
 class InstallerRemover {
   InstallerRemover({
     required this.manifest,
@@ -108,26 +123,39 @@ class InstallerRemover {
         if (id.trim().isNotEmpty) id.trim(),
     ];
     final lock = await _lockRepo.load();
-    final installed = {for (final component in lock.components) component.id};
+    final installedComponents = {
+      for (final component in lock.components) component.id,
+    };
+    final installedBlocks = {for (final block in lock.blocks) block.id};
 
     final skipped = [
       for (final id in requested)
-        if (!installed.contains(id)) id
+        if (!installedComponents.contains(id) && !installedBlocks.contains(id))
+          id,
     ];
     final candidates = [
       for (final id in requested)
-        if (installed.contains(id)) id
+        if (installedComponents.contains(id) || installedBlocks.contains(id))
+          id,
     ];
     final candidateSet = candidates.toSet();
 
+    // Anything still referencing a candidate blocks its removal, including a
+    // block that needs the component ("cannot remove button; required by
+    // login-01").
     final dependents = <String, List<String>>{};
     for (final id in candidates) {
-      final list = [
+      final list = <String>{
         for (final component in lock.components)
           if (!candidateSet.contains(component.id) &&
               component.deps.components.contains(id))
             component.id,
-      ]..sort();
+        for (final block in lock.blocks)
+          if (!candidateSet.contains(block.id) &&
+              block.deps.components.contains(id))
+            block.id,
+      }.toList()
+        ..sort();
       if (list.isNotEmpty) {
         dependents[id] = list;
       }
@@ -140,17 +168,31 @@ class InstallerRemover {
       for (final id in candidates)
         if (!refused.contains(id)) id,
     };
+    final removedComponents = [
+      for (final id in effective)
+        if (installedComponents.contains(id)) id,
+    ];
+    final removedBlocks = [
+      for (final id in effective)
+        if (installedBlocks.contains(id)) id,
+    ];
 
     final remaining = [
       for (final component in lock.components)
         if (!effective.contains(component.id)) component,
     ];
+    final remainingBlocks = [
+      for (final block in lock.blocks)
+        if (!effective.contains(block.id)) block,
+    ];
 
     // Layer units the remaining installs still need: the manifest closure of
-    // the remaining components, plus each remaining component's recorded deps
-    // (so a component missing from a moved registry is not under-counted).
+    // the remaining components and blocks, plus each remaining record's own
+    // deps (so a component missing from a moved registry is not
+    // under-counted).
     final closure = ManifestClosureResolver(manifest).resolve(
       remaining.map((component) => component.id),
+      blockIds: remainingBlocks.map((block) => block.id),
       includeCore: true,
     );
     final neededUnits = <LockLayer, Set<String>>{
@@ -164,6 +206,11 @@ class InstallerRemover {
       neededUnits[LockLayer.theme]!.addAll(component.deps.theme);
       neededUnits[LockLayer.primitives]!.addAll(component.deps.primitives);
     }
+    for (final block in remainingBlocks) {
+      neededUnits[LockLayer.foundation]!.addAll(block.deps.foundation);
+      neededUnits[LockLayer.theme]!.addAll(block.deps.theme);
+      neededUnits[LockLayer.primitives]!.addAll(block.deps.primitives);
+    }
 
     final installRoot =
         lock.installRoot.isEmpty ? manifest.install.root : lock.installRoot;
@@ -171,11 +218,12 @@ class InstallerRemover {
     final remainingOwned = <String>{
       for (final component in remaining) ...component.files.keys,
       for (final component in remaining) ...component.userOwned.keys,
+      for (final block in remainingBlocks) ...block.files.keys,
     };
 
     final targets = <String>{};
     final keptUserOwned = <String>[];
-    for (final id in effective) {
+    for (final id in removedComponents) {
       final component = lock.componentFor(id)!;
       targets.addAll(component.files.keys);
       if (purgeUserThemes) {
@@ -183,6 +231,9 @@ class InstallerRemover {
       } else {
         keptUserOwned.addAll(component.userOwned.keys);
       }
+    }
+    for (final id in removedBlocks) {
+      targets.addAll(lock.blockFor(id)!.files.keys);
     }
 
     // Orphan layer files: known to the manifest, no remaining unit needs them,
@@ -208,8 +259,11 @@ class InstallerRemover {
         }
       }
       var next = lock;
-      for (final id in effective) {
+      for (final id in removedComponents) {
         next = next.removeComponent(id);
+      }
+      for (final id in removedBlocks) {
+        next = next.removeBlock(id);
       }
       for (final layer in LockLayer.values) {
         final oldState = lock.layerState(layer);
@@ -235,7 +289,8 @@ class InstallerRemover {
 
     return RemoveReport(
       requested: requested,
-      removed: effective.toList()..sort(),
+      removed: removedComponents..sort(),
+      removedBlocks: removedBlocks..sort(),
       skipped: skipped..sort(),
       refused: refused,
       dependents: dependents,

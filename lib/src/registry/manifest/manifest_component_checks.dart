@@ -1,7 +1,11 @@
 import 'package:flutter_shadcn_cli/src/registry/manifest/manifest_schema_validator.dart';
 
-/// Block-level checks for the `components`, `themes` and `fileHashes` maps of
-/// a registry manifest, plus the shared `files` / `packages` list checks.
+/// Block-level checks for the `components` and `fileHashes` maps of a
+/// registry manifest, plus the shared `files` / `packages` / `deps` list
+/// checks.
+///
+/// The `blocks` layer has its own file
+/// (`manifest_block_checks.dart`), as does the per-block model.
 ///
 /// Internal helper for [ManifestSchemaValidator] — split out to keep both
 /// files small; not part of the public CLI API.
@@ -20,6 +24,7 @@ class ManifestComponentChecks {
     'install',
     'import',
     'packages',
+    'listed',
   };
 
   static const Set<String> _componentDepKeys = {
@@ -28,8 +33,6 @@ class ManifestComponentChecks {
     'primitives',
     'components',
   };
-
-  static const Set<String> _themeModes = {'light', 'dark'};
 
   static final RegExp _sha256Pattern = RegExp(r'^[0-9a-f]{64}$');
 
@@ -135,6 +138,10 @@ class ManifestComponentChecks {
         errors.add('components.$id.theme: expected an object or null');
       }
       checkPackages(json['packages'], 'components.$id.packages', errors);
+      final listed = json['listed'];
+      if (listed != null && listed is! bool) {
+        errors.add('components.$id.listed: must be a boolean');
+      }
     }
     return entries;
   }
@@ -146,43 +153,44 @@ class ManifestComponentChecks {
     Map<String, List<String>> theme,
     Map<String, List<String>> primitives,
     Map<String, Map<String, dynamic>> components,
-    List<String> errors,
-  ) {
+    List<String> errors, {
+    String label = 'components',
+  }) {
     if (raw == null) {
-      errors.add('components.$id.deps: missing required object');
+      errors.add('$label.$id.deps: missing required object');
       return;
     }
     if (raw is! Map) {
-      errors.add('components.$id.deps: expected an object');
+      errors.add('$label.$id.deps: expected an object');
       return;
     }
     final json = raw.map((key, value) => MapEntry(key.toString(), value));
     for (final key in json.keys) {
       if (!_componentDepKeys.contains(key)) {
-        errors.add('components.$id.deps: unknown key "$key"');
+        errors.add('$label.$id.deps: unknown key "$key"');
       }
     }
     for (final key in _componentDepKeys) {
       if (!json.containsKey(key)) {
-        errors.add('components.$id.deps: missing required key "$key"');
+        errors.add('$label.$id.deps: missing required key "$key"');
       }
     }
     void checkRefs(
       Object? value,
       String layer,
-      String label,
+      String kind,
       Map<String, Object?> known,
     ) {
       if (value is! List) {
-        errors.add('components.$id.deps.$layer: expected an array');
+        errors.add('$label.$id.deps.$layer: expected an array');
         return;
       }
       for (final ref in value) {
         if (ref is! String) {
-          errors.add('components.$id.deps.$layer: entries must be strings');
+          errors.add('$label.$id.deps.$layer: entries must be strings');
         } else if (!known.containsKey(ref)) {
           errors.add(
-            'components.$id.deps.$layer: unknown $label id "$ref"',
+            '$label.$id.deps.$layer: unknown $kind id "$ref"',
           );
         }
       }
@@ -192,6 +200,31 @@ class ManifestComponentChecks {
     checkRefs(json['theme'], 'theme', 'theme', theme);
     checkRefs(json['primitives'], 'primitives', 'primitive', primitives);
     checkRefs(json['components'], 'components', 'component', components);
+  }
+
+  /// Validates a documentation relPath list (a block's `docs`); markdown
+  /// only, because documentation is never copied into an app.
+  static List<String> checkDocs(Object? raw, String path, List<String> errors) {
+    if (raw is! List) {
+      errors.add('$path: expected an array');
+      return const [];
+    }
+    final docs = <String>[];
+    final seen = <String>{};
+    for (final entry in raw) {
+      if (entry is! String) {
+        errors.add('$path: entries must be strings');
+        continue;
+      }
+      if (!ManifestSchemaValidator.relPathPattern.hasMatch(entry) ||
+          !entry.endsWith('.md')) {
+        errors.add('$path: "$entry" is not a markdown relPath');
+      } else if (!seen.add(entry)) {
+        errors.add('$path: duplicate entry "$entry"');
+      }
+      docs.add(entry);
+    }
+    return docs;
   }
 
   static void checkTags(Object? raw, String path, List<String> errors) {
@@ -243,60 +276,6 @@ class ManifestComponentChecks {
         );
       }
     });
-  }
-
-  /// Validates the themes map; returns id -> parsed entry maps.
-  static Map<String, Map<String, dynamic>> checkThemes(
-    Object? raw,
-    List<String> errors,
-  ) {
-    if (raw is! Map) {
-      if (raw != null) errors.add('themes: expected an object');
-      return const {};
-    }
-    final result = <String, Map<String, dynamic>>{};
-    raw.forEach((key, value) {
-      final id = key.toString();
-      if (!ManifestSchemaValidator.idPattern.hasMatch(id)) {
-        errors.add('themes.$id: invalid preset id');
-      }
-      if (value is! Map) {
-        errors.add('themes.$id: expected an object');
-        return;
-      }
-      final json = value.map((k, v) => MapEntry(k.toString(), v));
-      for (final k in json.keys) {
-        if (!{'file', 'name', 'modes'}.contains(k)) {
-          errors.add('themes.$id: unknown key "$k"');
-        }
-      }
-      final file = json['file'];
-      if (file is! String ||
-          !ManifestSchemaValidator.relPathPattern.hasMatch(file)) {
-        errors.add('themes.$id.file: invalid relPath "$file"');
-      } else if (!file.startsWith('themes/') || !file.endsWith('.json')) {
-        errors.add('themes.$id.file: "$file" is not themes/<id>.json');
-      }
-      final name = json['name'];
-      if (name is! String || name.isEmpty) {
-        errors.add('themes.$id.name: must be a non-empty string');
-      }
-      final modes = json['modes'];
-      if (modes is! List || modes.isEmpty) {
-        errors.add('themes.$id.modes: expected a non-empty array');
-        return;
-      }
-      final seen = <String>{};
-      for (final mode in modes) {
-        if (mode is! String || !_themeModes.contains(mode)) {
-          errors.add('themes.$id.modes: invalid mode "$mode"');
-        } else if (!seen.add(mode)) {
-          errors.add('themes.$id.modes: duplicate mode "$mode"');
-        }
-      }
-      result[id] = json;
-    });
-    return result;
   }
 
   static void checkFileHashes(

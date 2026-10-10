@@ -10,9 +10,9 @@ import 'theme_preset_fixture.dart';
 /// files it declares, written to a temp directory.
 ///
 /// Two components (`button`, `input`), one of them depending on the other, one
-/// primitive and the always-on foundation/theme core. `button` has a
-/// user-owned `button_theme.dart`. No unit declares `packages`, so installs
-/// never shell out to `pub get`.
+/// block (`login-01`) assembled from `button`, one primitive and the always-on
+/// foundation/theme core. `button` has a user-owned `button_theme.dart`. No
+/// unit declares `packages`, so installs never shell out to `pub get`.
 class V2RegistryFixture {
   V2RegistryFixture._(this.root);
 
@@ -25,6 +25,11 @@ class V2RegistryFixture {
       "import '../button/button.dart';\n\n"
       'class Input {}\n';
   static const String buttonThemeDart = 'class ButtonTheme {}\n';
+
+  /// The `login-01` block: layer 4, so it imports components, never blocks.
+  static const String loginBlockDart =
+      "import '../../components/button/button.dart';\n\n"
+      'class Login01 {}\n';
 
   static V2RegistryFixture create({String? parent}) {
     final dir = Directory(
@@ -40,6 +45,7 @@ class V2RegistryFixture {
       'components/button/button.dart': buttonDart,
       'components/button/button_theme.dart': buttonThemeDart,
       'components/input/input.dart': inputDart,
+      'blocks/login-01/login_01.dart': loginBlockDart,
     };
     files.forEach((rel, content) {
       final file = File(p.join(root, p.normalize(rel)));
@@ -80,6 +86,7 @@ class V2RegistryFixture {
       'install': {
         'root': 'lib/ui/shadcn',
         'componentsDir': 'components',
+        'blocksDir': 'blocks',
         'layerDirs': {
           'foundation': 'foundation',
           'theme': 'theme',
@@ -146,6 +153,27 @@ class V2RegistryFixture {
           'file': 'themes/vercel.json',
           'name': 'Vercel',
           'modes': ['light', 'dark'],
+        },
+      },
+      'blocks': {
+        'login-01': {
+          'name': 'Login 01',
+          'category': 'Authentication',
+          'description': 'A minimal sign-in block built on the button.',
+          'viewport': 'desktop',
+          'entry': 'blocks/login-01/login_01.dart',
+          'files': ['blocks/login-01/login_01.dart'],
+          'docs': <String>[],
+          'deps': {
+            'foundation': ['data'],
+            'theme': <String>[],
+            'primitives': <String>[],
+            'components': ['button'],
+          },
+          'tags': ['auth', 'login'],
+          'install': 'flutter_shadcn add login-01',
+          'import':
+              "import 'package:<your_app>/ui/shadcn/blocks/login-01/login_01.dart';",
         },
       },
       'fileHashes': fileHashes ?? <String, String>{},

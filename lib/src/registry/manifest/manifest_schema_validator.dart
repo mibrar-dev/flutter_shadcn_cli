@@ -1,6 +1,8 @@
 import 'dart:io';
 
+import 'package:flutter_shadcn_cli/src/registry/manifest/manifest_block_checks.dart';
 import 'package:flutter_shadcn_cli/src/registry/manifest/manifest_component_checks.dart';
+import 'package:flutter_shadcn_cli/src/registry/manifest/manifest_theme_checks.dart';
 import 'package:flutter_shadcn_cli/src/registry/schema_validation_result.dart';
 import 'package:path/path.dart' as p;
 
@@ -11,8 +13,9 @@ import 'package:path/path.dart' as p;
 /// - `schemaVersion` must be 2; required top-level keys present, no unknown keys.
 /// - Layer unit / component / theme-preset ids match the v2 id pattern.
 /// - `files` / `userOwned` / `entry` / preset `file` are relPaths (forward
-///   slashes, no leading `./` or `/`, `.dart`/`.json` suffix) and live under
-///   the directory their owner implies.
+///   slashes, no leading `./` or `/`, `.dart`/`.json`/`.md` suffix) and live
+///   under the directory their owner implies. `.md` is allowed because a block
+///   `docs` entry and a block README digest are markdown.
 /// - `deps` blocks have exactly the documented keys and every referenced id
 ///   exists in the corresponding map (deps closure). Primitive→primitive
 ///   cycles are LEGAL (plan §9.7): the real graph has cycles
@@ -23,11 +26,15 @@ import 'package:path/path.dart' as p;
 ///   `theme/app_theme.dart`, never copied, so they are not required here.
 /// - When [registryRoot] is given, every listed file must exist on disk.
 ///
-/// The component / theme-preset / fileHashes block checks live in
+/// The `blocks` map is OPTIONAL: a registry that predates the blocks layer
+/// (P6-B1) simply has none, and every command treats that as "no blocks".
+///
+/// The component / block / theme-preset / fileHashes block checks live in
 /// `ManifestComponentChecks` (same directory) to keep this file focused.
 class ManifestSchemaValidator {
-  /// v2 id pattern: a layer unit stem (`data`), a folder name (`form_core`)
-  /// or a nested stem (`icons/lucide_icons`).
+  /// v2 id pattern: a layer unit stem (`data`), a folder name (`form_core`),
+  /// a nested stem (`icons/lucide_icons`) or a hyphenated block id
+  /// (`login-01`).
   static final RegExp idPattern = RegExp(
     r'^[a-z0-9][a-z0-9_\-]*(/[a-z0-9][a-z0-9_\-]*)?$',
   );
@@ -35,7 +42,7 @@ class ManifestSchemaValidator {
   /// v2 relPath pattern, identical to the JSON Schema (backslashes are
   /// schema-allowed but rejected with a clearer message by the checks).
   static final RegExp relPathPattern = RegExp(
-    r'^[A-Za-z0-9_][A-Za-z0-9_./\\-]*\.(dart|json)$',
+    r'^[A-Za-z0-9_][A-Za-z0-9_./\\-]*\.(dart|json|md)$',
   );
 
   static const List<String> _requiredKeys = [
@@ -50,7 +57,11 @@ class ManifestSchemaValidator {
     'fileHashes',
   ];
 
-  static const Set<String> _allowedTopLevel = {..._requiredKeys, r'$schema'};
+  static const Set<String> _allowedTopLevel = {
+    ..._requiredKeys,
+    'blocks',
+    r'$schema',
+  };
 
   /// Validates [data] (the decoded `registry.json`). Pass [registryRoot] to
   /// additionally verify that every listed file exists on disk.
@@ -88,7 +99,15 @@ class ManifestSchemaValidator {
       primitives,
       errors,
     );
-    ManifestComponentChecks.checkThemes(
+    final blocks = ManifestBlockChecks.checkBlocks(
+      data['blocks'],
+      foundation,
+      theme,
+      primitives,
+      components,
+      errors,
+    );
+    ManifestThemeChecks.checkThemes(
       data['themes'],
       errors,
     );
@@ -97,6 +116,7 @@ class ManifestSchemaValidator {
       theme: theme,
       primitives: primitives,
       components: components,
+      blocks: blocks,
     );
     ManifestComponentChecks.checkFileHashes(
       data['fileHashes'],
@@ -137,8 +157,13 @@ class ManifestSchemaValidator {
     }
     final json = raw.map((key, value) => MapEntry(key.toString(), value));
     for (final key in json.keys) {
-      if (!{'root', 'componentsDir', 'layerDirs', 'userOwnedSuffix'}
-          .contains(key)) {
+      if (!{
+        'root',
+        'componentsDir',
+        'blocksDir',
+        'layerDirs',
+        'userOwnedSuffix'
+      }.contains(key)) {
         errors.add('install: unknown key "$key"');
       }
     }
@@ -148,6 +173,9 @@ class ManifestSchemaValidator {
     }
     if (json['componentsDir'] != 'components') {
       errors.add('install.componentsDir: must be "components"');
+    }
+    if (json['blocksDir'] != null && json['blocksDir'] != 'blocks') {
+      errors.add('install.blocksDir: must be "blocks"');
     }
     final layerDirs = json['layerDirs'];
     if (layerDirs is! Map) {
@@ -304,6 +332,7 @@ class ManifestSchemaValidator {
     required Map<String, List<String>> theme,
     required Map<String, List<String>> primitives,
     required Map<String, Map<String, dynamic>> components,
+    required Map<String, Map<String, dynamic>> blocks,
   }) {
     final paths = <String>{};
     for (final files in [...foundation.values, ...theme.values]) {
@@ -320,6 +349,12 @@ class ManifestSchemaValidator {
       final userOwned = entry['userOwned'];
       if (userOwned is List) {
         paths.addAll(userOwned.whereType<String>());
+      }
+    }
+    for (final entry in blocks.values) {
+      final files = entry['files'];
+      if (files is List) {
+        paths.addAll(files.whereType<String>());
       }
     }
     return paths;

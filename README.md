@@ -57,18 +57,23 @@ List and inspect available registry content:
 
 ```bash
 flutter_shadcn list
+flutter_shadcn list --blocks
+flutter_shadcn list --category "Forms & Inputs"
 flutter_shadcn search button
 flutter_shadcn info button
+flutter_shadcn info login-01
 ```
 
-Preview, install, update and remove components:
+Preview, install, update and remove components or blocks:
 
 ```bash
 flutter_shadcn dry-run button
 flutter_shadcn add button card alert
+flutter_shadcn add login-01
 flutter_shadcn update --check
 flutter_shadcn update button
 flutter_shadcn remove alert
+flutter_shadcn remove login-01
 ```
 
 Themes:
@@ -87,6 +92,31 @@ flutter_shadcn validate
 flutter_shadcn audit
 ```
 
+## Blocks
+
+A **block** is a ready-made, installable screen (`login-01`, `dashboard-01`,
+`sidebar-07`, ...) assembled from components. Blocks are a fourth registry
+layer under `blocks/`, and `add <id>` resolves a component and a block alike:
+
+```bash
+flutter_shadcn add login-01        # the block + every component it needs
+flutter_shadcn add --all --blocks  # all components and all blocks
+```
+
+- a block installs to `lib/ui/shadcn/blocks/<id>/`, together with the
+  transitive components, primitives, theme and foundation units it imports;
+- `shadcn.lock` records installed blocks (a `blocks[]` array with their file
+  hashes and closure), so `update`, `remove`, `sync`, `audit` and `doctor`
+  all see them;
+- a block owns **no** user-owned file: `update` may always refresh a block
+  file whose bytes still match the lock, exactly as for a component;
+- removing a block deletes only its own files; the components it assembled
+  stay installed. Removing a component a block still needs is refused unless
+  `--force`;
+- `list --blocks`, `search` and `info <block>` report the block's `category`
+  and `viewport`; block docs (`blocks/<id>/README.md`) are never copied into
+  an app.
+
 ## Install Layout
 
 Every install keeps the registry's directory depth so the relative imports inside the copied files stay valid:
@@ -96,7 +126,9 @@ lib/ui/shadcn/
   foundation/…               # shared primitives
   theme/…                    # theme tokens + the generated app_theme.dart
   primitives/…               # UI primitives
-  components/<name>/…        # one directory per installed component
+  components/<name>/        # one directory per installed component
+  blocks/<id>/              # one directory per installed block
+```…        # one directory per installed component
 ```
 
 `<name>_theme.dart` files are **user-owned**: `add`, `update` and `remove` never overwrite or delete them unless `remove --purge-user-themes` is given.
@@ -108,7 +140,7 @@ lib/ui/shadcn/
 Project state lives in two files:
 
 - `.shadcn/config.json` — the install path, the selected theme id and the registry source.
-- `shadcn.lock` — lockfileVersion 2: the registry reference, the install root, the theme selection, the layer units/files and each component's files, user-owned files and public symbols.
+- `shadcn.lock` — lockfileVersion 2: the registry reference, the install root, the theme selection, the layer units/files, each component's files, user-owned files and public symbols, and each installed block's files and closure.
 
 ## JSON and Exit Codes
 

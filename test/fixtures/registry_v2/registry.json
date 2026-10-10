@@ -10,6 +10,7 @@
   "install": {
     "root": "lib/ui/shadcn",
     "componentsDir": "components",
+    "blocksDir": "blocks",
     "layerDirs": {
       "foundation": "foundation",
       "theme": "theme",
@@ -19,31 +20,46 @@
   },
   "foundation": {
     "data": {
-      "files": ["foundation/data.dart"]
+      "files": [
+        "foundation/data.dart"
+      ]
     },
     "gap": {
-      "files": ["foundation/gap.dart"]
+      "files": [
+        "foundation/gap.dart"
+      ]
     }
   },
   "theme": {
     "theme": {
-      "files": ["theme/theme.dart"]
+      "files": [
+        "theme/theme.dart"
+      ]
     },
     "color_tokens": {
-      "files": ["theme/color_tokens.dart", "theme/color_utils.dart"]
+      "files": [
+        "theme/color_tokens.dart",
+        "theme/color_utils.dart"
+      ]
     }
   },
   "primitives": {
     "clickable": {
-      "files": ["primitives/clickable.dart"],
+      "files": [
+        "primitives/clickable.dart"
+      ],
       "deps": {
         "primitives": []
       }
     },
     "form_core": {
-      "files": ["primitives/form_core/form_core.dart"],
+      "files": [
+        "primitives/form_core/form_core.dart"
+      ],
       "deps": {
-        "primitives": ["clickable"]
+        "primitives": [
+          "clickable"
+        ]
       }
     }
   },
@@ -53,18 +69,40 @@
       "category": "control",
       "description": "Pressable action control with seven variants and five fixed sizes.",
       "entry": "components/button/button.dart",
-      "files": ["components/button/button.dart", "components/button/button_style.dart"],
-      "userOwned": ["components/button/button_theme.dart"],
+      "files": [
+        "components/button/button.dart",
+        "components/button/button_style.dart"
+      ],
+      "userOwned": [
+        "components/button/button_theme.dart"
+      ],
       "deps": {
-        "foundation": ["data", "gap"],
-        "theme": ["theme", "color_tokens"],
-        "primitives": ["clickable"],
+        "foundation": [
+          "data",
+          "gap"
+        ],
+        "theme": [
+          "theme",
+          "color_tokens"
+        ],
+        "primitives": [
+          "clickable"
+        ],
         "components": []
       },
-      "tags": ["control", "button"],
+      "tags": [
+        "control",
+        "button"
+      ],
       "api": {
-        "classes": ["Button", "ButtonGroup"],
-        "enums": ["ButtonVariant", "ButtonSize"]
+        "classes": [
+          "Button",
+          "ButtonGroup"
+        ],
+        "enums": [
+          "ButtonVariant",
+          "ButtonSize"
+        ]
       },
       "theme": {
         "class": "ButtonTheme",
@@ -87,18 +125,34 @@
       "category": "control",
       "description": "Single-line text field with label and validation states.",
       "entry": "components/input/input.dart",
-      "files": ["components/input/input.dart"],
+      "files": [
+        "components/input/input.dart"
+      ],
       "userOwned": [],
       "deps": {
-        "foundation": ["data"],
-        "theme": ["theme", "color_tokens"],
-        "primitives": ["form_core"],
+        "foundation": [
+          "data"
+        ],
+        "theme": [
+          "theme",
+          "color_tokens"
+        ],
+        "primitives": [
+          "form_core"
+        ],
         "components": []
       },
-      "tags": ["control", "input"],
+      "tags": [
+        "control",
+        "input"
+      ],
       "api": {
-        "classes": ["Input"],
-        "enums": ["InputVariant"]
+        "classes": [
+          "Input"
+        ],
+        "enums": [
+          "InputVariant"
+        ]
       },
       "theme": null
     },
@@ -107,25 +161,108 @@
       "category": "control",
       "description": "Multi-line text field built on the input primitive.",
       "entry": "components/text_area/text_area.dart",
-      "files": ["components/text_area/text_area.dart"],
+      "files": [
+        "components/text_area/text_area.dart"
+      ],
       "userOwned": [],
       "deps": {
-        "foundation": ["data"],
-        "theme": ["theme"],
-        "primitives": ["form_core"],
-        "components": ["input"]
+        "foundation": [
+          "data"
+        ],
+        "theme": [
+          "theme"
+        ],
+        "primitives": [
+          "form_core"
+        ],
+        "components": [
+          "input"
+        ]
       },
-      "tags": ["control", "input"],
+      "tags": [
+        "control",
+        "input"
+      ],
       "api": {
-        "classes": ["TextArea"]
+        "classes": [
+          "TextArea"
+        ]
       }
+    }
+  },
+  "blocks": {
+    "login-01": {
+      "name": "Login 01",
+      "category": "Authentication",
+      "description": "A centred sign-in card.",
+      "viewport": "desktop",
+      "entry": "blocks/login-01/login_01.dart",
+      "files": [
+        "blocks/login-01/login_01.dart"
+      ],
+      "docs": [
+        "blocks/login-01/README.md"
+      ],
+      "deps": {
+        "foundation": [
+          "data"
+        ],
+        "theme": [
+          "theme"
+        ],
+        "primitives": [],
+        "components": [
+          "button",
+          "input"
+        ]
+      },
+      "tags": [
+        "login",
+        "auth"
+      ],
+      "install": "flutter_shadcn add login-01",
+      "import": "import 'package:<your_app>/ui/shadcn/blocks/login-01/login_01.dart';"
+    },
+    "dashboard-01": {
+      "name": "Dashboard 01",
+      "category": "Dashboard",
+      "description": "A two-file dashboard block.",
+      "viewport": "mobile",
+      "entry": "blocks/dashboard-01/dashboard_01.dart",
+      "files": [
+        "blocks/dashboard-01/dashboard_01.dart",
+        "blocks/dashboard-01/dashboard_01_table.dart"
+      ],
+      "docs": [
+        "blocks/dashboard-01/README.md"
+      ],
+      "deps": {
+        "foundation": [
+          "gap"
+        ],
+        "theme": [],
+        "primitives": [
+          "form_core"
+        ],
+        "components": [
+          "button",
+          "text_area"
+        ]
+      },
+      "tags": [
+        "dashboard",
+        "chart"
+      ]
     }
   },
   "themes": {
     "modern-minimal": {
       "file": "themes/modern-minimal.json",
       "name": "Modern Minimal",
-      "modes": ["light", "dark"]
+      "modes": [
+        "light",
+        "dark"
+      ]
     }
   },
   "fileHashes": {
@@ -142,6 +279,11 @@
     "components/input/input.dart": "652353875fc7a0ac8a4c67ec1efc724933e8858feb9215cb47e1d8b9da3faf6b",
     "components/input/input_theme.dart": "db8467168fa725a83b0da379f53a600c2794b3de6423d5280b15438fdcc8c8be",
     "components/text_area/text_area.dart": "66eec801d9614bce20de9786e9b1d3332a6088e24c0f01f73a458abbeb6978c1",
+    "blocks/login-01/login_01.dart": "5866907c16541456ec43b36a5414bd2973e94880165b5cc9b737998f18d3857a",
+    "blocks/login-01/README.md": "6500e627a01a7374221ff26e07d218b71e7022f4c7df9a5ca1db802947b87430",
+    "blocks/dashboard-01/dashboard_01.dart": "b73fe5cdd9ffe25e6e51f8c2533e0b8de5bb6ca598d56ce2618380a6382432b9",
+    "blocks/dashboard-01/dashboard_01_table.dart": "f25b34c0c906d6c61ff0357f86eb21bde110eef3064e7fad0ab4cd821581f37e",
+    "blocks/dashboard-01/README.md": "7e638fce7d2a365c2941cd663d8af4bb740473474dc807eac90858931dcb1249",
     "themes/modern-minimal.json": "60a9ee8db184235f04b84471663cc93c4bbd744310c5081b726c5cdc79b47449"
   }
 }

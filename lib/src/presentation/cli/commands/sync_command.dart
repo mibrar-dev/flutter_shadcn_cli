@@ -34,6 +34,7 @@ Future<int> runSyncCommand({
     final lock = await ShadcnLockRepository(projectRoot).load();
     final report = await context.installer.add(
       lock.componentIds,
+      blockIds: lock.blockIds,
       includeCore: true,
     );
     final themeId = lock.theme?.id;

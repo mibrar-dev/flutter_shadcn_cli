@@ -8,11 +8,12 @@ import 'package:flutter_shadcn_cli/src/presentation/cli/command_context.dart';
 import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
 /// `flutter_shadcn remove [ids…] [--all] [--force] [--purge-user-themes]
-/// [--json]` (P5_CLI_PLAN.md §2).
+/// [--json]` (P5_CLI_PLAN.md §2, P6-B2).
 ///
 /// Deletes registry-owned files, prunes orphaned layer units, and refuses when
-/// another installed component still needs the target (unless `--force`).
-/// User-owned `<name>_theme.dart` files are kept unless `--purge-user-themes`.
+/// another installed component or block still needs the target (unless
+/// `--force`). User-owned `<name>_theme.dart` files are kept unless
+/// `--purge-user-themes`; a block owns none.
 Future<int> runRemoveCommand({
   required ArgResults removeCommand,
   required ArgResults rootArgs,
@@ -24,11 +25,13 @@ Future<int> runRemoveCommand({
   final logger = commandLogger(rootArgs, json: json);
 
   if (commandFlag(removeCommand, 'help')) {
-    stdout.writeln('Usage: flutter_shadcn remove <component...> [flags]');
+    stdout.writeln('Usage: flutter_shadcn remove <component|block...> '
+        '[flags]');
     stdout.writeln('       flutter_shadcn remove --all [flags]');
     stdout.writeln('');
     stdout.writeln('Options:');
-    stdout.writeln('  --all                 Remove every installed component');
+    stdout.writeln('  --all                 Remove every installed component '
+        'and block');
     stdout.writeln('  --force               Remove even if dependents remain');
     stdout.writeln(
         '  --purge-user-themes   Also delete <name>_theme.dart user files');
@@ -41,7 +44,7 @@ Future<int> runRemoveCommand({
   final purgeUserThemes = commandFlag(removeCommand, 'purge-user-themes');
   var ids = componentIdsFrom(removeCommand);
   if (!removeAll && ids.isEmpty) {
-    stdout.writeln('Usage: flutter_shadcn remove <component...> [--all]');
+    stdout.writeln('Usage: flutter_shadcn remove <component|block...> [--all]');
     return ExitCodes.usage;
   }
 
@@ -54,7 +57,7 @@ Future<int> runRemoveCommand({
     );
     if (removeAll) {
       final lock = await ShadcnLockRepository(projectRoot).load();
-      ids = lock.componentIds;
+      ids = [...lock.componentIds, ...lock.blockIds];
     }
     final report = await context.installer.remove(
       ids,

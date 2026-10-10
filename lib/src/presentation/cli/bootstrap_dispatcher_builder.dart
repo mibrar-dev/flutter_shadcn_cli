@@ -267,8 +267,8 @@ Future<ProjectRefreshOutput> _refreshProject({
     offline: offline,
   );
   final lock = await ShadcnLockRepository(projectRoot).load();
-  final report =
-      await context.installer.add(lock.componentIds, includeCore: true);
+  final report = await context.installer
+      .add(lock.componentIds, blockIds: lock.blockIds, includeCore: true);
   final themeId = lock.theme?.id;
   if (themeId != null && themeId.isNotEmpty) {
     await context.themeService.apply(themeId, refresh: true);

@@ -95,6 +95,30 @@ class InstallLockBuilder {
         ),
       );
     }
+
+    for (final id in plan.blocks) {
+      if (current.blockFor(id) != null) {
+        continue;
+      }
+      final block = manifest.blocks[id]!;
+      final files = <String, String>{};
+      for (final file in plan.files) {
+        if (!_underBlock(file.source, id)) {
+          continue;
+        }
+        // A block owns no user-editable file: every path is registry-owned.
+        if (!file.userOwned && file.sha256 != null && _recordable(file)) {
+          files[file.target] = file.sha256!;
+        }
+      }
+      next = next.upsertBlock(
+        ShadcnLockBlock(
+          id: id,
+          files: files,
+          deps: _lockDeps(block.deps),
+        ),
+      );
+    }
     return next;
   }
 
@@ -120,6 +144,9 @@ class InstallLockBuilder {
 
   static bool _underComponent(String source, String id) =>
       source.startsWith('components/$id/');
+
+  static bool _underBlock(String source, String id) =>
+      source.startsWith('blocks/$id/');
 
   static LockComponentDeps _lockDeps(ManifestComponentDeps deps) {
     return LockComponentDeps(

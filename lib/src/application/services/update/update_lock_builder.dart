@@ -23,6 +23,7 @@ class UpdateLockBuilder {
     required Map<String, String> newHashes,
     required Map<LockLayer, Map<String, String>> newLayerFiles,
     required Map<String, Map<String, String>> newComponentFiles,
+    required Map<String, Map<String, String>> newBlockFiles,
     required Map<String, Map<String, String>> newUserOwned,
     required ManifestClosure closure,
   }) {
@@ -60,6 +61,25 @@ class UpdateLockBuilder {
           userOwned: userOwned,
           deps: _lockDeps(manifestComponent.deps),
           api: lockApiFor(manifestComponent.api),
+        ),
+      );
+    }
+
+    // A block owns no user-owned file, so its record is exactly the registry
+    // files on disk; an unknown block (registry moved on) keeps its record.
+    for (final id in closure.blocks) {
+      final manifestBlock = manifest.blocks[id];
+      if (manifestBlock == null) {
+        continue;
+      }
+      final existing = next.blockFor(id);
+      final files = {...?existing?.files, ...?newBlockFiles[id]};
+      next = next.upsertBlock(
+        ShadcnLockBlock(
+          id: id,
+          version: existing?.version,
+          files: files,
+          deps: _lockDeps(manifestBlock.deps),
         ),
       );
     }

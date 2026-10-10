@@ -93,18 +93,77 @@ void main() {
     });
   });
 
+  group('blocks', () {
+    test('a block pulls its components, layers and its own file', () {
+      final closure = ManifestClosureResolver(manifest).resolve(
+        const [],
+        blockIds: const ['login-01'],
+      );
+      expect(closure.blocks, ['login-01']);
+      expect(closure.components, ['button', 'input']);
+      expect(closure.files, contains('blocks/login-01/login_01.dart'));
+      expect(
+        closure.files,
+        containsAll([
+          'components/button/button.dart',
+          'components/input/input.dart',
+          'foundation/gap.dart',
+        ]),
+      );
+    });
+
+    test('a mixed request resolves component and block ids together', () {
+      final closure = ManifestClosureResolver(manifest).resolve(
+        const ['button', 'dashboard-01'],
+      );
+      expect(closure.blocks, ['dashboard-01']);
+      expect(closure.components, containsAll(['button', 'input', 'text_area']));
+      expect(
+        closure.files,
+        containsAll([
+          'blocks/dashboard-01/dashboard_01.dart',
+          'blocks/dashboard-01/dashboard_01_table.dart',
+        ]),
+      );
+      // The block README is documentation: it never enters the closure.
+      expect(
+        closure.files,
+        isNot(contains('blocks/dashboard-01/README.md')),
+      );
+    });
+
+    test('the block package union is unchanged', () {
+      final closure = ManifestClosureResolver(manifest).resolve(
+        const ['login-01'],
+      );
+      expect(closure.packages.map((p) => p.name), ['intl']);
+    });
+
+    test('is deterministic regardless of request order', () {
+      final a = ManifestClosureResolver(manifest).resolve(
+        const ['button', 'dashboard-01'],
+      );
+      final b = ManifestClosureResolver(manifest).resolve(
+        const ['dashboard-01', 'button'],
+      );
+      expect(a.blocks, b.blocks);
+      expect(a.components, b.components);
+      expect(a.files, b.files);
+    });
+  });
+
   group('errors', () {
     test('unknown component id throws with a clear message', () {
       expect(
         () => resolve(['nope']),
         throwsA(
           isA<ManifestClosureException>()
-              .having((e) => e.kind, 'kind', 'component')
+              .having((e) => e.kind, 'kind', 'component or block')
               .having((e) => e.id, 'id', 'nope')
               .having(
                 (e) => e.toString(),
                 'message',
-                contains('Unknown component id "nope"'),
+                contains('Unknown component or block id "nope"'),
               ),
         ),
       );

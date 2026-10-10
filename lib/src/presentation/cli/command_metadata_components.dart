@@ -8,14 +8,15 @@ const CliCommandGroupMeta componentsCommandGroup = CliCommandGroupMeta(
   commands: [
     CliCommandMeta(
       id: 'add',
-      description: 'Install one or more components and their closure.',
+      description: 'Install one or more components or blocks and their '
+          'closure.',
       sortOrder: 10,
-      usage: 'flutter_shadcn add <component...> [flags]',
+      usage: 'flutter_shadcn add <component|block...> [flags]',
       arguments: [
         CliArgumentMeta(
-          '<component...>',
+          '<component|block...>',
           true,
-          'Component names or @namespace/component addresses.',
+          'Component or block names, or @namespace/component addresses.',
         ),
       ],
       flags: [
@@ -24,6 +25,11 @@ const CliCommandGroupMeta componentsCommandGroup = CliCommandGroupMeta(
           short: '-a',
           defaultValue: 'false',
           description: 'Install every available component.',
+        ),
+        CliFlagMeta(
+          name: '--blocks',
+          defaultValue: 'false',
+          description: 'With --all, install every block too.',
         ),
         CliFlagMeta(
           name: '--dry-run',
@@ -49,24 +55,26 @@ const CliCommandGroupMeta componentsCommandGroup = CliCommandGroupMeta(
       ],
       examples: [
         'flutter_shadcn add button',
+        'flutter_shadcn add login-01',
         'flutter_shadcn add input select tabs',
-        'flutter_shadcn add --all',
+        'flutter_shadcn add --all --blocks',
       ],
       notes:
-          'Installs the transitive closure: requested components, their components/primitives deps, and the always-on foundation + theme core. User-owned <name>_theme.dart files are never overwritten.',
+          'Installs the transitive closure: requested components and blocks, their components/primitives deps, and the always-on foundation + theme core. A block lands in blocks/<id>/ together with the components it uses. User-owned <name>_theme.dart files are never overwritten.',
       seeAlso: ['remove', 'update', 'list', 'info', 'dry-run'],
     ),
     CliCommandMeta(
       id: 'remove',
-      description: 'Remove installed components and orphaned layer files.',
+      description: 'Remove installed components, blocks and orphaned layer '
+          'files.',
       sortOrder: 20,
       aliases: ['rm'],
-      usage: 'flutter_shadcn remove <component...> [flags]',
+      usage: 'flutter_shadcn remove <component|block...> [flags]',
       arguments: [
         CliArgumentMeta(
-          '<component...>',
+          '<component|block...>',
           false,
-          'Installed component names to remove.',
+          'Installed component or block names to remove.',
         ),
       ],
       flags: [
@@ -74,7 +82,7 @@ const CliCommandGroupMeta componentsCommandGroup = CliCommandGroupMeta(
           name: '--all',
           short: '-a',
           defaultValue: 'false',
-          description: 'Remove every installed component.',
+          description: 'Remove every installed component and block.',
         ),
         CliFlagMeta(
           name: '--force',
@@ -93,7 +101,13 @@ const CliCommandGroupMeta componentsCommandGroup = CliCommandGroupMeta(
           description: 'Output machine-readable JSON.',
         ),
       ],
-      examples: ['flutter_shadcn remove button', 'flutter_shadcn rm dialog'],
+      examples: [
+        'flutter_shadcn remove button',
+        'flutter_shadcn remove login-01',
+        'flutter_shadcn rm dialog',
+      ],
+      notes:
+          'Refuses while another installed component or block still needs the target, unless --force. A block owns no user-owned file, so removing one deletes every path it recorded.',
       seeAlso: ['add', 'list'],
     ),
     CliCommandMeta(
@@ -165,47 +179,74 @@ const CliCommandGroupMeta componentsCommandGroup = CliCommandGroupMeta(
     ),
     CliCommandMeta(
       id: 'list',
-      description: 'List available components.',
+      description: 'List available components or blocks, by category.',
       sortOrder: 50,
       aliases: ['ls'],
-      usage: 'flutter_shadcn list [--json]',
+      usage: 'flutter_shadcn list [--blocks] [--category <name>] [--json]',
       flags: [
+        CliFlagMeta(
+          name: '--blocks',
+          defaultValue: 'false',
+          description: 'List the blocks layer instead of components.',
+        ),
+        CliFlagMeta(
+          name: '--category <name>',
+          defaultValue: 'false',
+          description: 'Only entries of that category.',
+        ),
         CliFlagMeta(
           name: '--json',
           defaultValue: 'false',
           description: 'Output machine-readable JSON.',
         ),
       ],
-      examples: ['flutter_shadcn list', 'flutter_shadcn ls --json'],
+      examples: [
+        'flutter_shadcn list',
+        'flutter_shadcn list --blocks',
+        'flutter_shadcn list --category "Forms & Inputs"',
+        'flutter_shadcn ls --json',
+      ],
+      notes:
+          'Human output groups entries by the category each meta.json declares; the JSON envelope keeps both `components` and `blocks` so a consumer never has to probe for a key.',
       seeAlso: ['search', 'info', 'add'],
     ),
     CliCommandMeta(
       id: 'search',
-      description: 'Search components by name, description or tag.',
+      description: 'Search components and blocks by name, description or tag.',
       sortOrder: 60,
-      usage: 'flutter_shadcn search <query> [--json]',
+      usage: 'flutter_shadcn search <query> [--category <name>] [--json]',
       arguments: [CliArgumentMeta('<query>', true, 'Search text.')],
       flags: [
+        CliFlagMeta(
+          name: '--category <name>',
+          defaultValue: 'false',
+          description: 'Only entries of that category.',
+        ),
         CliFlagMeta(
           name: '--json',
           defaultValue: 'false',
           description: 'Output machine-readable JSON.',
         ),
       ],
-      examples: ['flutter_shadcn search button'],
+      examples: [
+        'flutter_shadcn search button',
+        'flutter_shadcn search login --category Authentication',
+      ],
+      notes:
+          'Both kinds are searched at once, because `add <id>` resolves both. Each result carries its `kind`, `category` and, for a block, its `viewport`.',
       seeAlso: ['list', 'info'],
     ),
     CliCommandMeta(
       id: 'info',
-      description: 'Show a component\'s closure, files and api.',
+      description: 'Show a component\'s or block\'s closure, files and api.',
       sortOrder: 70,
       aliases: ['i'],
-      usage: 'flutter_shadcn info <component> [--json]',
+      usage: 'flutter_shadcn info <component|block> [--json]',
       arguments: [
         CliArgumentMeta(
-          '<component>',
+          '<component|block>',
           true,
-          'Component name or @namespace/component address.',
+          'Component or block name, or @namespace/component address.',
         ),
       ],
       flags: [
@@ -215,7 +256,13 @@ const CliCommandGroupMeta componentsCommandGroup = CliCommandGroupMeta(
           description: 'Output machine-readable JSON.',
         ),
       ],
-      examples: ['flutter_shadcn info button', 'flutter_shadcn i dialog'],
+      examples: [
+        'flutter_shadcn info button',
+        'flutter_shadcn info login-01',
+        'flutter_shadcn i dialog',
+      ],
+      notes:
+          'A component reports its api and user-owned theme files; a block reports its viewport, its own files and the components it assembles.',
       seeAlso: ['list', 'search', 'add'],
     ),
   ],

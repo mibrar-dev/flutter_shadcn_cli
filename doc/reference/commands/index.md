@@ -4,13 +4,13 @@ Generated from CLI command metadata. Do not edit these files by hand.
 
 ## Components
 
-- [`flutter_shadcn add`](./components/add.md) - Install one or more components and their closure.
-- [`flutter_shadcn remove`](./components/remove.md) - Remove installed components and orphaned layer files.
+- [`flutter_shadcn add`](./components/add.md) - Install one or more components or blocks and their closure.
+- [`flutter_shadcn remove`](./components/remove.md) - Remove installed components, blocks and orphaned layer files.
 - [`flutter_shadcn update`](./components/update.md) - Update installed components from the registry.
 - [`flutter_shadcn dry-run`](./components/dry-run.md) - Preview what add would install.
-- [`flutter_shadcn list`](./components/list.md) - List available components.
-- [`flutter_shadcn search`](./components/search.md) - Search components by name, description or tag.
-- [`flutter_shadcn info`](./components/info.md) - Show a component's closure, files and api.
+- [`flutter_shadcn list`](./components/list.md) - List available components or blocks, by category.
+- [`flutter_shadcn search`](./components/search.md) - Search components and blocks by name, description or tag.
+- [`flutter_shadcn info`](./components/info.md) - Show a component's or block's closure, files and api.
 
 ## Project
 

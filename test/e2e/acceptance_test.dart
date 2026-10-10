@@ -10,12 +10,14 @@ import 'package:test/test.dart';
 
 import '../support/kit_registry.dart';
 
-/// End-to-end acceptance gate (P5_CLI_PLAN.md §6.3).
+/// End-to-end acceptance gate (P5_CLI_PLAN.md §6.3, P6-B2 blocks).
 ///
 /// Creates a real Flutter app, installs the kit registry through the CLI from
 /// source, and asserts the acceptance conditions: `flutter analyze` is clean,
-/// `remove` keeps the user-owned theme, `update --check` is a no-op, `doctor`
-/// is clean and `theme apply` regenerates `app_theme.dart`.
+/// `add login-01` installs the block with its components and still analyzes,
+/// `list --blocks` / `info <block>` report it, `remove` keeps the user-owned
+/// theme, `update --check` is a no-op, `doctor` is clean and `theme apply`
+/// regenerates `app_theme.dart`.
 ///
 /// Tagged `e2e` and skipped by default (it needs the Flutter SDK, the kit
 /// checkout and a warm pub cache). Run it with:
@@ -137,6 +139,74 @@ void main() {
       );
       expectSuccess(analyze, 'flutter analyze');
       expect(analyze.stdout.toString(), contains('No issues found!'));
+
+      // -- a block installs with its components and still analyzes --------
+      expectSuccess(await runCli(['add', 'login-01']), 'add login-01');
+      expect(
+        file('lib/ui/shadcn/blocks/login-01/login_01.dart').existsSync(),
+        isTrue,
+        reason: 'login_01.dart missing after add login-01',
+      );
+      for (final dep in const [
+        'button',
+        'card',
+        'checkbox',
+        'divider',
+        'input',
+      ]) {
+        expect(
+          file('lib/ui/shadcn/components/$dep/$dep.dart').existsSync(),
+          isTrue,
+          reason: 'block dependency $dep.dart missing after add login-01',
+        );
+      }
+      final blockIds = [
+        for (final entry in lock()['blocks'] as List)
+          (entry as Map)['id'] as String,
+      ];
+      expect(blockIds, contains('login-01'));
+
+      // The block must not break the app it was copied into.
+      final analyzeBlock = await Process.run(
+        'flutter',
+        ['analyze'],
+        workingDirectory: app.path,
+      );
+      expectSuccess(analyzeBlock, 'flutter analyze after add login-01');
+      expect(analyzeBlock.stdout.toString(), contains('No issues found!'));
+
+      // -- the block shows up in the read-only commands -------------------
+      final listBlocks = await runCli(['list', '--blocks', '--json']);
+      expectSuccess(listBlocks, 'list --blocks --json');
+      final listed = jsonDecode(listBlocks.stdout.toString()) as Map;
+      expect(
+        (listed['data'] as Map)['blocks'],
+        isA<List>().having((list) => list.length, 'length', greaterThan(0)),
+      );
+      final infoBlock = await runCli(['info', 'login-01', '--json']);
+      expectSuccess(infoBlock, 'info login-01');
+      final infoData =
+          ((jsonDecode(infoBlock.stdout.toString()) as Map)['data'] as Map);
+      expect(infoData['kind'], 'block');
+      expect(infoData['category'], 'Authentication');
+      expect(infoData['viewport'], 'desktop');
+
+      // -- remove drops only the block -----------------------------------
+      expectSuccess(await runCli(['remove', 'login-01']), 'remove login-01');
+      expect(
+        file('lib/ui/shadcn/blocks/login-01/login_01.dart').existsSync(),
+        isFalse,
+      );
+      expect(
+        file('lib/ui/shadcn/components/button/button.dart').existsSync(),
+        isTrue,
+        reason: 'a block must not delete the components it assembled',
+      );
+      final remainingBlocks = [
+        for (final entry in lock()['blocks'] as List)
+          (entry as Map)['id'] as String,
+      ];
+      expect(remainingBlocks, isNot(contains('login-01')));
 
       // ── remove keeps the user-owned theme ─────────────────────────────
       expectSuccess(await runCli(['remove', 'dialog']), 'remove dialog');

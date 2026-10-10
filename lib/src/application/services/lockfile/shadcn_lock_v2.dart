@@ -2,6 +2,7 @@ import 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_file_e
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_install_state.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_json.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_layer.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_block.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_component.dart';
 
 /// The only supported lock format version.
@@ -11,6 +12,9 @@ const int kLockfileVersion = 2;
 ///
 /// Clean break: there is no v1 compatibility path and nothing is synthesised
 /// from the deleted `.shadcn/components/*.json` files.
+///
+/// `blocks` records the P6-B2 layer 4 installs. A lock written before the
+/// layer existed simply has none, so the field is absent-tolerant.
 class ShadcnLock {
   const ShadcnLock({
     this.lockfileVersion = kLockfileVersion,
@@ -19,6 +23,7 @@ class ShadcnLock {
     this.theme,
     this.layers = const {},
     this.components = const [],
+    this.blocks = const [],
   });
 
   /// Parses a lock document, rejecting anything that is not v2.
@@ -62,6 +67,10 @@ class ShadcnLock {
     if (componentsJson != null && componentsJson is! List) {
       throw LockFileException('`components` must be an array.', sourcePath);
     }
+    final blocksJson = json['blocks'];
+    if (blocksJson != null && blocksJson is! List) {
+      throw LockFileException('`blocks` must be an array.', sourcePath);
+    }
     return ShadcnLock(
       registry: json['registry'] is Map<String, dynamic>
           ? ShadcnLockRegistry.fromJson(
@@ -88,6 +97,17 @@ class ShadcnLock {
               )
               .toList()
           : const [],
+      blocks: blocksJson is List
+          ? blocksJson
+              .whereType<Map<String, dynamic>>()
+              .map(
+                (block) => ShadcnLockBlock.fromJson(
+                  block,
+                  sourcePath: sourcePath,
+                ),
+              )
+              .toList()
+          : const [],
     );
   }
 
@@ -101,6 +121,9 @@ class ShadcnLock {
   final Map<LockLayer, LockLayerState> layers;
   final List<ShadcnLockComponent> components;
 
+  /// Installed blocks, sorted by id.
+  final List<ShadcnLockBlock> blocks;
+
   /// State of [layer]; empty when the layer was never installed.
   LockLayerState layerState(LockLayer layer) =>
       layers[layer] ?? const LockLayerState();
@@ -108,14 +131,19 @@ class ShadcnLock {
   List<String> get componentIds =>
       components.map((component) => component.id).toList()..sort();
 
-  bool get isEmpty =>
-      components.isEmpty && layers.values.every((l) => l.isEmpty);
+  List<String> get blockIds => blocks.map((block) => block.id).toList()..sort();
 
-  /// Every registry-owned path: layer files, component files and the
-  /// generated theme file.
+  bool get isEmpty =>
+      components.isEmpty &&
+      blocks.isEmpty &&
+      layers.values.every((l) => l.isEmpty);
+
+  /// Every registry-owned path: layer files, component files, block files and
+  /// the generated theme file.
   Set<String> get registryOwnedPaths => {
         for (final layer in LockLayer.values) ...layerState(layer).files.keys,
         for (final component in components) ...component.files.keys,
+        for (final block in blocks) ...block.files.keys,
         if (theme != null && theme!.path.isNotEmpty) theme!.path,
       };
 
@@ -131,12 +159,18 @@ class ShadcnLock {
 
   bool isUserOwned(String path) => userOwnedPaths.contains(path);
 
-  /// Component id, or layer key, that owns [path]; `null` when unowned.
+  /// Component id, block id, or layer key, that owns [path]; `null` when
+  /// unowned.
   String? ownerOf(String path) {
     final normalized = normalizeLockPath(path);
     for (final component in components) {
       if (component.allPaths.contains(normalized)) {
         return component.id;
+      }
+    }
+    for (final block in blocks) {
+      if (block.files.containsKey(normalized)) {
+        return block.id;
       }
     }
     if (theme != null && theme!.path == normalized) {
@@ -150,11 +184,13 @@ class ShadcnLock {
     return null;
   }
 
-  /// Component ids that own at least one of [paths] in any role.
+  /// Component and block ids that own at least one of [paths] in any role.
   Set<String> dependentsOf(Set<String> paths) {
     return {
       for (final component in components)
         if (component.ownsAny(paths)) component.id,
+      for (final block in blocks)
+        if (block.ownsAny(paths)) block.id,
     };
   }
 
@@ -165,6 +201,7 @@ class ShadcnLock {
     bool clearTheme = false,
     Map<LockLayer, LockLayerState>? layers,
     List<ShadcnLockComponent>? components,
+    List<ShadcnLockBlock>? blocks,
   }) {
     return ShadcnLock(
       lockfileVersion: lockfileVersion,
@@ -173,6 +210,7 @@ class ShadcnLock {
       theme: clearTheme ? null : (theme ?? this.theme),
       layers: layers ?? this.layers,
       components: components ?? this.components,
+      blocks: blocks ?? this.blocks,
     );
   }
 
@@ -232,6 +270,31 @@ class ShadcnLock {
     return null;
   }
 
+  ShadcnLockBlock? blockFor(String id) {
+    for (final block in blocks) {
+      if (block.id == id) {
+        return block;
+      }
+    }
+    return null;
+  }
+
+  /// Replaces the record for [block], keeping the list sorted by id.
+  ShadcnLock upsertBlock(ShadcnLockBlock block) {
+    final next = blocks.where((existing) => existing.id != block.id).toList()
+      ..add(block)
+      ..sort((a, b) => a.id.compareTo(b.id));
+    return copyWith(blocks: next);
+  }
+
+  /// Drops [id] from the lock. A block owns no user-owned file, so every path
+  /// it recorded is deletable.
+  ShadcnLock removeBlock(String id) {
+    return copyWith(
+      blocks: blocks.where((block) => block.id != id).toList(),
+    );
+  }
+
   /// Union with [other]: components are upserted by id, layer units and files
   /// are unioned and [other]'s hashes win because it was written last.
   ShadcnLock mergeWith(ShadcnLock other) {
@@ -250,11 +313,16 @@ class ShadcnLock {
     for (final component in other.components) {
       merged = merged.upsertComponent(component);
     }
+    for (final block in other.blocks) {
+      merged = merged.upsertBlock(block);
+    }
     return merged;
   }
 
   Map<String, dynamic> toJson() {
-    final sorted = components.toList()..sort((a, b) => a.id.compareTo(b.id));
+    final sortedComponents = components.toList()
+      ..sort((a, b) => a.id.compareTo(b.id));
+    final sortedBlocks = blocks.toList()..sort((a, b) => a.id.compareTo(b.id));
     return {
       'lockfileVersion': lockfileVersion,
       'registry': registry.toJson(),
@@ -264,7 +332,9 @@ class ShadcnLock {
         for (final layer in LockLayer.values)
           layer.key: layerState(layer).toJson(),
       },
-      'components': sorted.map((component) => component.toJson()).toList(),
+      'components':
+          sortedComponents.map((component) => component.toJson()).toList(),
+      'blocks': sortedBlocks.map((block) => block.toJson()).toList(),
     };
   }
 }

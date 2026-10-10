@@ -101,7 +101,7 @@ void main() {
       expect(preset.file, 'themes/modern-minimal.json');
       expect(preset.name, 'Modern Minimal');
       expect(preset.modes, ['light', 'dark']);
-      expect(manifest.fileHashes.length, 14);
+      expect(manifest.fileHashes.length, 19);
       expect(manifest.fileHashes['foundation/data.dart'], isNotEmpty);
     });
 
@@ -118,10 +118,17 @@ void main() {
           'primitives/form_core/form_core.dart',
           'components/button/button_theme.dart',
           'components/text_area/text_area.dart',
+          'blocks/login-01/login_01.dart',
+          'blocks/dashboard-01/dashboard_01.dart',
+          'blocks/dashboard-01/dashboard_01_table.dart',
           'themes/modern-minimal.json',
         ]),
       );
-      expect(declared.length, 13);
+      // 16 copyable registry files: 5 layer + 6 component + 3 block + preset...
+      // (the component user-owned file and the preset JSON make up the rest).
+      expect(declared.length, 16);
+      // A block's docs are never copied into an app.
+      expect(declared, isNot(contains('blocks/login-01/README.md')));
     });
 
     test('tolerates missing optional blocks', () {

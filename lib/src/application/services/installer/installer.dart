@@ -1,15 +1,13 @@
-import 'dart:io';
-
 import 'package:flutter_shadcn_cli/src/application/services/installer/dry_run_plan.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_file_install_part.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_lock_part.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/installer_remove_part.dart';
 import 'package:flutter_shadcn_cli/src/application/services/installer/pub_package_resolver.dart';
+import 'package:flutter_shadcn_cli/src/application/services/installer/installer_plan_part.dart';
 import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_repository.dart';
 import 'package:flutter_shadcn_cli/src/application/services/manifest_closure.dart';
 import 'package:flutter_shadcn_cli/src/logger.dart';
 import 'package:flutter_shadcn_cli/src/registry/manifest/registry_manifest.dart';
-import 'package:path/path.dart' as p;
 
 /// Two installed components would define the same public symbol.
 ///
@@ -76,28 +74,45 @@ class Installer {
         logger: logger,
       );
 
+  InstallerFilePlanner get _planner => InstallerFilePlanner(
+        projectRoot: projectRoot,
+        reader: _reader,
+        installerFiles: _files,
+      );
+
   ShadcnLockRepository get _lockRepo => ShadcnLockRepository(projectRoot);
 
   ManifestClosureResolver get _closureResolver =>
       ManifestClosureResolver(manifest);
 
-  /// Transitive closure of [componentIds]; throws
+  /// Transitive closure of [componentIds] plus [blockIds]; throws
   /// [ManifestClosureException] for an unknown id.
   ManifestClosure resolveClosure(
     Iterable<String> componentIds, {
+    Iterable<String> blockIds = const [],
     bool includeCore = true,
   }) =>
-      _closureResolver.resolve(componentIds, includeCore: includeCore);
+      _closureResolver.resolve(
+        componentIds,
+        blockIds: blockIds,
+        includeCore: includeCore,
+      );
 
   /// Computes the plan without writing anything.
   Future<DryRunPlan> plan(
     Iterable<String> componentIds, {
+    Iterable<String> blockIds = const [],
     bool includePreview = false,
     bool overwrite = false,
     bool includeCore = true,
   }) async {
     final requested = componentIds.toList();
-    final closure = resolveClosure(requested, includeCore: includeCore);
+    final requestedBlocks = blockIds.toList();
+    final closure = resolveClosure(
+      requested,
+      blockIds: requestedBlocks,
+      includeCore: includeCore,
+    );
     await _preflightSingleOwner(closure);
     final files = await _planFiles(
       closure,
@@ -109,7 +124,9 @@ class Installer {
     );
     return DryRunPlan(
       requested: requested,
+      requestedBlocks: requestedBlocks,
       components: closure.components,
+      blocks: closure.blocks,
       foundation: closure.foundation,
       theme: closure.theme,
       primitives: closure.primitives,
@@ -126,10 +143,11 @@ class Installer {
     );
   }
 
-  /// Installs [componentIds] (closure + core), or returns the plan when
-  /// [dryRun] is true.
+  /// Installs [componentIds] and [blockIds] (closure + core), or returns the
+  /// plan when [dryRun] is true.
   Future<InstallReport> add(
     Iterable<String> componentIds, {
+    Iterable<String> blockIds = const [],
     bool dryRun = false,
     bool includePreview = false,
     bool overwrite = false,
@@ -138,6 +156,7 @@ class Installer {
   }) async {
     final plan = await this.plan(
       componentIds,
+      blockIds: blockIds,
       includePreview: includePreview,
       overwrite: overwrite,
       includeCore: includeCore,
@@ -179,9 +198,11 @@ class Installer {
     await _lockRepo.save(current.mergeWith(delta));
 
     final packagePlan = await _pubResolver.plan(
-      resolveClosure(componentIds, includeCore: includeCore)
-          .packages
-          .map(PubPackageRequirement.fromPackageRef),
+      resolveClosure(
+        componentIds,
+        blockIds: blockIds,
+        includeCore: includeCore,
+      ).packages.map(PubPackageRequirement.fromPackageRef),
     );
     final applied = await _pubResolver.apply(packagePlan, runPubGet: runPubGet);
 
@@ -198,13 +219,19 @@ class Installer {
   /// The v2 installer copies the whole closure at once, so the v1
   /// level-ordered bulk install (de35dd2 `_topologicalLevels`) is unnecessary:
   /// file copy order is irrelevant (plan §9.7).
+  ///
+  /// Blocks are a separate opt-in (`add <block>` or `add --all --blocks`):
+  /// a block is a finished screen, so `--all` never installs 16 of them into
+  /// an app by accident.
   Future<InstallReport> installAll({
     bool dryRun = false,
     bool includePreview = false,
     bool runPubGet = true,
+    bool includeBlocks = false,
   }) =>
       add(
         manifest.components.keys,
+        blockIds: includeBlocks ? manifest.blocks.keys : const [],
         dryRun: dryRun,
         includePreview: includePreview,
         runPubGet: runPubGet,
@@ -246,102 +273,16 @@ class Installer {
     ManifestClosure closure, {
     required bool includePreview,
     required bool overwrite,
-  }) async {
-    final planned = <PlannedFile>[];
-    final registryFiles = <String>{...closure.files};
-    if (includePreview) {
-      for (final id in closure.components) {
-        final preview = 'components/$id/preview.dart';
-        if (await _reader.readBytes(preview) != null) {
-          registryFiles.add(preview);
-        }
-      }
-    }
-    final sources = registryFiles.toList()..sort();
-    for (final source in sources) {
-      planned.add(
-        await _decideFile(
-          source: source,
-          target: _files.targetPathFor(source),
-          userOwned: false,
-          overwrite: overwrite,
-        ),
+  }) =>
+      _planner.plan(
+        closure,
+        includePreview: includePreview,
+        overwrite: overwrite,
+        userOwnedByComponent: {
+          for (final id in closure.components)
+            id: manifest.components[id]!.userOwned,
+        },
       );
-    }
-    for (final id in closure.components) {
-      for (final source in manifest.components[id]!.userOwned) {
-        planned.add(
-          await _decideFile(
-            source: source,
-            target: _files.targetPathFor(source),
-            userOwned: true,
-            overwrite: false,
-          ),
-        );
-      }
-    }
-    planned.sort((a, b) => a.target.compareTo(b.target));
-    return planned;
-  }
-
-  Future<PlannedFile> _decideFile({
-    required String source,
-    required String target,
-    required bool userOwned,
-    required bool overwrite,
-  }) async {
-    final sourceBytes = await _reader.readBytes(source);
-    if (sourceBytes == null) {
-      throw RegistryFileMissingException(source);
-    }
-    final sourceSha = FileHashing.ofBytes(sourceBytes);
-    final destination = File(p.join(projectRoot, target));
-    if (!await destination.exists()) {
-      return PlannedFile(
-        source: source,
-        target: target,
-        action: PlanAction.add,
-        userOwned: userOwned,
-        sha256: sourceSha,
-      );
-    }
-    final destinationSha = FileHashing.ofBytes(await destination.readAsBytes());
-    if (userOwned) {
-      return PlannedFile(
-        source: source,
-        target: target,
-        action: PlanAction.keep,
-        userOwned: true,
-        reason: 'user-owned',
-        sha256: destinationSha,
-      );
-    }
-    if (destinationSha == sourceSha) {
-      return PlannedFile(
-        source: source,
-        target: target,
-        action: PlanAction.skip,
-        reason: 'identical',
-        sha256: sourceSha,
-      );
-    }
-    if (overwrite) {
-      return PlannedFile(
-        source: source,
-        target: target,
-        action: PlanAction.update,
-        reason: 'overwrite',
-        sha256: sourceSha,
-      );
-    }
-    return PlannedFile(
-      source: source,
-      target: target,
-      action: PlanAction.skip,
-      reason: 'locally modified',
-      sha256: sourceSha,
-    );
-  }
 
   Future<void> _preflightSingleOwner(ManifestClosure closure) async {
     final requested = closure.components.toSet();

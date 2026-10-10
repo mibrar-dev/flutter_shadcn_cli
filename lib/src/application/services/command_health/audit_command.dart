@@ -36,6 +36,7 @@ Future<int> runAuditCommand({
       command: 'audit',
       data: {
         'components': lock.componentIds,
+        'blocks': lock.blockIds,
         'drift': drift.toJson(),
       },
       meta: {'exitCode': exitCode},
@@ -45,6 +46,9 @@ Future<int> runAuditCommand({
 
   logger.header('Install audit');
   logger.info('Installed components: ${lock.componentIds.length}');
+  if (lock.blocks.isNotEmpty) {
+    logger.info('Installed blocks: ${lock.blockIds.length}');
+  }
   if (drift.registryOwnedDrift.isEmpty) {
     logger.success('All registry-owned files match shadcn.lock.');
   } else {

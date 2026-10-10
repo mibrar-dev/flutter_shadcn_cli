@@ -49,6 +49,8 @@ ArgParser buildCliParser() {
             abbr: 'a',
             negatable: false,
             help: 'Install every available component')
+        ..addFlag('blocks',
+            negatable: false, help: 'With --all, install every block too')
         ..addFlag('dry-run',
             negatable: false, help: 'Print the plan without writing anything')
         ..addFlag('force',
@@ -64,6 +66,7 @@ ArgParser buildCliParser() {
       'dry-run',
       ArgParser()
         ..addFlag('all', abbr: 'a', negatable: false)
+        ..addFlag('blocks', negatable: false)
         ..addFlag('json', negatable: false, help: 'Machine-readable output')
         ..addFlag('help', abbr: 'h', negatable: false),
     )
@@ -90,12 +93,18 @@ ArgParser buildCliParser() {
     ..addCommand(
       'list',
       ArgParser()
+        ..addFlag('blocks',
+            negatable: false, help: 'List blocks instead of components')
+        ..addOption('category',
+            help: 'Only entries of this category (components and blocks)')
         ..addFlag('json', negatable: false, help: 'Machine-readable output')
         ..addFlag('help', abbr: 'h', negatable: false),
     )
     ..addCommand(
       'search',
       ArgParser()
+        ..addOption('category',
+            help: 'Only entries of this category (components and blocks)')
         ..addFlag('json', negatable: false, help: 'Machine-readable output')
         ..addFlag('help', abbr: 'h', negatable: false),
     )
