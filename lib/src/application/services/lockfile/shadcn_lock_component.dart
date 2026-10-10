@@ -82,9 +82,8 @@ class LockComponentApi {
         return;
       }
       if (value is Map) {
-        // Maps such as `providedBy`/`reusedFrom` are symbol -> owner; the
-        // symbols are the keys.
-        byKind[key] = value.keys.map((entry) => entry.toString()).toList();
+        // Map groups (`providedByPrimitives`, `reExportedFromComponents`)
+        // name the owning unit, not symbols this component defines.
         return;
       }
       if (value is String) {
@@ -94,13 +93,25 @@ class LockComponentApi {
     return LockComponentApi(byKind: byKind);
   }
 
+  /// Api kinds that never denote owned symbols.
+  static const nonOwnedKinds = <String>{
+    'providedByPrimitives',
+    'reExportedFromComponents',
+    'providedBy',
+    'reusedFrom',
+  };
+
   /// Free-form kind (`classes`, `enums`, `constants`, ...) -> symbols.
   final Map<String, List<String>> byKind;
 
   List<String> symbolsFor(String kind) => byKind[kind] ?? const [];
 
-  /// Every declared symbol across all kinds.
-  Set<String> get symbols => {for (final entries in byKind.values) ...entries};
+  /// Every owned symbol across definition kinds (non-owned kinds such as
+  /// `providedByPrimitives` are excluded so old locks stay safe).
+  Set<String> get symbols => {
+        for (final entry in byKind.entries)
+          if (!nonOwnedKinds.contains(entry.key)) ...entry.value,
+      };
 
   /// True when [symbol] would be declared by this component.
   bool declares(String symbol) => symbols.contains(symbol);

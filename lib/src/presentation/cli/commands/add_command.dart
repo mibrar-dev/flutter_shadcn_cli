@@ -62,6 +62,7 @@ Future<int> runAddCommand({
       includePreview: includePreview,
       overwrite: force,
       includeCore: true,
+      includeAllPrimitives: includeAll,
     );
 
     if (json) {

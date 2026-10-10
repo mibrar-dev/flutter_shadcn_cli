@@ -344,23 +344,30 @@ void main() {
   });
 
   group('api', () {
-    test('reads symbol -> owner maps as declared symbols', () {
+    test('ignores owner -> symbol maps (not owned symbols)', () {
       final api = LockComponentApi.fromJson({
         'classes': ['Button'],
         'enums': ['ButtonVariant'],
-        // meta.json maps such as providedBy are symbol -> owner.
-        'providedBy': {'Button': 'button.dart'},
+        // Manifest maps such as providedByPrimitives name the owning unit,
+        // not symbols this component defines, so they are ignored.
+        'providedByPrimitives': {
+          'file_value': ['FileValue'],
+        },
+        'reExportedFromComponents': {
+          'menu': ['MenuPopup'],
+        },
         'ignored': 42,
       });
 
       expect(api.symbolsFor('classes'), ['Button']);
       expect(api.symbols, {'Button', 'ButtonVariant'});
       expect(api.declares('Button'), isTrue);
+      expect(api.declares('FileValue'), isFalse);
+      expect(api.declares('MenuPopup'), isFalse);
       expect(api.declares('ButtonGroup'), isFalse);
       expect(api.toJson(), {
         'classes': ['Button'],
         'enums': ['ButtonVariant'],
-        'providedBy': ['Button'],
       });
     });
 

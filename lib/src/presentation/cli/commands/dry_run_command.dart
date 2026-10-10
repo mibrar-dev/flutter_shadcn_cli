@@ -50,6 +50,7 @@ Future<int> runDryRunCommand({
       ids,
       blockIds: includeAll && includeBlocks ? manifest.blocks.keys : const [],
       includeCore: true,
+      includeAllPrimitives: includeAll,
     );
     if (json) {
       printJson(jsonEnvelope(

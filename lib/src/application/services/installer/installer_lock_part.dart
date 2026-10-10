@@ -5,19 +5,28 @@ import 'package:flutter_shadcn_cli/src/registry/manifest/registry_manifest.dart'
 
 /// Converts a manifest `api` block into the lock's symbol summary.
 ///
-/// List values are symbols; map values (`providedBy`/`reusedFrom`) contribute
-/// their keys, matching `LockComponentApi.fromJson`.
+/// Only list values are owned symbols. Map values (`providedByPrimitives`,
+/// `reExportedFromComponents`) name the owning layer or component — their keys
+/// are unit ids, not symbols this component defines — so they are ignored for
+/// the single-owner preflight.
 LockComponentApi lockApiFor(ManifestApi api) {
   final byKind = <String, List<String>>{};
   api.groups.forEach((key, value) {
     if (value is List) {
+      if (_nonOwnedApiKinds.contains(key)) return;
       byKind[key] = value.whereType<String>().toList();
-    } else if (value is Map) {
-      byKind[key] = value.keys.map((entry) => entry.toString()).toList();
     }
   });
   return LockComponentApi(byKind: byKind);
 }
+
+/// Api kinds that never denote owned symbols (their entries name owners).
+const _nonOwnedApiKinds = <String>{
+  'providedByPrimitives',
+  'reExportedFromComponents',
+  'providedBy',
+  'reusedFrom',
+};
 
 /// Every symbol a manifest component declares.
 Set<String> manifestSymbols(ManifestApi api) => lockApiFor(api).symbols;

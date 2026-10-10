@@ -91,11 +91,13 @@ class Installer {
     Iterable<String> componentIds, {
     Iterable<String> blockIds = const [],
     bool includeCore = true,
+    bool includeAllPrimitives = false,
   }) =>
       _closureResolver.resolve(
         componentIds,
         blockIds: blockIds,
         includeCore: includeCore,
+        includeAllPrimitives: includeAllPrimitives,
       );
 
   /// Computes the plan without writing anything.
@@ -105,6 +107,7 @@ class Installer {
     bool includePreview = false,
     bool overwrite = false,
     bool includeCore = true,
+    bool includeAllPrimitives = false,
   }) async {
     final requested = componentIds.toList();
     final requestedBlocks = blockIds.toList();
@@ -112,6 +115,7 @@ class Installer {
       requested,
       blockIds: requestedBlocks,
       includeCore: includeCore,
+      includeAllPrimitives: includeAllPrimitives,
     );
     await _preflightSingleOwner(closure);
     final files = await _planFiles(
@@ -152,6 +156,7 @@ class Installer {
     bool includePreview = false,
     bool overwrite = false,
     bool includeCore = true,
+    bool includeAllPrimitives = false,
     bool runPubGet = true,
   }) async {
     final plan = await this.plan(
@@ -160,6 +165,7 @@ class Installer {
       includePreview: includePreview,
       overwrite: overwrite,
       includeCore: includeCore,
+      includeAllPrimitives: includeAllPrimitives,
     );
     if (dryRun) {
       return InstallReport(plan: plan, applied: false);
@@ -202,6 +208,7 @@ class Installer {
         componentIds,
         blockIds: blockIds,
         includeCore: includeCore,
+        includeAllPrimitives: includeAllPrimitives,
       ).packages.map(PubPackageRequirement.fromPackageRef),
     );
     final applied = await _pubResolver.apply(packagePlan, runPubGet: runPubGet);
@@ -223,6 +230,9 @@ class Installer {
   /// Blocks are a separate opt-in (`add <block>` or `add --all --blocks`):
   /// a block is a finished screen, so `--all` never installs 16 of them into
   /// an app by accident.
+  ///
+  /// Every primitive ships too, even those no component uses, so `--all`
+  /// matches the registry mirror byte for byte (docs `sync_registry.sh`).
   Future<InstallReport> installAll({
     bool dryRun = false,
     bool includePreview = false,
@@ -235,6 +245,7 @@ class Installer {
         dryRun: dryRun,
         includePreview: includePreview,
         runPubGet: runPubGet,
+        includeAllPrimitives: true,
       );
 
   /// Installs the always-on layer core (all foundation + theme units) with no
@@ -317,8 +328,34 @@ class Installer {
         claim(symbol, component.id);
       }
     }
+    // A re-export is not a second definition: when every claimant of a
+    // symbol sits on one dependency chain (one depends on the other), the
+    // downstream entry re-exports the upstream definition (e.g.
+    // drawer_container re-exports OverlayPosition from drawer).
+    violations.removeWhere((symbol, owners) => _isReexport(owners));
     if (violations.isNotEmpty) {
       throw SingleOwnerViolationException(violations);
     }
+  }
+
+  /// True when [owners] share a component-dependency edge, meaning the
+  /// duplicate api entry is a re-export rather than a second definition.
+  bool _isReexport(List<String> owners) {
+    for (var i = 0; i < owners.length; i++) {
+      for (var j = i + 1; j < owners.length; j++) {
+        if (_dependsOn(owners[i], owners[j]) ||
+            _dependsOn(owners[j], owners[i])) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  /// True when component [from] directly depends on component [on].
+  bool _dependsOn(String from, String on) {
+    final component = manifest.components[from];
+    if (component == null) return false;
+    return component.deps.components.contains(on);
   }
 }

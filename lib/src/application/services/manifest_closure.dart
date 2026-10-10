@@ -110,12 +110,18 @@ class ManifestClosureResolver {
   /// `init` copies, plan §2.1); `add` keeps it on so the layer core is present
   /// even on a project that was never `init`ed.
   ///
+  /// [includeAllPrimitives] adds every primitive unit, even those no requested
+  /// component uses. `add --all` sets it so the install matches the registry
+  /// mirror (docs `sync_registry.sh` copies every file); selective adds keep
+  /// it off so unused primitives never bloat the app.
+  ///
   /// An id that names neither is a [ManifestClosureException], so a typo never
   /// silently installs nothing.
   ManifestClosure resolve(
     Iterable<String> ids, {
     Iterable<String> blockIds = const [],
     bool includeCore = true,
+    bool includeAllPrimitives = false,
   }) {
     final components = <String>{};
     final blocks = <String>{};
@@ -166,6 +172,10 @@ class ManifestClosureResolver {
     if (includeCore) {
       foundation.addAll(manifest.foundation.keys);
       theme.addAll(manifest.theme.keys);
+    }
+
+    if (includeAllPrimitives) {
+      primitives.addAll(manifest.primitives.keys);
     }
 
     return ManifestClosure(
