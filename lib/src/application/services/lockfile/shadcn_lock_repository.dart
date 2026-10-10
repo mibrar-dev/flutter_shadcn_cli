@@ -1,349 +1,224 @@
 import 'dart:convert';
 import 'dart:io';
 
-import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/hashing.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_drift_report.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_file_exception.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_json.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_layer.dart';
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_v2.dart';
 import 'package:path/path.dart' as p;
 
-class ShadcnLockRepository {
-  final String projectRoot;
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/hashing.dart';
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_drift_report.dart';
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_file_exception.dart';
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_install_state.dart';
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_json.dart';
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/lock_layer.dart';
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_block.dart';
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_component.dart';
+export 'package:flutter_shadcn_cli/src/application/services/lockfile/shadcn_lock_v2.dart';
 
+/// Reads, writes and diffs `<projectRoot>/shadcn.lock` (lockfileVersion 2).
+///
+/// The lock is the only install-state file: no `.shadcn/state.json`, no
+/// `.shadcn/components/*.json`, and no v1 lockfileVersion.
+class ShadcnLockRepository {
   const ShadcnLockRepository(this.projectRoot);
 
-  File get file => File(p.join(projectRoot, 'shadcn.lock'));
+  final String projectRoot;
 
+  File get file => File(p.join(projectRoot, kLockFileName));
+
+  bool existsSync() => file.existsSync();
+
+  Future<bool> exists() => file.exists();
+
+  /// Absolute path of [relativePath] inside the project.
+  File resolve(String relativePath) => File(p.join(projectRoot, relativePath));
+
+  /// Loads the lock.
+  ///
+  /// A missing lock is not an error: it yields an empty v2 lock. A lock that
+  /// exists but cannot be parsed raises [LockFileException] so callers can
+  /// tell "fresh project" apart from "corrupt install state".
   Future<ShadcnLock> load() async {
     if (!await file.exists()) {
       return const ShadcnLock();
     }
-    final decoded = jsonDecode(await file.readAsString());
-    if (decoded is! Map<String, dynamic>) {
-      throw const FormatException('shadcn.lock must contain a JSON object.');
-    }
-    return ShadcnLock.fromJson(decoded);
+    return parse(await file.readAsString());
   }
 
-  Future<ShadcnLock> loadOrSynthesize() async {
-    if (await file.exists()) {
-      return load();
+  /// [load], or `null` when no lock file exists at all.
+  Future<ShadcnLock?> loadIfPresent() async {
+    if (!await file.exists()) {
+      return null;
     }
-    return synthesizeFromLegacyManifests();
+    return parse(await file.readAsString());
   }
 
-  Future<ShadcnLock> synthesizeFromLegacyManifests() async {
-    final componentsDir = Directory(
-      p.join(projectRoot, '.shadcn', 'components'),
-    );
-    if (!await componentsDir.exists()) {
-      return const ShadcnLock();
+  /// Parses [source] as a v2 lock. Shared with `validate` and the tests.
+  ShadcnLock parse(String source, {String sourcePath = kLockFileName}) {
+    if (source.trim().isEmpty) {
+      throw LockFileException('The lock file is empty.', sourcePath);
     }
-
-    final config = await ShadcnConfig.load(projectRoot);
-    final namespace = config.effectiveDefaultNamespace;
-    final installPath = config.installPath ?? 'lib/ui/shadcn';
-    var lock = const ShadcnLock();
-    await for (final entry in componentsDir.list()) {
-      if (entry is! File || !entry.path.endsWith('.json')) {
-        continue;
-      }
-      final decoded = jsonDecode(await entry.readAsString());
-      if (decoded is! Map<String, dynamic>) {
-        continue;
-      }
-      final componentId = decoded['id']?.toString();
-      if (componentId == null || componentId.isEmpty) {
-        continue;
-      }
-      final registryRoot = decoded['registryRoot']?.toString() ?? '';
-      final manifestNamespace = decoded['namespace']?.toString();
-      final resolvedNamespace =
-          manifestNamespace == null || manifestNamespace.isEmpty
-              ? namespace
-              : manifestNamespace;
-      final files = _legacyInstalledFiles(
-        _stringList(decoded['files']),
-        installPath: installPath,
+    Object? decoded;
+    try {
+      decoded = jsonDecode(source);
+    } on FormatException catch (error) {
+      throw LockFileException(
+        'The lock file is not valid JSON (${error.message}).',
+        sourcePath,
       );
-      lock = lock
-          .upsertRegistry(
-            ShadcnLockRegistry(
-              namespace: resolvedNamespace,
-              registryRoot: registryRoot,
-              sourceRoot: registryRoot,
-              sourceManifestHash: '',
-            ),
-          )
-          .upsertComponent(
-            ShadcnLockComponent(
-              namespace: resolvedNamespace,
-              componentId: componentId,
-              qualifiedId: '@$resolvedNamespace/$componentId',
-              version: decoded['version']?.toString(),
-              registryRoot: registryRoot,
-              sourceManifestHash: '',
-              installedFiles: files,
-              dependencies: const {},
-              postInstall: const [],
-              localeKeys: const [],
-              assetPaths: const [],
-              manifestKeys: const [],
-              postInstallNamespaces: const [],
-              localeNamespaces: const [],
-              sharedFiles: const [],
-            ),
-          );
     }
-    return lock;
+    if (decoded is! Map<String, dynamic>) {
+      throw LockFileException(
+        'The lock file must contain a JSON object.',
+        sourcePath,
+      );
+    }
+    return ShadcnLock.fromJson(decoded, sourcePath: sourcePath);
   }
 
+  /// Writes [lock] deterministically: sorted keys, sorted components, two
+  /// space indent and a trailing newline, so diffs stay reviewable.
   Future<void> save(ShadcnLock lock) async {
+    final parent = file.parent;
+    if (!await parent.exists()) {
+      await parent.create(recursive: true);
+    }
     final payload = const JsonEncoder.withIndent('  ').convert(lock.toJson());
     await file.writeAsString('$payload\n', flush: true);
   }
-}
 
-class ShadcnLock {
-  final int lockfileVersion;
-  final Map<String, ShadcnLockRegistry> registries;
-  final List<ShadcnLockComponent> components;
-
-  const ShadcnLock({
-    this.lockfileVersion = 1,
-    this.registries = const {},
-    this.components = const [],
-  });
-
-  factory ShadcnLock.fromJson(Map<String, dynamic> json) {
-    final registriesJson = json['registries'];
-    final componentsJson = json['components'];
-    return ShadcnLock(
-      lockfileVersion: (json['lockfileVersion'] as num?)?.toInt() ?? 1,
-      registries: registriesJson is Map<String, dynamic>
-          ? registriesJson.map(
-              (key, value) => MapEntry(
-                key,
-                ShadcnLockRegistry.fromJson(value as Map<String, dynamic>),
-              ),
-            )
-          : const {},
-      components: componentsJson is List
-          ? componentsJson
-              .whereType<Map<String, dynamic>>()
-              .map(ShadcnLockComponent.fromJson)
-              .toList()
-          : const [],
-    );
+  /// Read-modify-write helper for sequential `init`/`add`/`remove` runs.
+  Future<ShadcnLock> update(
+    ShadcnLock Function(ShadcnLock current) mutate,
+  ) async {
+    final next = mutate(await load());
+    await save(next);
+    return next;
   }
 
-  ShadcnLock upsertRegistry(ShadcnLockRegistry registry) {
-    final next = Map<String, ShadcnLockRegistry>.from(registries);
-    next[registry.namespace] = registry;
-    return copyWith(registries: next);
+  /// Merges [incoming] into the stored lock and returns the result.
+  Future<ShadcnLock> merge(ShadcnLock incoming) =>
+      update((current) => current.mergeWith(incoming));
+
+  Future<void> delete() async {
+    if (await file.exists()) {
+      await file.delete();
+    }
   }
 
-  ShadcnLock upsertComponent(ShadcnLockComponent component) {
-    final next = components
-        .where(
-          (existing) =>
-              existing.namespace != component.namespace ||
-              existing.componentId != component.componentId,
-        )
-        .toList()
-      ..add(component)
-      ..sort((a, b) => a.qualifiedId.compareTo(b.qualifiedId));
-    return copyWith(components: next);
-  }
-
-  ShadcnLock removeComponent({
-    required String namespace,
-    required String componentId,
-  }) {
-    return copyWith(
-      components: components
-          .where(
-            (component) =>
-                component.namespace != namespace ||
-                component.componentId != componentId,
-          )
-          .toList(),
-    );
-  }
-
-  ShadcnLockComponent? componentFor({
-    required String namespace,
-    required String componentId,
-  }) {
-    for (final component in components) {
-      if (component.namespace == namespace &&
-          component.componentId == componentId) {
-        return component;
+  /// Hashes every file the lock tracks and reports drift.
+  ///
+  /// [componentIds] narrows the scan to a subset (used by `update <ids>`).
+  /// [manifestSha256] is the digest of the manifest on disk; pass it to get
+  /// the "registry moved" flag.
+  Future<LockDriftReport> inspect(
+    ShadcnLock lock, {
+    Set<String>? componentIds,
+    String? manifestSha256,
+  }) async {
+    final entries = <_TrackedFile>[];
+    for (final layer in LockLayer.values) {
+      final state = lock.layerState(layer);
+      for (final file in state.files.entries) {
+        entries.add(_TrackedFile(file.key, layer.key, file.value, false));
       }
     }
-    return null;
-  }
-
-  ShadcnLock copyWith({
-    int? lockfileVersion,
-    Map<String, ShadcnLockRegistry>? registries,
-    List<ShadcnLockComponent>? components,
-  }) {
-    return ShadcnLock(
-      lockfileVersion: lockfileVersion ?? this.lockfileVersion,
-      registries: registries ?? this.registries,
-      components: components ?? this.components,
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    final sortedRegistries = Map.fromEntries(
-      registries.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
-    );
-    final sortedComponents = components.toList()
-      ..sort((a, b) => a.qualifiedId.compareTo(b.qualifiedId));
-    return {
-      'lockfileVersion': lockfileVersion,
-      'registries': sortedRegistries.map(
-        (key, value) => MapEntry(key, value.toJson()),
-      ),
-      'components':
-          sortedComponents.map((component) => component.toJson()).toList(),
-    };
-  }
-}
-
-class ShadcnLockRegistry {
-  final String namespace;
-  final String registryRoot;
-  final String sourceRoot;
-  final String sourceManifestHash;
-
-  const ShadcnLockRegistry({
-    required this.namespace,
-    required this.registryRoot,
-    required this.sourceRoot,
-    required this.sourceManifestHash,
-  });
-
-  factory ShadcnLockRegistry.fromJson(Map<String, dynamic> json) {
-    return ShadcnLockRegistry(
-      namespace: json['namespace']?.toString() ?? '',
-      registryRoot: json['registryRoot']?.toString() ?? '',
-      sourceRoot: json['sourceRoot']?.toString() ?? '',
-      sourceManifestHash: json['sourceManifestHash']?.toString() ?? '',
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'namespace': namespace,
-      'registryRoot': registryRoot,
-      'sourceRoot': sourceRoot,
-      'sourceManifestHash': sourceManifestHash,
-    };
-  }
-}
-
-class ShadcnLockComponent {
-  final String namespace;
-  final String componentId;
-  final String qualifiedId;
-  final String? version;
-  final String registryRoot;
-  final String sourceManifestHash;
-  final List<String> installedFiles;
-  final Map<String, dynamic> dependencies;
-  final List<String> postInstall;
-  final List<String> localeKeys;
-  final List<String> assetPaths;
-  final List<String> manifestKeys;
-  final List<String> postInstallNamespaces;
-  final List<String> localeNamespaces;
-  final List<String> sharedFiles;
-
-  const ShadcnLockComponent({
-    required this.namespace,
-    required this.componentId,
-    required this.qualifiedId,
-    required this.version,
-    required this.registryRoot,
-    required this.sourceManifestHash,
-    required this.installedFiles,
-    required this.dependencies,
-    required this.postInstall,
-    this.localeKeys = const [],
-    this.assetPaths = const [],
-    this.manifestKeys = const [],
-    this.postInstallNamespaces = const [],
-    this.localeNamespaces = const [],
-    this.sharedFiles = const [],
-  });
-
-  factory ShadcnLockComponent.fromJson(Map<String, dynamic> json) {
-    return ShadcnLockComponent(
-      namespace: json['namespace']?.toString() ?? '',
-      componentId: json['componentId']?.toString() ?? '',
-      qualifiedId: json['qualifiedId']?.toString() ?? '',
-      version: json['version']?.toString(),
-      registryRoot: json['registryRoot']?.toString() ?? '',
-      sourceManifestHash: json['sourceManifestHash']?.toString() ?? '',
-      installedFiles: _stringList(json['installedFiles']),
-      dependencies: json['dependencies'] is Map<String, dynamic>
-          ? Map<String, dynamic>.from(json['dependencies'] as Map)
-          : const {},
-      postInstall: _stringList(json['postInstall']),
-      localeKeys: _stringList(json['localeKeys']),
-      assetPaths: _stringList(json['assetPaths']),
-      manifestKeys: _stringList(json['manifestKeys']),
-      postInstallNamespaces: _stringList(json['postInstallNamespaces']),
-      localeNamespaces: _stringList(json['localeNamespaces']),
-      sharedFiles: _stringList(json['sharedFiles']),
-    );
-  }
-
-  Map<String, dynamic> toJson() {
-    return {
-      'namespace': namespace,
-      'componentId': componentId,
-      'qualifiedId': qualifiedId,
-      if (version != null) 'version': version,
-      'registryRoot': registryRoot,
-      'sourceManifestHash': sourceManifestHash,
-      'installedFiles': installedFiles.toList()..sort(),
-      'dependencies': Map.fromEntries(
-        dependencies.entries.toList()..sort((a, b) => a.key.compareTo(b.key)),
-      ),
-      'postInstall': postInstall,
-      'localeKeys': localeKeys.toList()..sort(),
-      'assetPaths': assetPaths.toList()..sort(),
-      'manifestKeys': manifestKeys.toList()..sort(),
-      'postInstallNamespaces': postInstallNamespaces.toList()..sort(),
-      'localeNamespaces': localeNamespaces.toList()..sort(),
-      'sharedFiles': sharedFiles.toList()..sort(),
-    };
-  }
-}
-
-List<String> _stringList(Object? value) {
-  if (value is! List) {
-    return const [];
-  }
-  return value.map((entry) => entry.toString()).toList();
-}
-
-List<String> _legacyInstalledFiles(
-  List<String> manifestFiles, {
-  required String installPath,
-}) {
-  final files = <String>[];
-  for (final file in manifestFiles) {
-    final normalized = file.replaceAll('\\', '/');
-    const registryPrefix = 'registry/';
-    if (normalized.startsWith(registryPrefix)) {
-      files.add(
-          p.join(installPath, normalized.substring(registryPrefix.length)));
-      continue;
+    final theme = lock.theme;
+    if (theme != null && theme.path.isNotEmpty && theme.sha256.isNotEmpty) {
+      entries.add(
+        _TrackedFile(theme.path, LockLayer.theme.key, theme.sha256, false),
+      );
     }
-    files.add(normalized);
+    for (final component in lock.components) {
+      if (componentIds != null && !componentIds.contains(component.id)) {
+        continue;
+      }
+      for (final file in component.files.entries) {
+        entries.add(_TrackedFile(file.key, component.id, file.value, false));
+      }
+      for (final file in component.userOwned.entries) {
+        entries.add(_TrackedFile(file.key, component.id, file.value, true));
+      }
+    }
+    for (final block in lock.blocks) {
+      for (final file in block.files.entries) {
+        entries.add(_TrackedFile(file.key, block.id, file.value, false));
+      }
+    }
+
+    final byPath = <String, _TrackedFile>{};
+    for (final entry in entries) {
+      final existing = byPath[entry.path];
+      // A user-owned flag always wins: such a path is never updatable.
+      byPath[entry.path] = existing == null || entry.userOwned
+          ? entry
+          : existing.copyWith(userOwned: true);
+    }
+
+    final files = <LockFileDrift>[];
+    for (final entry in byPath.values) {
+      final actual = await FileHashing.ofFileIfExists(resolve(entry.path));
+      final status = actual == null
+          ? LockFileStatus.missing
+          : FileHashing.matches(entry.expectedSha, actual)
+              ? LockFileStatus.unchanged
+              : LockFileStatus.modified;
+      files.add(
+        LockFileDrift(
+          path: entry.path,
+          owner: entry.owner,
+          status: status,
+          expectedSha: entry.expectedSha,
+          actualSha: actual,
+          userOwned: entry.userOwned,
+        ),
+      );
+    }
+    files.sort((a, b) => a.path.compareTo(b.path));
+
+    return LockDriftReport(
+      files: files,
+      currentManifestSha256: manifestSha256,
+      registryMoved: manifestSha256 == null
+          ? false
+          : lock.registry.hasMoved(manifestSha256),
+    );
   }
-  files.sort();
-  return files;
+
+  /// [inspect] for the lock currently on disk.
+  Future<LockDriftReport> inspectInstalled({
+    Set<String>? componentIds,
+    String? manifestSha256,
+  }) async {
+    return inspect(
+      await load(),
+      componentIds: componentIds,
+      manifestSha256: manifestSha256,
+    );
+  }
+
+  /// sha256 of the files at [relativePaths] that exist, keyed by path.
+  Future<Map<String, String>> hashInstalled(Iterable<String> relativePaths) {
+    return FileHashing.ofFiles(
+      relativePaths.map(resolve),
+      keyOf: (file) =>
+          normalizeLockPath(p.relative(file.path, from: projectRoot)),
+    );
+  }
+}
+
+class _TrackedFile {
+  const _TrackedFile(this.path, this.owner, this.expectedSha, this.userOwned);
+
+  final String path;
+  final String owner;
+  final String expectedSha;
+  final bool userOwned;
+
+  _TrackedFile copyWith({bool? userOwned}) =>
+      _TrackedFile(path, owner, expectedSha, userOwned ?? this.userOwned);
 }

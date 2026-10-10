@@ -8,6 +8,7 @@ class ExitCodeLabels {
   static const validationFailed = 'validation_failed';
   static const configInvalid = 'config_invalid';
   static const ioError = 'io_error';
+  static const themeDrift = 'theme_drift';
   static const usage = 'usage_error';
   static const unknown = 'unknown_error';
 }

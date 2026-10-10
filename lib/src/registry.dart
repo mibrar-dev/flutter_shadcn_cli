@@ -1,12 +1,8 @@
-export 'package:flutter_shadcn_cli/src/registry/component.dart';
-export 'package:flutter_shadcn_cli/src/registry/components_schema_validator.dart';
-export 'package:flutter_shadcn_cli/src/registry/file_dependency.dart';
-export 'package:flutter_shadcn_cli/src/registry/font_asset.dart';
-export 'package:flutter_shadcn_cli/src/registry/font_entry.dart';
-export 'package:flutter_shadcn_cli/src/registry/platform_entry.dart';
-export 'package:flutter_shadcn_cli/src/registry/registry_file.dart';
+export 'package:flutter_shadcn_cli/src/registry/manifest/manifest_component.dart';
+export 'package:flutter_shadcn_cli/src/registry/manifest/manifest_schema_validator.dart';
+export 'package:flutter_shadcn_cli/src/registry/manifest/manifest_unit.dart';
+export 'package:flutter_shadcn_cli/src/registry/manifest/registry_manifest.dart';
+export 'package:flutter_shadcn_cli/src/registry/manifest/theme_preset.dart';
 export 'package:flutter_shadcn_cli/src/registry/registry_location.dart';
-export 'package:flutter_shadcn_cli/src/registry/registry_model.dart';
 export 'package:flutter_shadcn_cli/src/registry/schema_source.dart';
 export 'package:flutter_shadcn_cli/src/registry/schema_validation_result.dart';
-export 'package:flutter_shadcn_cli/src/registry/shared_item.dart';

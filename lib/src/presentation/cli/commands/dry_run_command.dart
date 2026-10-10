@@ -2,76 +2,67 @@ import 'dart:io';
 
 import 'package:args/args.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
-import 'package:flutter_shadcn_cli/src/installer.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
-import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_context.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
+/// `flutter_shadcn dry-run <ids…> [--all] [--json]`: a thin alias of
+/// `add --dry-run` (P5_CLI_PLAN.md §2).
 Future<int> runDryRunCommand({
   required ArgResults dryRunCommand,
-  required Installer? installer,
+  required ArgResults rootArgs,
+  required String projectRoot,
+  String? registryOverride,
+  bool offline = false,
 }) async {
-  if (dryRunCommand['help'] == true) {
-    print(
-        'Usage: flutter_shadcn dry-run <component|@namespace/component> [<component|@namespace/component> ...] [--json]');
-    print('       flutter_shadcn dry-run --all [--json]');
-    print('');
-    print(
-        'Shows what would be installed (dependencies, shared modules, assets, fonts).');
-    print('Options:');
-    print('  --all, -a          Include every available component');
-    print('  --json             Output machine-readable JSON');
-    print('  --help, -h         Show this message');
+  final json = commandFlag(dryRunCommand, 'json');
+  final logger = commandLogger(rootArgs, json: json);
+
+  if (commandFlag(dryRunCommand, 'help')) {
+    stdout.writeln('Usage: flutter_shadcn dry-run <component|block...> '
+        '[--json]');
+    stdout.writeln('       flutter_shadcn dry-run --all [--blocks] [--json]');
+    stdout.writeln('');
+    stdout.writeln('Shows what `add` would write, without writing anything.');
     return ExitCodes.success;
   }
-  final activeInstaller = installer;
-  if (activeInstaller == null) {
-    stderr.writeln('Error: Installer is not available.');
-    return ExitCodes.registryNotFound;
-  }
-  final rest = dryRunCommand.rest;
-  final dryRunAll = dryRunCommand['all'] == true || rest.contains('all');
-  final componentIds = <String>[];
-  if (dryRunAll) {
-    componentIds.addAll(activeInstaller.registry.components.map((c) => c.id));
-  } else {
-    if (rest.isEmpty) {
-      print('Usage: flutter_shadcn dry-run <component> [<component> ...]');
-      print('       flutter_shadcn dry-run --all');
-      return ExitCodes.usage;
-    }
-    componentIds.addAll(rest.map(normalizeDryRunComponentRef));
-  }
-  final plan = await activeInstaller.buildDryRunPlan(componentIds);
-  final hasMissing = plan.missing.isNotEmpty;
-  final dryRunExitCode =
-      hasMissing ? ExitCodes.componentMissing : ExitCodes.success;
-  if (dryRunCommand['json'] == true) {
-    final warnings = <Map<String, dynamic>>[];
-    if (hasMissing) {
-      warnings.add(jsonWarning(
-        code: ExitCodeLabels.componentMissing,
-        message: 'One or more components were not found.',
-        details: {'missing': plan.missing},
-      ));
-    }
-    final payload = jsonEnvelope(
-      command: 'dry-run',
-      data: plan.toJson(),
-      warnings: warnings,
-      meta: {'exitCode': dryRunExitCode},
-    );
-    printJson(payload);
-  } else {
-    activeInstaller.printDryRunPlan(plan);
-  }
-  return dryRunExitCode;
-}
 
-/// Normalizes a dry-run component reference the same way `add` and `info`
-/// accept it: a qualified `@namespace/component` ref resolves to its bare
-/// component id, while bare ids and malformed refs pass through unchanged
-/// (unknown ids are reported as missing downstream).
-String normalizeDryRunComponentRef(String token) {
-  final qualified = MultiRegistryManager.parseComponentRef(token);
-  return qualified?.componentId ?? token;
+  final includeAll = commandFlag(dryRunCommand, 'all');
+  final includeBlocks = commandFlag(dryRunCommand, 'blocks');
+  final requested = componentIdsFrom(dryRunCommand);
+  if (!includeAll && requested.isEmpty) {
+    stdout
+        .writeln('Usage: flutter_shadcn dry-run <component|block...> [--all]');
+    return ExitCodes.usage;
+  }
+
+  try {
+    final context = await CommandContextResolver.resolve(
+      projectRoot: projectRoot,
+      logger: logger,
+      registryOverride: registryOverride,
+      offline: offline,
+    );
+    final manifest = context.loadedManifest.manifest;
+    final ids =
+        includeAll ? (manifest.components.keys.toList()..sort()) : requested;
+    final plan = await context.installer.plan(
+      ids,
+      blockIds: includeAll && includeBlocks ? manifest.blocks.keys : const [],
+      includeCore: true,
+      includeAllPrimitives: includeAll,
+    );
+    if (json) {
+      printJson(jsonEnvelope(
+        command: 'dry-run',
+        data: plan.toJson(),
+        meta: {'exitCode': ExitCodes.success},
+      ));
+    } else {
+      plan.writeHuman(logger);
+    }
+    return ExitCodes.success;
+  } catch (error) {
+    return reportCommandError(error, logger);
+  }
 }

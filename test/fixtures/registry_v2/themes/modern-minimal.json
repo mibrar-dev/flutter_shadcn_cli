@@ -1,0 +1,6 @@
+{
+  "schemaVersion": 2,
+  "id": "modern-minimal",
+  "name": "Modern Minimal",
+  "modes": ["light", "dark"]
+}

@@ -5,7 +5,7 @@
 ## Usage
 
 ```bash
-flutter_shadcn upgrade [flags]
+flutter_shadcn upgrade [--force]
 ```
 
 ## Arguments
@@ -22,7 +22,6 @@ This command does not define positional arguments.
 
 ```bash
 flutter_shadcn upgrade
-flutter_shadcn upgrade --force
 ```
 
 ## See Also

@@ -28,7 +28,7 @@ flutter_shadcn project refresh
 
 ## Notes
 
-Use `project reset` to remove CLI-managed project files with a 24-hour undo window. Use `project refresh` to regenerate missing scaffolding only.
+`project reset` removes CLI-managed files with a 24-hour undo window. `project refresh` re-applies the installed closure and locked theme.
 
 ## See Also
 

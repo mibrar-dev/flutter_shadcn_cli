@@ -18,7 +18,7 @@ This command does not define positional arguments.
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--generate` | `-g` | `false` | Regenerate docs/reference/commands. |
+| `--generate` | `-g` | `false` | Regenerate doc/reference/commands. |
 
 ## Examples
 

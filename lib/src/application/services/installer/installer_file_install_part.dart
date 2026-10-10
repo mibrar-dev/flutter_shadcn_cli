@@ -1,289 +1,229 @@
-part of 'installer.dart';
+import 'dart:convert';
+import 'dart:io';
 
-extension InstallerFileInstallPart on Installer {
-  Future<void> _installFile(RegistryFile file) async {
-    await _ensureConfigLoaded();
-    await _fileWriter.writeRegistryFile(
-      file: file,
-      destinationPath: _resolveDestinationPath(file.destination),
-      shouldInstall: _shouldInstallFile(file.destination),
-    );
-  }
+import 'package:flutter_shadcn_cli/src/application/services/lockfile/hashing.dart';
+import 'package:path/path.dart' as p;
 
-  Future<void> _installComponentFile(
-    Component component,
-    RegistryFile file,
-    List<RegistryFile> availableFiles,
-  ) async {
-    await _ensureConfigLoaded();
-    await _installFileDependencies(component, file, availableFiles);
-    final destination = _resolveComponentDestination(component, file);
-    _validateComponentFileDestination(destination);
-    final patched = RegistryFile(
-      source: file.source,
-      destination: destination,
-      dependsOn: file.dependsOn,
-    );
-    await _installFile(patched);
-  }
+/// Reads registry source files by their registry-relative path.
+///
+/// The bundled/local registry reads from a directory; a remote registry
+/// (plan §9.5) supplies an HTTP-backed implementation. The installer core only
+/// depends on this interface so tests never touch the network.
+abstract class RegistryFileReader {
+  /// Raw bytes of [relPath], or `null` when the registry does not have it.
+  Future<List<int>?> readBytes(String relPath);
 
-  Future<void> _installComponentFiles(Component component) async {
-    final files = component.files;
-    if (files.isEmpty) {
-      return;
+  /// UTF-8 text of [relPath], or `null` when missing.
+  Future<String?> readString(String relPath);
+}
+
+/// [RegistryFileReader] over a local registry checkout.
+class DirectoryRegistryFileReader implements RegistryFileReader {
+  const DirectoryRegistryFileReader(this.root);
+
+  /// Absolute registry root (the directory holding foundation/, theme/, ...).
+  final String root;
+
+  @override
+  Future<List<int>?> readBytes(String relPath) async {
+    final file = File(p.join(root, p.normalize(relPath)));
+    if (!await file.exists()) {
+      return null;
     }
-    await _ensureConfigLoaded();
-    final installableCount =
-        files.where((file) => _shouldInstallFile(file.destination)).length;
-    logger.progress(
-      'Installing files for ${component.name} '
-      '($installableCount ${installableCount == 1 ? 'file' : 'files'})',
+    return file.readAsBytes();
+  }
+
+  @override
+  Future<String?> readString(String relPath) async {
+    final bytes = await readBytes(relPath);
+    return bytes == null ? null : decodeRegistryText(bytes);
+  }
+}
+
+/// Decodes registry Dart source; malformed UTF-8 is replaced rather than fatal.
+String decodeRegistryText(List<int> bytes) =>
+    utf8.decode(bytes, allowMalformed: true);
+
+/// A manifest-declared file is missing from the registry source.
+class RegistryFileMissingException implements Exception {
+  const RegistryFileMissingException(this.relPath);
+
+  final String relPath;
+
+  @override
+  String toString() =>
+      'Registry file "$relPath" is declared by the manifest but missing from '
+      'the registry source.';
+}
+
+/// A relative import would resolve outside the install layout.
+///
+/// Verbatim copying is only safe while every registry file keeps its depth
+/// (plan §3); an import like `../../../foundation/x.dart` would escape the
+/// install root once copied, so the install aborts before writing anything.
+class ImportGuardException implements Exception {
+  const ImportGuardException({
+    required this.file,
+    required this.importTarget,
+    required this.resolved,
+  });
+
+  final String file;
+  final String importTarget;
+  final String resolved;
+
+  @override
+  String toString() =>
+      'Import guard: "$file" imports "$importTarget" which resolves to '
+      '"$resolved" outside foundation/, theme/, primitives/, components/ or '
+      'blocks/.';
+}
+
+/// A file the installer wrote.
+class InstalledFile {
+  const InstalledFile({
+    required this.source,
+    required this.target,
+    required this.sha256,
+  });
+
+  /// Registry-relative source path.
+  final String source;
+
+  /// Project-relative destination path.
+  final String target;
+
+  /// sha256 of the bytes written.
+  final String sha256;
+}
+
+/// Copies registry files verbatim into the depth-preserving install layout.
+///
+/// The only transformations are: pick the destination from the registry-relative
+/// path, and reject relative imports that would escape the layout. No import
+/// rewriting (plan §3).
+class InstallerFileInstaller {
+  const InstallerFileInstaller({
+    required this.projectRoot,
+    required this.installRoot,
+    required this.reader,
+  });
+
+  /// Absolute project root.
+  final String projectRoot;
+
+  /// Project-relative install root, e.g. `lib/ui/shadcn`.
+  final String installRoot;
+
+  final RegistryFileReader reader;
+
+  /// Layer directories, kept at the same depth as in the registry.
+  static const List<String> layerDirs = ['foundation', 'theme', 'primitives'];
+
+  /// Component directory name.
+  static const String componentsDir = 'components';
+
+  /// Block directory name (registry layer 4, P6-B1).
+  static const String blocksDir = 'blocks';
+
+  static final RegExp _importPattern = RegExp(
+    r'''^\s*(?:import|export)\s+['"]([^'"]+)['"]''',
+    multiLine: true,
+  );
+
+  /// Project-relative destination for [relPath].
+  ///
+  /// `foundation/x.dart` -> `<root>/foundation/x.dart`;
+  /// `components/button/button.dart` -> `<root>/components/button/button.dart`;
+  /// `blocks/login-01/login_01.dart` -> `<root>/blocks/login-01/login_01.dart`.
+  /// `themes/*.json`, block `docs` and other non-copyable paths are rejected.
+  String targetPathFor(String relPath) {
+    final normalized = p.posix.normalize(relPath.replaceAll('\\', '/'));
+    final head = normalized.split('/').first;
+    if (head == componentsDir ||
+        head == blocksDir ||
+        layerDirs.contains(head)) {
+      return p.posix.join(installRoot, normalized);
+    }
+    throw ArgumentError.value(
+      relPath,
+      'relPath',
+      'not a copyable registry path',
     );
-    var index = 0;
-    var installOrdinal = 0;
-    Future<void> worker() async {
-      while (true) {
-        if (index >= files.length) {
-          return;
+  }
+
+  /// Reads every [relPath]; throws [RegistryFileMissingException] for a gap.
+  Future<Map<String, List<int>>> readAll(Iterable<String> relPaths) async {
+    final result = <String, List<int>>{};
+    for (final relPath in relPaths) {
+      final bytes = await reader.readBytes(relPath);
+      if (bytes == null) {
+        throw RegistryFileMissingException(relPath);
+      }
+      result[relPath] = bytes;
+    }
+    return result;
+  }
+
+  /// Scans every relative `import`/`export` and throws [ImportGuardException]
+  /// for the first one that would escape the layout.
+  ///
+  /// [contents] is keyed by registry-relative path. `dart:` and `package:`
+  /// imports are ignored; a simple line scan is enough (plan §9.8).
+  void assertImportGuard(Map<String, String> contents) {
+    final files = contents.keys.toList()..sort();
+    for (final file in files) {
+      final baseDir = p.posix.dirname(file.replaceAll('\\', '/'));
+      for (final match in _importPattern.allMatches(contents[file]!)) {
+        final importTarget = match.group(1)!;
+        if (importTarget.isEmpty ||
+            importTarget.startsWith('dart:') ||
+            importTarget.startsWith('package:')) {
+          continue;
         }
-        final file = files[index++];
-        if (_shouldInstallFile(file.destination)) {
-          final fileNumber = ++installOrdinal;
-          logger.progress(
-            'Installing file $fileNumber/$installableCount: '
-            '${_progressFileLabel(_resolveComponentDestination(component, file))}',
+        final resolved = p.posix.normalize(p.posix.join(baseDir, importTarget));
+        final escapes = resolved == '..' ||
+            resolved.startsWith('../') ||
+            p.posix.isAbsolute(resolved);
+        final head = resolved.split('/').first;
+        final insideLayout = head == componentsDir ||
+            head == blocksDir ||
+            layerDirs.contains(head);
+        if (escapes || !insideLayout) {
+          throw ImportGuardException(
+            file: file,
+            importTarget: importTarget,
+            resolved: resolved,
           );
         }
-        await _installComponentFile(component, file, files);
       }
     }
-
-    final workerCount = Installer._fileCopyConcurrency.clamp(1, files.length);
-    await Future.wait(List.generate(workerCount, (_) => worker()));
   }
 
-  Future<void> _installFileWithDependencies(
-    RegistryFile file,
-    List<RegistryFile> availableFiles, {
-    String? sharedId,
+  /// Writes [bytes] to [target] (project-relative), creating parents.
+  Future<InstalledFile> write({
+    required String source,
+    required String target,
+    required List<int> bytes,
   }) async {
-    await _ensureConfigLoaded();
-    await _installSharedFileDependencies(
-      file,
-      availableFiles,
-      sharedId: sharedId,
-    );
-    _validateSharedFileDestination(file.destination);
-    if (_shouldInstallFile(file.destination)) {
-      logger.progress(
-        'Installing shared file: ${_progressFileLabel(file.destination)}',
-      );
-    }
-    await _installFile(file);
-  }
-
-  Future<void> _installFileDependencies(
-    Component component,
-    RegistryFile file,
-    List<RegistryFile> availableFiles,
-  ) async {
-    if (file.dependsOn.isEmpty) {
-      return;
-    }
-    for (final dep in file.dependsOn) {
-      final normalizedSource = _normalizeRegistryPath(dep.source);
-      final mapping = _findFileMapping(availableFiles, normalizedSource);
-      final owner = _lookupRegistryFileOwner(normalizedSource);
-
-      if (owner != null && owner.isShared) {
-        await installShared(owner.id);
-        continue;
-      }
-
-      if (owner != null && owner.isComponent && owner.id != component.id) {
-        if (!dep.optional) {
-          logger.warn(
-              'File dependency ${dep.source} belongs to component ${owner.id}.');
-        }
-        continue;
-      }
-
-      final resolvedMapping = mapping ??
-          owner?.file ??
-          RegistryFile(source: dep.source, destination: dep.source);
-      final destination =
-          _resolveComponentDestination(component, resolvedMapping);
-      _validateComponentFileDestination(destination);
-      final target = File(destination);
-      if (await target.exists()) {
-        continue;
-      }
-      if (!await _safeInstallDependency(
-          component, resolvedMapping, availableFiles)) {
-        if (!dep.optional) {
-          logger.warn('Missing dependency file: ${dep.source}');
-        }
-      }
-    }
-  }
-
-  Future<void> _installSharedFileDependencies(
-    RegistryFile file,
-    List<RegistryFile> availableFiles, {
-    String? sharedId,
-  }) async {
-    if (file.dependsOn.isEmpty) {
-      return;
-    }
-    for (final dep in file.dependsOn) {
-      final normalizedSource = _normalizeRegistryPath(dep.source);
-      final mapping = _findFileMapping(availableFiles, normalizedSource);
-      final owner = _lookupRegistryFileOwner(normalizedSource);
-
-      if (owner != null && owner.isShared && owner.id != sharedId) {
-        await installShared(owner.id);
-        continue;
-      }
-
-      if (owner != null && owner.isComponent) {
-        if (!dep.optional) {
-          logger.warn(
-            'Shared file dependency ${dep.source} belongs to component ${owner.id}.',
-          );
-        }
-        continue;
-      }
-
-      final resolvedMapping = mapping ??
-          owner?.file ??
-          RegistryFile(source: dep.source, destination: dep.source);
-      _validateSharedFileDestination(resolvedMapping.destination);
-      final target = File(_resolveDestinationPath(resolvedMapping.destination));
-      if (await target.exists()) {
-        continue;
-      }
-      await _installFile(resolvedMapping);
-    }
-  }
-
-  Future<bool> _safeInstallDependency(
-    Component component,
-    RegistryFile mapping,
-    List<RegistryFile> availableFiles,
-  ) async {
-    try {
-      await _installComponentFile(component, mapping, availableFiles);
-      return true;
-    } on ResolverV1Exception {
-      rethrow;
-    } catch (_) {
-      return false;
-    }
-  }
-
-  RegistryFile? _findFileMapping(
-    List<RegistryFile> availableFiles,
-    String source,
-  ) {
-    final normalizedSource = _normalizeRegistryPath(source);
-    for (final file in availableFiles) {
-      if (_normalizeRegistryPath(file.source) == normalizedSource) {
-        return file;
-      }
-    }
-    return null;
-  }
-
-  String _resolveComponentDestination(Component component, RegistryFile file) {
-    final config = _cachedConfig;
-    final installPath = _installPath(config);
-    final source = file.source.replaceAll('\\', '/');
-
-    const registryPrefix = 'registry/';
-    if (source.startsWith(registryPrefix)) {
-      final relative = source.substring(registryPrefix.length);
-      return _resolveProjectPath(p.join(installPath, relative));
-    }
-
-    return _resolveDestinationPath(file.destination);
-  }
-
-  String _progressFileLabel(String destination) {
-    var label = destination.replaceAll('\\', '/');
-    final config = _cachedConfig;
-    if (config != null) {
-      final installRoot =
-          _resolveProjectPath(_installPath(config)).replaceAll('\\', '/');
-      final sharedRoot =
-          _resolveProjectPath(_sharedPath(config)).replaceAll('\\', '/');
-      if (label.startsWith('$installRoot/')) {
-        label = label.substring(installRoot.length + 1);
-      } else if (label.startsWith('$sharedRoot/')) {
-        label = label.substring(sharedRoot.length + 1);
-      } else if (label.startsWith('${_installPath(config)}/')) {
-        label = label.substring(_installPath(config).length + 1);
-      } else if (label.startsWith('${_sharedPath(config)}/')) {
-        label = label.substring(_sharedPath(config).length + 1);
-      }
-    }
-    label = label
-        .replaceFirst('{installPath}/', '')
-        .replaceFirst('{sharedPath}/', '');
-
-    const maxLength = 96;
-    if (label.length <= maxLength) {
-      return label;
-    }
-    return '...${label.substring(label.length - maxLength + 3)}';
-  }
-
-  void _validateComponentInstallTargets(Component component) {
-    for (final file in component.files) {
-      _validateComponentFileDestination(
-        _resolveComponentDestination(component, file),
-      );
-    }
-    for (final asset in component.assets) {
-      _validateAssetPath(asset);
-    }
-    for (final font in component.fonts) {
-      for (final asset in font.fonts) {
-        _validateAssetPath(asset.asset);
-      }
-    }
-  }
-
-  void _validateComponentFileDestination(String destination) {
-    final config = _cachedConfig;
-    _installTargetPolicy.validateFileDestination(
-      projectRoot: targetDir,
-      namespace: _targetNamespace,
-      installRoot: _installPath(config),
-      sharedRoot: _sharedPath(config),
-      destinationPath: destination,
-      kind: InstallTargetKind.componentFile,
+    final absolute = _resolve(target);
+    final file = File(absolute);
+    await file.parent.create(recursive: true);
+    await file.writeAsBytes(bytes, flush: true);
+    return InstalledFile(
+      source: source,
+      target: target,
+      sha256: FileHashing.ofBytes(bytes),
     );
   }
 
-  void _validateSharedFileDestination(String destination) {
-    final config = _cachedConfig;
-    _installTargetPolicy.validateFileDestination(
-      projectRoot: targetDir,
-      namespace: _targetNamespace,
-      installRoot: _installPath(config),
-      sharedRoot: _sharedPath(config),
-      destinationPath: _resolveDestinationPath(destination),
-      kind: InstallTargetKind.sharedFile,
-    );
+  /// Absolute path of a project-relative [target], rejected when it escapes.
+  String _resolve(String target) {
+    final rootAbs = p.normalize(p.absolute(projectRoot));
+    final absolute = p.normalize(p.join(rootAbs, target));
+    if (absolute != rootAbs && !p.isWithin(rootAbs, absolute)) {
+      throw ArgumentError.value(target, 'target', 'escapes the project root');
+    }
+    return absolute;
   }
-
-  void _validateAssetPath(String assetPath) {
-    _installTargetPolicy.validateAssetPath(
-      namespace: _targetNamespace,
-      assetPath: assetPath,
-    );
-  }
-
-  String get _targetNamespace =>
-      registryNamespace ?? stateNamespace ?? 'shadcn';
 }

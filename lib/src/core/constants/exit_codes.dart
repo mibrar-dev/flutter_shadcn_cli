@@ -12,4 +12,10 @@ class ExitCodes {
   static const int validationFailed = 50;
   static const int configInvalid = 60;
   static const int ioError = 70;
+
+  /// `theme apply` refused to overwrite a user-owned `app_theme.dart` that
+  /// drifted from `shadcn.lock`, and no `--refresh` was given. Distinct from
+  /// [validationFailed] (50): nothing is invalid, the CLI is protecting a file
+  /// the user owns, and `--refresh` resolves it.
+  static const int themeDrift = 80;
 }

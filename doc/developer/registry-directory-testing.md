@@ -1,94 +1,28 @@
-# Registry Directory Testing
+# Registry Directory Testing (legacy)
 
-The registry directory is the source of truth for registry discovery. It maps namespaces to registry roots, manifest paths, install roots, capabilities, trust metadata, and inline init actions.
+The registry directory (`registries.json`) belonged to the v1 registry model: it mapped namespaces to `components.json`/`index.json` paths, install roots, capabilities, trust metadata, and inline init actions.
 
-## Load a Local Directory
+The v2 CLI resolves a single registry manifest per source instead. Installs never read a registry directory; `flutter_shadcn registries` still reads one optionally to list discoverable registries when `registriesPath` is configured.
 
-```bash
-flutter_shadcn --registries-path ./registries.json registries
-flutter_shadcn --registries-path ./registries.json init shadcn --yes
-flutter_shadcn --registries-path ./registries.json add @shadcn/button
-```
+## Testing a Registry Source
 
-`--registries-path` can point to:
-
-- a `registries.json` file
-- a directory containing `registries.json`
-
-## Minimal Entry
-
-```json
-{
-  "schemaVersion": 1,
-  "registries": [
-    {
-      "id": "local_shadcn",
-      "displayName": "Local shadcn",
-      "maintainers": ["team"],
-      "repo": "https://github.com/example/local-shadcn",
-      "license": "MIT",
-      "minCliVersion": "0.2.0",
-      "baseUrl": "https://example.com/registry/",
-      "paths": {
-        "componentsJson": "components.json",
-        "componentsSchemaJson": "components.schema.json"
-      },
-      "install": {
-        "namespace": "shadcn",
-        "root": "lib/ui/shadcn"
-      }
-    }
-  ]
-}
-```
-
-## Inline Init Actions
-
-Registry entries can include bootstrap actions:
-
-```json
-{
-  "init": {
-    "version": 1,
-    "actions": [
-      {
-        "type": "ensureDirs",
-        "dirs": ["assets/fonts", "lib/ui/shadcn/shared"]
-      },
-      {
-        "type": "copyFiles",
-        "base": "registry",
-        "destBase": "lib/ui/shadcn",
-        "files": ["shared/theme/theme.dart"]
-      }
-    ]
-  }
-}
-```
-
-Run `init` to test inline actions:
+Point the CLI at a local registry root:
 
 ```bash
-flutter_shadcn --registries-path ./registries.json init shadcn --yes
+flutter_shadcn --registry ../my-registry registries
+flutter_shadcn --registry ../my-registry init --yes
+flutter_shadcn --registry ../my-registry add button
+flutter_shadcn --registry ../my-registry validate
 ```
 
 ## Cache and Offline Behavior
 
-Remote registry directory fetches use cache files under `.shadcn/cache`. When the server returns an ETag, the CLI reuses it for later requests. If a remote fetch fails and stale cache exists, the CLI can fall back to cached data. In `--offline` mode, the CLI does not perform network calls and fails when required cached files are missing.
+Remote registry fetches use cache files under `.shadcn/cache/registry`. In `--offline` mode the CLI does not perform network calls and fails when the cache is missing.
 
 ## Recommended Test Loop
 
 ```bash
 dart test test/registry_directory_test.dart
-dart test test/init_action_engine_test.dart
-dart test test/multi_registry_manager_test.dart
-```
-
-Then verify from a throwaway Flutter app:
-
-```bash
-flutter_shadcn --registries-path ./registries.json registries
-flutter_shadcn --registries-path ./registries.json init shadcn --yes
-flutter_shadcn --registries-path ./registries.json add @shadcn/button
-flutter_shadcn --registries-path ./registries.json validate
+dart test test/registry_manifest_loader_test.dart
+dart test test/commands_v2_test.dart
 ```

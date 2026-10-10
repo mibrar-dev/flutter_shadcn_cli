@@ -1,92 +1,103 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:flutter_shadcn_cli/src/discovery_commands.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
-import 'package:flutter_shadcn_cli/src/logger.dart';
-import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/catalog_entry.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_context.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
+/// `flutter_shadcn search <query> [--category <c>] [--json]`:
+/// case-insensitive match over component and block id, name, description and
+/// tags (P5_CLI_PLAN.md §2, P6-B2).
+///
+/// Both kinds are searched at once, because `add <id>` resolves both: a query
+/// that names a block is exactly as useful as one that names a component.
 Future<int> runSearchCommand({
   required ArgResults searchCommand,
-  required MultiRegistryManager multiRegistry,
-  required CliLogger logger,
+  required ArgResults rootArgs,
+  required String projectRoot,
+  String? registryOverride,
+  bool offline = false,
 }) async {
-  if (searchCommand['help'] == true) {
-    print('Usage: flutter_shadcn search <query> [--refresh] [--json]');
-    print(
-        '       flutter_shadcn search @<namespace> [query] [--refresh] [--json]');
-    print('');
-    print('Searches for components by name, description, or tags.');
-    print('Options:');
-    print('  --refresh  Refresh cache from remote');
-    print('  --json     Output machine-readable JSON');
+  final json = commandFlag(searchCommand, 'json');
+  final category = commandOption(searchCommand, 'category');
+  final logger = commandLogger(rootArgs, json: json);
+
+  if (commandFlag(searchCommand, 'help')) {
+    stdout.writeln('Usage: flutter_shadcn search <query> '
+        '[--category <c>] [--json]');
+    stdout.writeln('');
+    stdout.writeln('Searches component and block id, name, description and '
+        'tags.');
+    stdout.writeln('');
+    stdout.writeln('Options:');
+    stdout.writeln('  --category <name>  Only entries of that category');
+    stdout.writeln('  --json             Machine-readable output on stdout');
     return ExitCodes.success;
   }
 
-  String? searchNamespaceOverride;
-  final searchTokens = [...searchCommand.rest];
-  if (searchTokens.isNotEmpty &&
-      searchTokens.first.startsWith('@') &&
-      !searchTokens.first.contains('/')) {
-    searchNamespaceOverride = searchTokens.removeAt(0).substring(1).trim();
-    if (searchNamespaceOverride.isEmpty) {
-      stderr.writeln('Error: Invalid namespace token for search.');
-      return ExitCodes.usage;
-    }
+  final query = searchCommand.rest.join(' ').trim().toLowerCase();
+  if (query.isEmpty) {
+    stdout.writeln('Usage: flutter_shadcn search <query>');
+    return ExitCodes.usage;
   }
 
-  final searchQuery = searchTokens.join(' ');
-  late final DiscoveryRegistryTarget target;
   try {
-    target = await multiRegistry.resolveDiscoveryTarget(
-      namespace: searchNamespaceOverride,
+    final context = await CommandContextResolver.resolve(
+      projectRoot: projectRoot,
+      logger: logger,
+      registryOverride: registryOverride,
+      offline: offline,
     );
-  } on MultiRegistryException catch (e) {
-    // Mirror list_command: clean registry_not_found envelope, never crash,
-    // never prompt (especially in --json mode).
-    if (searchCommand['json'] == true) {
+    final manifest = context.loadedManifest.manifest;
+    final matches = filterByCategory(
+      [
+        for (final component in manifest.components.values)
+          if (CatalogEntry.component(component).matches(query))
+            CatalogEntry.component(component),
+        for (final block in manifest.blocks.values)
+          if (CatalogEntry.block(block).matches(query))
+            CatalogEntry.block(block),
+      ],
+      category,
+    )..sort((a, b) => a.id.compareTo(b.id));
+
+    if (json) {
       printJson(jsonEnvelope(
         command: 'search',
-        data: const {},
-        errors: [
-          jsonError(
-            code: ExitCodeLabels.registryNotFound,
-            message: e.message,
-          ),
-        ],
-        meta: {'exitCode': ExitCodes.registryNotFound},
+        data: {
+          'query': query,
+          'count': matches.length,
+          'categories': categorySummary(matches),
+          'components': [
+            for (final match in matches)
+              if (match.kind == CatalogKind.component) match.toJson(),
+          ],
+          'blocks': [
+            for (final match in matches)
+              if (match.kind == CatalogKind.block) match.toJson(),
+          ],
+        },
+        meta: {'exitCode': ExitCodes.success},
       ));
-    } else {
-      stderr.writeln('Error: ${e.message}');
+      return ExitCodes.success;
     }
-    return ExitCodes.registryNotFound;
+    if (matches.isEmpty) {
+      final wanted = category?.trim();
+      final scope =
+          wanted == null || wanted.isEmpty ? '' : ' in category "$wanted"';
+      stdout.writeln('No components or blocks match "$query"$scope.');
+      return ExitCodes.success;
+    }
+    stdout.writeln('${matches.length} match(es) for "$query":');
+    for (final match in matches) {
+      final label = match.kind == CatalogKind.block ? 'block' : 'component';
+      stdout.writeln('  ${match.id.padRight(28)} [${match.category} · $label] '
+          '${match.description}');
+    }
+    return ExitCodes.success;
+  } catch (error) {
+    return reportCommandError(error, logger);
   }
-
-  if (searchQuery.isEmpty) {
-    final listExit = await handleListCommand(
-      registryBaseUrl: target.registryBase,
-      registryId: target.registryId,
-      refresh: searchCommand['refresh'] == true,
-      offline: multiRegistry.offline,
-      jsonOutput: searchCommand['json'] == true,
-      logger: logger,
-      indexPath: target.indexPath,
-      indexSchemaPath: target.indexSchemaPath,
-    );
-    return listExit;
-  }
-
-  final searchExit = await handleSearchCommand(
-    query: searchQuery,
-    registryBaseUrl: target.registryBase,
-    registryId: target.registryId,
-    refresh: searchCommand['refresh'] == true,
-    offline: multiRegistry.offline,
-    jsonOutput: searchCommand['json'] == true,
-    logger: logger,
-    indexPath: target.indexPath,
-    indexSchemaPath: target.indexSchemaPath,
-  );
-  return searchExit;
 }

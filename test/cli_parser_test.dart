@@ -6,46 +6,41 @@ import 'package:test/test.dart';
 
 void main() {
   group('CLI parser', () {
-    test('rejects removed public registry selector', () {
-      final parser = buildCliParser();
-
-      expect(
-        () => parser.parse(['--registry', 'local', 'list']),
-        throwsA(isA<FormatException>()),
-      );
-    });
-
-    test('rejects removed registries url override', () {
-      final parser = buildCliParser();
-
-      expect(
-        () => parser.parse([
-          '--registries-url',
-          'https://example.com/registries.json',
-          'list',
-        ]),
-        throwsA(isA<FormatException>()),
-      );
-    });
-
-    test('keeps developer registry flags parseable', () {
+    test('parses the --registry source override', () {
       final parser = buildCliParser();
       final results = parser.parse([
-        '--registry-path',
+        '--registry',
         '/tmp/registry',
-        '--registry-url',
-        'https://example.com/registry',
-        '--registries-path',
-        '/tmp/registries.json',
-        '--skip-integrity',
         'list',
       ]);
 
-      expect(results['registry-path'], '/tmp/registry');
-      expect(results['registry-url'], 'https://example.com/registry');
-      expect(results['registries-path'], '/tmp/registries.json');
-      expect(results['skip-integrity'], isTrue);
+      expect(results['registry'], '/tmp/registry');
       expect(results.command?.name, 'list');
+    });
+
+    test('rejects retired registry selectors', () {
+      final parser = buildCliParser();
+      for (final flag in const [
+        '--registry-path',
+        '--registry-url',
+        '--registries-path',
+        '--registries-url',
+        '--skip-integrity',
+      ]) {
+        expect(
+          () => parser.parse([flag, 'value', 'list']),
+          throwsA(isA<FormatException>()),
+          reason: '$flag should be retired',
+        );
+      }
+    });
+
+    test('retired commands are gone', () {
+      final parser = buildCliParser();
+      for (final name in const ['assets', 'locale', 'platform', 'deps']) {
+        expect(parser.commands.containsKey(name), isFalse, reason: name);
+      }
+      expect(parser.commands.containsKey('update'), isTrue);
     });
 
     test('advanced flag is accepted before command', () {
@@ -70,142 +65,105 @@ void main() {
     test('json flag is accepted before json-enabled command', () {
       final parser = buildCliParser();
       final results = parser.parse(
-        normalizeCliArgs(['--json', 'list', '@shadcn']),
+        normalizeCliArgs(['--json', 'list', 'button']),
       );
 
       expect(results.command?.name, 'list');
       expect(results.command?['json'], isTrue);
-      expect(results.command?.rest, ['@shadcn']);
+      expect(results.command?.rest, ['button']);
     });
 
     test('json flag is accepted after json-enabled command arguments', () {
       final parser = buildCliParser();
       final results = parser.parse(
-        normalizeCliArgs(['search', '@shadcn', 'button', '--json']),
+        normalizeCliArgs(['search', 'button', '--json']),
       );
 
       expect(results.command?.name, 'search');
       expect(results.command?['json'], isTrue);
-      expect(results.command?.rest, ['@shadcn', 'button']);
+      expect(results.command?.rest, ['button']);
     });
 
     test('json flag remains invalid for commands without json output', () {
       final parser = buildCliParser();
 
       expect(
-        () => parser.parse(normalizeCliArgs(['--json', 'add', 'button'])),
+        () => parser.parse(normalizeCliArgs(['--json', 'version'])),
         throwsA(isA<FormatException>()),
       );
     });
 
-    test('hides developer registry flags from parser usage', () {
-      final parser = buildCliParser();
-      final usage = parser.usage;
-
-      expect(usage, contains('--registry-name'));
-      expect(_usageFlagNames(usage), isNot(contains('--registry')));
-      expect(_usageFlagNames(usage), isNot(contains('--registry-path')));
-      expect(_usageFlagNames(usage), isNot(contains('--registry-url')));
-      expect(_usageFlagNames(usage), isNot(contains('--registries-path')));
-      expect(_usageFlagNames(usage), isNot(contains('--skip-integrity')));
-    });
-
-    test('removes public registry override wording from root usage', () {
+    test('root usage shows --registry and not the retired flags', () {
       final output = _capturePrint(printCliUsage);
 
       expect(output, contains('--registry-name'));
-      expect(output, isNot(contains('--registry ')));
+      expect(output, contains('--registry'));
       expect(output, isNot(contains('--registry-path')));
       expect(output, isNot(contains('--registry-url')));
       expect(output, isNot(contains('--registries-path')));
-      expect(output, isNot(contains('--registries-url')));
       expect(output, isNot(contains('--skip-integrity')));
     });
 
-    test('advanced root usage shows advanced-only commands and flags', () {
+    test('advanced root usage shows advanced-only commands', () {
       final output = _capturePrint(() => printCliUsage(advanced: true));
 
       expect(output, contains('docs'));
       expect(output, contains('--advanced'));
-      expect(output, contains('--registry-path'));
-      expect(output, contains('--registry-url'));
-      expect(output, contains('--registries-path'));
-      expect(output, contains('--skip-integrity'));
+      expect(output, isNot(contains('--registry-path')));
     });
 
-    test('theme import flags are hidden from normal parser usage', () {
-      final usage = buildCliParser().commands['theme']!.usage;
-
-      expect(usage, isNot(contains('--apply-file')));
-      expect(usage, isNot(contains('--apply-url')));
-    });
-
-    test('theme import flags remain parseable', () {
-      final parser = buildCliParser();
-      final results = parser.parse(
-        normalizeCliArgs([
-          '--advanced',
-          'theme',
-          '--apply-file',
-          'theme.json',
-        ]),
-      );
-
-      expect(results.command?['apply-file'], 'theme.json');
-    });
-
-    test('hoists hidden developer flags after subcommands', () {
-      final normalized = normalizeCliArgs([
-        '--offline',
-        'add',
-        'button',
-        '--registry-path',
-        '/tmp/registry',
-        '--skip-integrity',
-      ]);
-
-      expect(
-        normalized,
-        [
-          '--offline',
-          '--registry-path',
-          '/tmp/registry',
-          '--skip-integrity',
-          'add',
-          'button',
-        ],
-      );
-    });
-
-    test('normalizes theme namespace token before widget subcommand', () {
-      final normalized = normalizeCliArgs([
-        'theme',
-        '@shadcn',
-        'widget',
-        'button',
-        '--list-targets',
-      ]);
-
-      expect(
-        normalized,
-        ['theme', 'widget', '@shadcn', 'button', '--list-targets'],
-      );
-    });
-
-    test('parses nested theme widget command', () {
+    test('add exposes the v2 flags', () {
       final parser = buildCliParser();
       final results = parser.parse([
-        'theme',
-        'widget',
-        '@shadcn',
+        'add',
         'button',
-        '--list-targets',
+        '--dry-run',
+        '--force',
+        '--include-preview',
+        '--json',
       ]);
 
+      expect(results.command?['dry-run'], isTrue);
+      expect(results.command?['force'], isTrue);
+      expect(results.command?['include-preview'], isTrue);
+      expect(results.command?['json'], isTrue);
+    });
+
+    test('update exposes --all, --check and --json', () {
+      final parser = buildCliParser();
+      final results = parser.parse(['update', '--all', '--check', '--json']);
+
+      expect(results.command?['all'], isTrue);
+      expect(results.command?['check'], isTrue);
+      expect(results.command?['json'], isTrue);
+    });
+
+    test('init exposes --dir and --theme', () {
+      final parser = buildCliParser();
+      final results =
+          parser.parse(['init', '--dir', 'lib/x', '--theme', 'vercel']);
+
+      expect(results.command?['dir'], 'lib/x');
+      expect(results.command?['theme'], 'vercel');
+    });
+
+    test('theme import flags are gone from the parser', () {
+      final parser = buildCliParser();
+      final theme = parser.commands['theme']!;
+
+      expect(theme.options.containsKey('apply-file'), isFalse);
+      expect(theme.options.containsKey('apply-url'), isFalse);
+      expect(theme.commands.containsKey('widget'), isFalse);
+    });
+
+    test('parses nested theme apply subcommand', () {
+      final parser = buildCliParser();
+      final results = parser.parse(['theme', 'apply', 'vercel', '--refresh']);
+
       expect(results.command?.name, 'theme');
-      expect(results.command?.command?.name, 'widget');
-      expect(results.command?.command?.rest, ['@shadcn', 'button']);
-      expect(results.command?.command?['list-targets'], isTrue);
+      expect(results.command?.command?.name, 'apply');
+      expect(results.command?.command?.rest, ['vercel']);
+      expect(results.command?.command?['refresh'], isTrue);
     });
 
     test('parses top-level reset command', () {
@@ -224,14 +182,6 @@ void main() {
       expect(results.command?.command?['undo'], isTrue);
     });
 
-    test('parses project refresh subcommand', () {
-      final parser = buildCliParser();
-      final results = parser.parse(['project', 'refresh']);
-
-      expect(results.command?.name, 'project');
-      expect(results.command?.command?.name, 'refresh');
-    });
-
     test('shows reset and project commands in normal usage', () {
       final output = _capturePrint(printCliUsage);
 
@@ -239,13 +189,6 @@ void main() {
       expect(output, contains('project'));
     });
   });
-}
-
-Set<String> _usageFlagNames(String usage) {
-  return RegExp(r'--[a-z][a-z-]*')
-      .allMatches(usage)
-      .map((match) => match.group(0)!)
-      .toSet();
 }
 
 String _capturePrint(void Function() callback) {

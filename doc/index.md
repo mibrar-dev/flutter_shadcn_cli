@@ -2,7 +2,7 @@
 
 Documentation for installing, configuring, and maintaining Flutter shadcn component registries.
 
-`flutter_shadcn` is a multi-registry CLI. A project can enable more than one registry, install components by canonical `@namespace/component` addresses, and keep installed component state in project-local `.shadcn/` files plus the v1 `shadcn.lock` source record.
+`flutter_shadcn` resolves a registry manifest (schemaVersion 2), installs a component and its layer closure into a depth-preserving install root, and keeps install state in project-local `.shadcn/config.json` and `shadcn.lock` (lockfileVersion 2).
 
 ## Start Here
 
@@ -20,26 +20,20 @@ Documentation for installing, configuring, and maintaining Flutter shadcn compon
 - [Components](user/components.md)
 - [Registries](user/registries.md)
 
-## v1 Concepts
+## Guides
 
 - [Component workflow](guides/component-workflow.md)
 - [Registry setup](guides/registry-setup.md)
-- [Config and state](reference/config-state.md)
-- [registries.json](reference/registries-json.md)
-- [Inline init actions](reference/inline-init-actions.md)
+- [Diagnostics](guides/diagnostics.md)
 
 ## Developer Docs
 
 - [Advanced mode](developer/advanced-mode.md)
 - [Experimental features](developer/experimental-features.md)
 - [Local registry development](developer/local-registry-development.md)
-- [Registry directory testing](developer/registry-directory-testing.md)
 - [Integrity and schema validation](developer/integrity-and-schema-validation.md)
 
 ## Reference
 
 - [Generated command reference](reference/commands/index.md)
 - [Exit codes](reference/exit-codes.md)
-- [Config and state](reference/config-state.md)
-- [registries.json](reference/registries-json.md)
-- [Inline init actions](reference/inline-init-actions.md)

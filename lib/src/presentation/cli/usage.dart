@@ -38,16 +38,8 @@ void printCliUsage({bool advanced = false}) {
 
   _printUsageFlagSection('Registry Selection', const [
     MapEntry('--registry-name', 'Registry namespace (e.g. shadcn)'),
+    MapEntry('--registry <path|url>', 'Registry source override'),
   ]);
-
-  if (advanced) {
-    _printUsageFlagSection('Developer', const [
-      MapEntry('--registry-path', 'Use a local registry root'),
-      MapEntry('--registry-url', 'Use a remote registry URL'),
-      MapEntry('--registries-path', 'Use a local registries.json file'),
-      MapEntry('--skip-integrity', 'Skip registry integrity checks'),
-    ]);
-  }
 
   print('');
 }

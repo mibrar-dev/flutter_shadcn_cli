@@ -1,6 +1,6 @@
 # flutter_shadcn list
 
-> List available components.
+> List available components or blocks, by category.
 
 ## Aliases
 
@@ -9,7 +9,7 @@
 ## Usage
 
 ```bash
-flutter_shadcn list [flags]
+flutter_shadcn list [--blocks] [--category <name>] [--json]
 ```
 
 ## Arguments
@@ -20,15 +20,22 @@ This command does not define positional arguments.
 
 | Flag | Short | Default | Description |
 |------|-------|---------|-------------|
-| `--refresh` |  | `false` | Refresh cached registry data before listing. |
+| `--blocks` |  | `false` | List the blocks layer instead of components. |
+| `--category <name>` |  | `false` | Only entries of that category. |
 | `--json` |  | `false` | Output machine-readable JSON. |
 
 ## Examples
 
 ```bash
 flutter_shadcn list
-flutter_shadcn ls --refresh
+flutter_shadcn list --blocks
+flutter_shadcn list --category "Forms & Inputs"
+flutter_shadcn ls --json
 ```
+
+## Notes
+
+Human output groups entries by the category each meta.json declares; the JSON envelope keeps both `components` and `blocks` so a consumer never has to probe for a key.
 
 ## See Also
 

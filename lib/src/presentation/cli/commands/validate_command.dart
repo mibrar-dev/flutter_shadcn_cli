@@ -1,61 +1,44 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:flutter_shadcn_cli/src/exit_codes.dart';
-import 'package:flutter_shadcn_cli/src/json_output.dart';
-import 'package:flutter_shadcn_cli/src/logger.dart';
-import 'package:flutter_shadcn_cli/src/registry.dart';
-import 'package:flutter_shadcn_cli/src/validate_command.dart'
+import 'package:flutter_shadcn_cli/src/application/services/command_health/validate_command.dart'
     as validate_service;
+import 'package:flutter_shadcn_cli/src/application/services/registry_source_resolver.dart';
+import 'package:flutter_shadcn_cli/src/config.dart';
+import 'package:flutter_shadcn_cli/src/exit_codes.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
+/// `flutter_shadcn validate [--json]`: validate the registry manifest against
+/// the v2 schema (P5_CLI_PLAN.md §2).
 Future<int> runValidateCommandCli({
   required ArgResults command,
-  required Registry? registry,
-  required bool offline,
-  required CliLogger logger,
+  required ArgResults rootArgs,
+  required String projectRoot,
+  String? registryOverride,
+  bool offline = false,
 }) async {
-  if (command['help'] == true) {
-    print('Usage: flutter_shadcn validate [--json]');
-    print('');
-    print('Validates components.json and registry file dependencies.');
-    print('Options:');
-    print('  --json             Output machine-readable JSON');
+  final json = commandFlag(command, 'json');
+  final logger = commandLogger(rootArgs, json: json);
+  if (commandFlag(command, 'help')) {
+    stdout.writeln('Usage: flutter_shadcn validate [--json]');
+    stdout.writeln('');
+    stdout.writeln('Validates manifests/registry.json against the v2 schema.');
     return ExitCodes.success;
   }
-  if (registry == null) {
-    // Mirror doctor --json: emit a parseable envelope instead of
-    // stderr-only text (previously exit 20 with NO JSON).
-    if (command['json'] == true) {
-      final offlineUnavailable = offline;
-      final code = offlineUnavailable
-          ? ExitCodes.offlineUnavailable
-          : ExitCodes.registryNotFound;
-      printJson(jsonEnvelope(
-        command: 'validate',
-        data: const {},
-        errors: [
-          jsonError(
-            code: offlineUnavailable
-                ? ExitCodeLabels.offlineUnavailable
-                : ExitCodeLabels.registryNotFound,
-            message: offlineUnavailable
-                ? 'Offline mode: cached components.json not found.'
-                : 'Error: Registry is not available.',
-          ),
-        ],
-        meta: {'exitCode': code},
-      ));
-      return code;
-    }
-    stderr.writeln('Error: Registry is not available.');
-    return ExitCodes.registryNotFound;
+  try {
+    final config = await ShadcnConfig.load(projectRoot);
+    final source = RegistrySourceResolver.resolve(
+      projectRoot: projectRoot,
+      config: config,
+      registryOverride: registryOverride,
+      offline: offline,
+    );
+    return await validate_service.runValidateCommand(
+      source: source,
+      jsonOutput: json,
+      logger: logger,
+    );
+  } catch (error) {
+    return reportCommandError(error, logger);
   }
-  return validate_service.runValidateCommand(
-    registry: registry,
-    registryRoot: registry.registryRoot,
-    sourceRoot: registry.sourceRoot,
-    offline: offline,
-    jsonOutput: command['json'] == true,
-    logger: logger,
-  );
 }

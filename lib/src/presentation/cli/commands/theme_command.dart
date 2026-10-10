@@ -1,198 +1,248 @@
+import 'dart:convert';
 import 'dart:io';
 
 import 'package:args/args.dart';
+import 'package:flutter_shadcn_cli/src/application/services/theme/theme_models.dart';
+import 'package:flutter_shadcn_cli/src/application/services/theme/theme_preset_prompt.dart';
+import 'package:flutter_shadcn_cli/src/application/services/theme/theme_service.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/installer.dart';
+import 'package:flutter_shadcn_cli/src/logger.dart';
 
+/// `flutter_shadcn theme list` and `flutter_shadcn theme apply <preset>`.
+///
+/// Both actions read the preset catalogue from the manifest `themes` map and
+/// render `themes/<id>.json` into `<installRoot>/theme/app_theme.dart` through
+/// [ThemeService]; the command only parses arguments and prints.
+///
+/// Argument shapes accepted (the parser is owned by another batch, so every
+/// form is probed defensively):
+///
+/// ```
+/// theme list [--json]
+/// theme apply <preset> [--refresh] [--json]
+/// theme --list | theme --apply <preset> | theme <preset>   (legacy flags)
+/// theme                                                 (interactive picker)
+/// ```
 Future<int> runThemeCommand({
   required ArgResults themeCommand,
   required ArgResults rootArgs,
   required Installer? installer,
   required bool? registrySupportsTheme,
 }) async {
-  final advanced = rootArgs['advanced'] == true;
-  final widgetCommand = themeCommand.command;
-  if (themeCommand['help'] == true) {
-    _printThemeHelp(advanced: advanced);
+  if (_flag(themeCommand, 'help') == true ||
+      _sub(themeCommand, 'help') != null) {
+    _printThemeHelp();
     return ExitCodes.success;
   }
-  if (widgetCommand?.name == 'widget' && widgetCommand?['help'] == true) {
-    _printWidgetThemeHelp(advanced: advanced);
-    return ExitCodes.success;
-  }
-  final activeInstaller = installer;
-  if (activeInstaller == null) {
-    stderr.writeln('Error: Installer is not available.');
-    return ExitCodes.registryNotFound;
-  }
-  if (widgetCommand?.name == 'widget') {
-    return _runWidgetThemeCommand(
-      widgetCommand: widgetCommand!,
-      installer: activeInstaller,
-      advanced: advanced,
+  final sub = themeCommand.command;
+  if (sub != null && sub.name != 'list' && sub.name != 'apply') {
+    stderr.writeln(
+      'Error: "theme ${sub.name}" was removed with the v1 theme manifest. '
+      'Use "theme list" or "theme apply <preset>".',
     );
+    return ExitCodes.usage;
+  }
+  final refresh = _flag(themeCommand, 'refresh') == true ||
+      (sub != null && _flag(sub, 'refresh') == true);
+  final json = _flag(themeCommand, 'json') == true ||
+      (sub != null && _flag(sub, 'json') == true);
+  if (_option(themeCommand, 'apply-file') != null ||
+      _option(themeCommand, 'apply-url') != null) {
+    stderr.writeln(
+      'Error: --apply-file/--apply-url were removed. A preset is applied by id: '
+      '"theme apply <preset>".',
+    );
+    return ExitCodes.usage;
   }
   if (registrySupportsTheme == false) {
     print('This registry does not provide theme presets.');
     return ExitCodes.success;
   }
-  final refresh = themeCommand['refresh'] == true;
-  if (themeCommand['list'] == true) {
-    return _runThemeAction(() => activeInstaller.listThemes(refresh: refresh));
-  }
-  final applyFile = themeCommand['apply-file'] as String?;
-  final applyUrl = themeCommand['apply-url'] as String?;
-  if (applyFile != null || applyUrl != null) {
-    if (!advanced) {
-      stderr.writeln('Error: --apply-file/--apply-url require --advanced.');
-      return ExitCodes.usage;
-    }
-    if (applyFile != null) {
-      return _runThemeAction(
-          () => activeInstaller.applyThemeFromFile(applyFile));
-    }
-    if (applyUrl != null) {
-      return _runThemeAction(() => activeInstaller.applyThemeFromUrl(applyUrl));
-    }
-  }
-  final applyOption = themeCommand['apply'] as String?;
-  final rest = [...themeCommand.rest];
-  if (rest.isNotEmpty &&
-      rest.first.startsWith('@') &&
-      !rest.first.contains('/')) {
-    rest.removeAt(0);
-  }
-  final presetArg = applyOption ?? (rest.isEmpty ? null : rest.first);
-  if (presetArg != null) {
-    return _runThemeAction(
-      () => activeInstaller.applyThemeById(presetArg, refresh: refresh),
-    );
-  }
-  return _runThemeAction(() => activeInstaller.chooseTheme(refresh: refresh));
-}
 
-Future<int> _runWidgetThemeCommand({
-  required ArgResults widgetCommand,
-  required Installer installer,
-  required bool advanced,
-}) async {
-  if (widgetCommand['list'] == true) {
-    return _runThemeAction(installer.listWidgetThemes);
-  }
-
-  final rest = [...widgetCommand.rest];
-  if (rest.isNotEmpty &&
-      rest.first.startsWith('@') &&
-      !rest.first.contains('/')) {
-    rest.removeAt(0);
-  }
-  final component = rest.isEmpty ? null : rest.first;
-  if (component == null || component.trim().isEmpty) {
-    stderr.writeln(
-      'Error: Widget component is required. Use "flutter_shadcn theme widget --list" to browse themeable widgets.',
-    );
-    return ExitCodes.usage;
-  }
-
-  if (widgetCommand['list-targets'] == true) {
-    return _runThemeAction(() => installer.listWidgetThemeTargets(component));
-  }
-
-  final applyFile = widgetCommand['apply-file'] as String?;
-  final applyUrl = widgetCommand['apply-url'] as String?;
-  if ((applyFile != null || applyUrl != null) && !advanced) {
-    stderr.writeln('Error: --apply-file/--apply-url require --advanced.');
-    return ExitCodes.usage;
-  }
-  if (applyFile != null) {
-    return _runThemeAction(
-      () => installer.applyWidgetThemeFromFile(component, applyFile),
-    );
-  }
-  if (applyUrl != null) {
-    return _runThemeAction(
-      () => installer.applyWidgetThemeFromUrl(component, applyUrl),
-    );
-  }
-
-  if (widgetCommand['reset'] == true) {
-    return _runThemeAction(() => installer.resetWidgetTheme(component));
-  }
-
-  stderr.writeln(
-    'Error: No widget theme action provided. Use --list-targets, --apply-file, --apply-url, or --reset.',
+  // Warnings must never pollute stdout when --json is in play.
+  final logger = CliLogger(
+    verbose: _flag(rootArgs, 'verbose') == true,
+    useColor: !json,
+    writeLine: json ? stderr.writeln : stdout.writeln,
+    writeStderrLine: stderr.writeln,
   );
-  return ExitCodes.usage;
-}
+  final projectRoot = installer?.projectRoot ?? Directory.current.path;
 
-Future<int> _runThemeAction(Future<void> Function() action) async {
   try {
-    await action();
-    return ExitCodes.success;
-  } on UnsupportedError catch (error) {
-    stderr.writeln('Error: ${error.message}');
-    return ExitCodes.validationFailed;
-  } on FormatException catch (error) {
-    stderr.writeln('Error: ${error.message}');
-    return ExitCodes.validationFailed;
+    final service = await ThemeService.resolve(
+      projectRoot: projectRoot,
+      installRoot: installer?.installRoot,
+      namespace: _option(rootArgs, 'registry-name'),
+      registryPathOverride: _option(rootArgs, 'registry-path'),
+      registryUrlOverride: _option(rootArgs, 'registry-url'),
+      offline: _flag(rootArgs, 'offline') == true,
+      logger: logger,
+    );
+
+    final presetId = _resolvePresetId(themeCommand, sub);
+    final wantsList = _flag(themeCommand, 'list') == true ||
+        sub?.name == 'list' ||
+        (presetId == null && json);
+
+    if (presetId != null) {
+      final result = await service.apply(presetId, refresh: refresh);
+      if (json) {
+        print(jsonEncode(<String, Object?>{'applied': result.toJson()}));
+      }
+      return _applyExitCode(result);
+    }
+    if (wantsList) {
+      return await _printCatalog(await service.listPresets(), json: json);
+    }
+    return await _chooseInteractively(service);
   } catch (error) {
-    stderr.writeln('Error: ${_formatThemeError(error)}');
+    return _themeFailure(error);
+  }
+}
+
+Future<int> _printCatalog(
+  List<ThemeCatalogEntry> presets, {
+  required bool json,
+}) async {
+  if (json) {
+    print(
+      jsonEncode(<String, Object?>{
+        'presets': presets.map((preset) => preset.toJson()).toList(),
+        'current': presets.any((p) => p.isCurrent)
+            ? presets.firstWhere((p) => p.isCurrent).id
+            : null,
+      }),
+    );
+    return ExitCodes.success;
+  }
+  if (presets.isEmpty) {
+    print('No theme presets available in this registry.');
+    return ExitCodes.success;
+  }
+  print('Available theme presets (${presets.length}):');
+  for (final preset in presets) {
+    final current = preset.isCurrent ? '  (current)' : '';
+    print('  ${preset.id.padRight(20)} ${preset.name}'
+        '  [${preset.modes.join(', ')}]$current');
+  }
+  print('');
+  print('Apply one with: flutter_shadcn theme apply <preset>');
+  return ExitCodes.success;
+}
+
+Future<int> _chooseInteractively(ThemeService service) async {
+  final presets = await service.listPresets();
+  if (presets.isEmpty) {
+    print('No theme presets available in this registry.');
+    return ExitCodes.success;
+  }
+  print('Select a theme preset (press Enter to skip):');
+  final chosen = await promptForThemePreset(
+    presets,
+    question: 'Theme number: ',
+  );
+  if (chosen == null) {
+    print('Skipping theme selection.');
+    return ExitCodes.success;
+  }
+  final result = await service.apply(chosen.id);
+  return _applyExitCode(result);
+}
+
+/// A refused apply is [ExitCodes.themeDrift], not `validation_failed`: nothing
+/// is invalid, the CLI declined to overwrite a user-owned file, and
+/// `--refresh` is the documented way forward.
+int _applyExitCode(ThemeApplyResult result) {
+  if (result.isClean) return ExitCodes.success;
+  return result.status == ThemeApplyStatus.drift
+      ? ExitCodes.themeDrift
+      : ExitCodes.validationFailed;
+}
+
+/// The preset id from `theme apply <id>`, `theme --apply <id>`, a leading
+/// `@namespace` token or a bare `theme <id>`.
+String? _resolvePresetId(ArgResults args, ArgResults? sub) {
+  final option = _option(args, 'apply') ??
+      (sub != null && sub.name == 'apply' ? _option(sub, 'apply') : null);
+  if (option != null && option.trim().isNotEmpty) return option.trim();
+  if (sub != null && sub.rest.isNotEmpty) {
+    return _firstPresetToken(sub.rest);
+  }
+  return _firstPresetToken(args.rest);
+}
+
+String? _firstPresetToken(List<String> rest) {
+  for (final token in rest) {
+    final value = token.trim();
+    if (value.isEmpty) continue;
+    if (value.startsWith('@') && !value.contains('/')) continue;
+    return value;
+  }
+  return null;
+}
+
+int _themeFailure(Object error) {
+  if (error is ThemeApplyException) {
+    if (error.message.startsWith('No shadcn registry is configured')) {
+      return ExitCodes.registryNotFound;
+    }
+    for (final line in error.lines) {
+      stderr.writeln('Error: $line');
+    }
     return ExitCodes.validationFailed;
   }
+  if (error is FormatException) {
+    stderr.writeln('Error: ${error.message}');
+    return ExitCodes.validationFailed;
+  }
+  stderr.writeln('Error: $error');
+  return ExitCodes.ioError;
 }
 
-String _formatThemeError(Object error) {
-  final message = error.toString();
-  const exceptionPrefix = 'Exception: ';
-  if (message.startsWith(exceptionPrefix)) {
-    return message.substring(exceptionPrefix.length);
+bool? _flag(ArgResults args, String name) {
+  try {
+    final value = args[name];
+    return value is bool ? value : null;
+  } on ArgumentError {
+    // The option is not registered on this parser; another batch owns it.
+    return null;
   }
-  return message;
 }
 
-void _printThemeHelp({required bool advanced}) {
-  if (advanced) {
-    print(
-        'Usage: flutter_shadcn theme [--list | --apply <preset> | --apply-file <path> | --apply-url <url>] [--refresh]');
-    print(
-        '       flutter_shadcn theme widget [@namespace] <component> [--list-targets | --apply-file <path> | --apply-url <url> | --reset]');
-  } else {
-    print(
-        'Usage: flutter_shadcn theme [--list | --apply <preset>] [--refresh]');
-    print(
-        '       flutter_shadcn theme widget [@namespace] <component> [--list-targets | --reset]');
+String? _option(ArgResults args, String name) {
+  try {
+    final value = args[name];
+    return value is String && value.trim().isNotEmpty ? value.trim() : null;
+  } on ArgumentError {
+    return null;
   }
+}
+
+ArgResults? _sub(ArgResults args, String name) {
+  final command = args.command;
+  return command != null && command.name == name ? command : null;
+}
+
+void _printThemeHelp() {
+  print('Usage: flutter_shadcn theme list [--json]');
+  print('       flutter_shadcn theme apply <preset> [--refresh] [--json]');
+  print('       flutter_shadcn theme');
+  print('');
+  print('Commands:');
+  print('  list              Show the presets from the registry manifest');
+  print('  apply <preset>    Generate <installRoot>/theme/app_theme.dart');
   print('');
   print('Options:');
-  print('  --list             Show all available theme presets');
-  print('  --refresh          Refresh theme cache');
-  print('  --apply, -a <id>   Apply the preset with the given ID');
-  if (advanced) {
-    print('  --apply-file       Apply a declarative theme manifest file');
-    print('  --apply-url        Apply a declarative theme manifest URL');
-  }
-  print('  --help, -h         Show this message');
-}
-
-void _printWidgetThemeHelp({required bool advanced}) {
-  if (advanced) {
-    print(
-        'Usage: flutter_shadcn theme widget [@namespace] <component> [--list-targets | --apply-file <path> | --apply-url <url> | --reset]');
-  } else {
-    print(
-        'Usage: flutter_shadcn theme widget [@namespace] <component> [--list-targets | --reset]');
-  }
+  print('  --refresh         Overwrite app_theme.dart even when it was edited');
+  print('  --json            Machine-readable output on stdout');
+  print('  --help, -h        Show this message');
   print('');
-  print('Options:');
   print(
-      '  --list               Show all themeable widgets in the active registry');
-  print(
-      '  --list-targets       Show available theme targets for the selected widget');
-  if (advanced) {
-    print('  --apply-file <path>  Apply widget theme from a local JSON file');
-    print('  --apply-url <url>    Apply widget theme from a JSON URL');
-  }
-  print(
-      '  --reset              Reset widget theme overrides for the selected widget');
-  print('  --help, -h           Show this message');
+      'app_theme.dart is yours: without --refresh a locally modified file is');
+  print('reported as drift and left untouched.');
+  print('');
+  print('Legacy flags --apply/-a and --list still work. --apply-file,');
+  print('--apply-url and "theme widget" were removed with the v1 theme');
+  print('manifest; "theme import <css|json|url>" is not implemented yet.');
 }

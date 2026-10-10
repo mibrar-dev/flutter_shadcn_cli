@@ -1,76 +1,108 @@
 import 'dart:io';
 
 import 'package:args/args.dart';
-import 'package:flutter_shadcn_cli/src/discovery_commands.dart';
 import 'package:flutter_shadcn_cli/src/exit_codes.dart';
 import 'package:flutter_shadcn_cli/src/json_output.dart';
-import 'package:flutter_shadcn_cli/src/logger.dart';
-import 'package:flutter_shadcn_cli/src/multi_registry_manager.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/catalog_entry.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_context.dart';
+import 'package:flutter_shadcn_cli/src/presentation/cli/command_support.dart';
 
+/// `flutter_shadcn list [--blocks] [--category <c>] [--json]`: every component
+/// (default) or every block in the registry manifest, grouped by the category
+/// P6-B1 stores in each `meta.json` (P5_CLI_PLAN.md §2, P6-B2).
+///
+/// The JSON envelope always carries both `components` and `blocks`: the one
+/// that is not on show is an empty array, so a consumer never has to probe for
+/// a key.
 Future<int> runListCommand({
   required ArgResults listCommand,
-  required MultiRegistryManager multiRegistry,
-  required CliLogger logger,
+  required ArgResults rootArgs,
+  required String projectRoot,
+  String? registryOverride,
+  bool offline = false,
 }) async {
-  if (listCommand['help'] == true) {
-    print('Usage: flutter_shadcn list [--refresh] [--json]');
-    print('       flutter_shadcn list @<namespace> [--refresh] [--json]');
-    print('');
-    print('Lists all available components from the registry.');
-    print('Options:');
-    print('  --refresh  Refresh cache from remote');
-    print('  --json     Output machine-readable JSON');
+  final json = commandFlag(listCommand, 'json');
+  final showBlocks = commandFlag(listCommand, 'blocks');
+  final category = commandOption(listCommand, 'category');
+  final logger = commandLogger(rootArgs, json: json);
+
+  if (commandFlag(listCommand, 'help')) {
+    stdout.writeln('Usage: flutter_shadcn list [--blocks] [--category <c>] '
+        '[--json]');
+    stdout.writeln('');
+    stdout
+        .writeln('Lists components (default) or blocks, grouped by category.');
+    stdout.writeln('');
+    stdout.writeln('Options:');
+    stdout.writeln('  --blocks           List the blocks layer instead');
+    stdout.writeln('  --category <name>  Only entries of that category');
+    stdout.writeln('  --json             Machine-readable output on stdout');
     return ExitCodes.success;
   }
-  String? listNamespaceOverride;
-  final listTokens = [...listCommand.rest];
-  if (listTokens.isNotEmpty &&
-      listTokens.first.startsWith('@') &&
-      !listTokens.first.contains('/')) {
-    listNamespaceOverride = listTokens.removeAt(0).substring(1).trim();
-    if (listNamespaceOverride.isEmpty) {
-      stderr.writeln('Error: Invalid namespace token for list.');
-      return ExitCodes.usage;
-    }
-  }
-  if (listTokens.isNotEmpty) {
-    stderr.writeln('Error: list does not accept positional query text.');
-    stderr.writeln('Use: flutter_shadcn search [@namespace] <query>');
-    return ExitCodes.usage;
-  }
 
-  late final DiscoveryRegistryTarget target;
   try {
-    target = await multiRegistry.resolveDiscoveryTarget(
-      namespace: listNamespaceOverride,
+    final context = await CommandContextResolver.resolve(
+      projectRoot: projectRoot,
+      logger: logger,
+      registryOverride: registryOverride,
+      offline: offline,
     );
-  } on MultiRegistryException catch (e) {
-    if (listCommand['json'] == true) {
+    final manifest = context.loadedManifest.manifest;
+    final components = filterByCategory(
+      [
+        for (final component in manifest.components.values)
+          CatalogEntry.component(component),
+      ],
+      category,
+    )..sort((a, b) => a.id.compareTo(b.id));
+    final blocks = filterByCategory(
+      [
+        for (final block in manifest.blocks.values) CatalogEntry.block(block),
+      ],
+      category,
+    )..sort((a, b) => a.id.compareTo(b.id));
+    final shown = showBlocks ? blocks : components;
+
+    if (json) {
       printJson(jsonEnvelope(
         command: 'list',
-        data: const {},
-        errors: [
-          jsonError(
-            code: ExitCodeLabels.registryNotFound,
-            message: e.message,
-          ),
-        ],
-        meta: {'exitCode': ExitCodes.registryNotFound},
+        data: {
+          'registry': manifest.registry.name,
+          'kind':
+              showBlocks ? CatalogKind.block.name : CatalogKind.component.name,
+          'count': shown.length,
+          'categories': categorySummary(shown),
+          'components': showBlocks ? const [] : components,
+          'blocks': showBlocks ? blocks : const [],
+        },
+        meta: {'exitCode': ExitCodes.success},
       ));
-    } else {
-      stderr.writeln('Error: ${e.message}');
+      return ExitCodes.success;
     }
-    return ExitCodes.registryNotFound;
+
+    if (shown.isEmpty) {
+      final wanted = category?.trim();
+      if (wanted != null && wanted.isNotEmpty) {
+        stdout.writeln('No ${showBlocks ? 'blocks' : 'components'} in category '
+            '"$wanted".');
+        // The two taxonomies are independent (13 component categories, 6 block
+        // families), so an empty result is usually the wrong list.
+        final other = showBlocks ? components : blocks;
+        if (other.isNotEmpty) {
+          stdout.writeln('Try `list${showBlocks ? '' : ' --blocks'}` for the '
+              'other catalog.');
+        }
+      } else {
+        stdout.writeln('No ${showBlocks ? 'blocks' : 'components'} in this '
+            'registry.');
+      }
+      return ExitCodes.success;
+    }
+    stdout.writeln('${shown.length} ${showBlocks ? 'block' : 'component'}(s) '
+        'by category:');
+    writeGroupedCatalog(shown, write: stdout.writeln);
+    return ExitCodes.success;
+  } catch (error) {
+    return reportCommandError(error, logger);
   }
-  final listExit = await handleListCommand(
-    registryBaseUrl: target.registryBase,
-    registryId: target.registryId,
-    refresh: listCommand['refresh'] == true,
-    offline: multiRegistry.offline,
-    jsonOutput: listCommand['json'] == true,
-    logger: logger,
-    indexPath: target.indexPath,
-    indexSchemaPath: target.indexSchemaPath,
-  );
-  return listExit;
 }
